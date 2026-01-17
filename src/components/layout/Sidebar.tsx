@@ -52,6 +52,8 @@ const navigation: NavSection[] = [
     priority: 'normal',
     items: [
       { label: 'Firewall Rules', path: '/firewall/rules', icon: <Shield size={14} /> },
+      { label: 'Aliases', path: '/firewall/aliases', icon: <Network size={14} /> },
+      { label: 'Schedules', path: '/firewall/schedules', icon: <Settings size={14} /> },
       { label: 'NAT', path: '/firewall/nat', icon: <ArrowLeftRight size={14} /> },
       { label: 'Threat Prevention', path: '/security/ids', icon: <Lock size={14} /> },
     ],
