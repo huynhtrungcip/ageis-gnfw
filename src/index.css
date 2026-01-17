@@ -2,62 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Aegis NGFW - Enterprise Appliance Interface */
-/* Utilitarian. Dense. Trusted. */
+/* Aegis NGFW - Modern Enterprise Interface */
+/* Clean. Structured. Professional. */
 
 @layer base {
   :root {
-    /* Core Dark Theme - Engineering Grade */
-    --background: 220 15% 8%;
-    --background-elevated: 220 12% 11%;
-    --foreground: 210 10% 80%;
+    /* Core Dark Theme - Modern with Contrast */
+    --background: 222 20% 7%;
+    --background-elevated: 222 18% 10%;
+    --foreground: 210 15% 85%;
 
-    --card: 220 12% 11%;
-    --card-foreground: 210 10% 80%;
+    --card: 222 18% 10%;
+    --card-foreground: 210 15% 85%;
 
-    --popover: 220 12% 13%;
-    --popover-foreground: 210 10% 80%;
+    --popover: 222 16% 12%;
+    --popover-foreground: 210 15% 85%;
 
-    /* Primary - Muted Teal */
-    --primary: 190 50% 45%;
-    --primary-foreground: 220 15% 8%;
+    /* Primary - Clean Teal */
+    --primary: 190 60% 48%;
+    --primary-foreground: 222 20% 6%;
 
-    --secondary: 220 10% 14%;
-    --secondary-foreground: 210 10% 70%;
+    --secondary: 222 15% 15%;
+    --secondary-foreground: 210 12% 75%;
 
-    --muted: 220 10% 16%;
-    --muted-foreground: 215 8% 45%;
+    --muted: 222 12% 18%;
+    --muted-foreground: 215 10% 50%;
 
-    --accent: 220 10% 16%;
-    --accent-foreground: 210 10% 80%;
+    --accent: 222 14% 14%;
+    --accent-foreground: 210 15% 85%;
 
-    /* Semantic - Strict */
-    --destructive: 0 55% 48%;
+    /* Semantic - Clean */
+    --destructive: 0 65% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 10% 16%;
-    --input: 220 10% 12%;
-    --ring: 190 50% 45%;
+    --border: 222 12% 18%;
+    --input: 222 14% 12%;
+    --ring: 190 60% 48%;
 
-    --radius: 0.125rem;
+    --radius: 0.25rem;
 
-    /* Status - Muted */
-    --status-critical: 0 60% 50%;
-    --status-high: 30 70% 50%;
-    --status-medium: 45 70% 48%;
-    --status-low: 190 40% 45%;
-    --status-healthy: 140 45% 42%;
-    --status-inactive: 220 8% 35%;
+    /* Status - Vibrant */
+    --status-critical: 0 72% 55%;
+    --status-high: 28 85% 55%;
+    --status-medium: 42 90% 52%;
+    --status-low: 190 55% 50%;
+    --status-healthy: 145 60% 45%;
+    --status-inactive: 220 10% 40%;
 
-    /* Sidebar */
-    --sidebar-background: 220 15% 7%;
-    --sidebar-foreground: 215 8% 50%;
-    --sidebar-primary: 190 50% 45%;
-    --sidebar-primary-foreground: 220 15% 8%;
-    --sidebar-accent: 220 10% 12%;
-    --sidebar-accent-foreground: 210 10% 80%;
-    --sidebar-border: 220 10% 12%;
-    --sidebar-ring: 190 50% 45%;
+    /* Sidebar - Distinct */
+    --sidebar-background: 222 22% 6%;
+    --sidebar-foreground: 215 12% 55%;
+    --sidebar-primary: 190 60% 48%;
+    --sidebar-primary-foreground: 222 20% 6%;
+    --sidebar-accent: 222 16% 12%;
+    --sidebar-accent-foreground: 210 15% 85%;
+    --sidebar-border: 222 14% 14%;
+    --sidebar-ring: 190 60% 48%;
   }
 }
 
@@ -68,34 +68,43 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: hsl(var(--background));
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
   }
 }
 
 @layer components {
-  /* Command Bar - Flat */
+  /* Command Bar - Modern with accent */
   .command-bar {
-    @apply h-10 bg-background border-b border-border flex items-center justify-between px-3;
+    @apply h-11 bg-background/80 backdrop-blur-sm border-b border-border flex items-center justify-between px-4;
   }
 
-  /* Status dot */
+  /* Status dot - Larger */
   .status-dot {
-    @apply w-1.5 h-1.5 rounded-full;
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-lg {
+    @apply w-2.5 h-2.5 rounded-full;
   }
 
   .status-critical { background-color: hsl(var(--status-critical)); }
@@ -105,43 +114,64 @@
   .status-healthy { background-color: hsl(var(--status-healthy)); }
   .status-inactive { background-color: hsl(var(--status-inactive)); }
 
-  /* Section - No shadow, minimal border */
+  /* Section - Clean card with subtle elevation */
   .section {
-    @apply border border-border bg-card;
+    @apply bg-card border border-border rounded-sm;
   }
 
   .section-header {
-    @apply px-3 py-2 border-b border-border flex items-center justify-between text-xs font-medium text-muted-foreground uppercase tracking-wide;
+    @apply px-4 py-3 border-b border-border flex items-center justify-between text-xs font-semibold text-foreground uppercase tracking-wide;
   }
 
   .section-body {
-    @apply p-3;
+    @apply p-4;
   }
 
-  /* Flat table */
+  /* Summary cards - Hero metrics */
+  .stat-card {
+    @apply bg-card border border-border rounded-sm p-4;
+  }
+
+  .stat-value {
+    @apply text-2xl font-bold text-foreground;
+  }
+
+  .stat-label {
+    @apply text-xs text-muted-foreground uppercase tracking-wide mt-1;
+  }
+
+  /* Table - Modern with better contrast */
   .data-table {
-    @apply w-full text-xs;
+    @apply w-full text-[13px];
   }
 
   .data-table th {
-    @apply text-left text-muted-foreground font-medium text-[11px] uppercase tracking-wide py-1.5 px-2 border-b border-border bg-background;
+    @apply text-left text-muted-foreground font-semibold text-[11px] uppercase tracking-wider py-2.5 px-3 border-b border-border bg-muted/30;
   }
 
   .data-table td {
-    @apply py-1.5 px-2 border-b border-border;
+    @apply py-2.5 px-3 border-b border-border/50;
+  }
+
+  .data-table tbody tr {
+    @apply transition-colors;
   }
 
   .data-table tbody tr:hover {
-    @apply bg-accent/30;
+    @apply bg-accent/50;
   }
 
-  /* Navigation - Dense */
+  /* Navigation - Clear hierarchy */
   .nav-section {
-    @apply text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-2 py-1.5 mt-3 first:mt-0;
+    @apply text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 px-3 py-2 mt-4 first:mt-1;
+  }
+
+  .nav-section-highlight {
+    @apply text-[10px] font-bold uppercase tracking-widest text-primary/80 px-3 py-2 mt-4 first:mt-1;
   }
 
   .nav-item {
-    @apply flex items-center gap-2 px-2 py-1.5 text-xs text-sidebar-foreground transition-colors;
+    @apply flex items-center gap-2.5 px-3 py-2 text-[13px] text-sidebar-foreground transition-all rounded-sm mx-1;
   }
 
   .nav-item:hover {
@@ -149,16 +179,16 @@
   }
 
   .nav-item.active {
-    @apply bg-primary/15 text-primary border-l-2 border-primary -ml-px;
+    @apply bg-primary/15 text-primary font-medium;
   }
 
-  /* Buttons - Flat */
+  /* Buttons - Modern */
   .btn {
-    @apply px-2 py-1 text-xs font-medium transition-colors;
+    @apply px-3 py-1.5 text-xs font-medium transition-all rounded-sm;
   }
 
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply bg-primary text-primary-foreground hover:bg-primary/85;
   }
 
   .btn-ghost {
@@ -166,33 +196,37 @@
   }
 
   .btn-outline {
-    @apply border border-border text-foreground hover:bg-accent;
+    @apply border border-border text-foreground hover:bg-accent hover:border-muted-foreground/30;
   }
 
-  /* Tags - Compact */
+  /* Tags - Modern with better visibility */
   .tag {
-    @apply text-[10px] font-medium px-1 py-0.5;
+    @apply text-[10px] font-semibold px-1.5 py-0.5 rounded-sm uppercase tracking-wide;
   }
 
-  .tag-critical { @apply bg-status-critical/20 text-[hsl(var(--status-critical))]; }
-  .tag-high { @apply bg-status-high/20 text-[hsl(var(--status-high))]; }
-  .tag-medium { @apply bg-status-medium/20 text-[hsl(var(--status-medium))]; }
-  .tag-low { @apply bg-status-low/20 text-[hsl(var(--status-low))]; }
-  .tag-healthy { @apply bg-status-healthy/20 text-[hsl(var(--status-healthy))]; }
+  .tag-critical { @apply bg-status-critical/15 text-[hsl(var(--status-critical))] border border-status-critical/30; }
+  .tag-high { @apply bg-status-high/15 text-[hsl(var(--status-high))] border border-status-high/30; }
+  .tag-medium { @apply bg-status-medium/15 text-[hsl(var(--status-medium))] border border-status-medium/30; }
+  .tag-low { @apply bg-status-low/15 text-[hsl(var(--status-low))] border border-status-low/30; }
+  .tag-healthy { @apply bg-status-healthy/15 text-[hsl(var(--status-healthy))] border border-status-healthy/30; }
 
   /* Monospace */
   .mono {
-    font-family: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
-    font-size: 11px;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+    font-size: 12px;
   }
 
-  /* Metric - Dense */
+  /* Metric - Clear */
   .metric {
-    @apply text-lg font-semibold;
+    @apply text-xl font-bold;
+  }
+
+  .metric-lg {
+    @apply text-3xl font-bold;
   }
 
   .metric-sm {
-    @apply text-sm font-medium;
+    @apply text-base font-semibold;
   }
 
   /* Divider */
@@ -200,12 +234,43 @@
     @apply border-t border-border;
   }
 
-  /* List row */
+  /* List row - Better spacing */
   .list-row {
-    @apply px-3 py-2 border-b border-border hover:bg-accent/30 transition-colors;
+    @apply px-4 py-3 border-b border-border/50 hover:bg-accent/40 transition-colors;
   }
 
   .list-row:last-child {
     @apply border-b-0;
+  }
+
+  /* Quick action strip */
+  .action-strip {
+    @apply flex items-center gap-2 p-3 bg-muted/30 border border-border rounded-sm;
+  }
+
+  /* Panel header with accent */
+  .panel-header {
+    @apply flex items-center justify-between px-4 py-3 border-b border-border;
+  }
+
+  .panel-title {
+    @apply text-sm font-semibold text-foreground;
+  }
+
+  /* Info grid */
+  .info-grid {
+    @apply grid gap-4;
+  }
+
+  .info-item {
+    @apply space-y-1;
+  }
+
+  .info-label {
+    @apply text-[11px] text-muted-foreground uppercase tracking-wide;
+  }
+
+  .info-value {
+    @apply text-sm text-foreground font-medium;
   }
 }

@@ -89,28 +89,31 @@ export function Sidebar() {
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-44 bg-sidebar border-r border-sidebar-border z-40 flex flex-col">
+    <aside className="fixed left-0 top-0 h-screen w-52 bg-sidebar border-r border-sidebar-border z-40 flex flex-col">
       {/* Logo */}
-      <div className="h-10 flex items-center px-3 border-b border-sidebar-border">
-        <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 bg-primary flex items-center justify-center">
-            <Shield size={12} className="text-primary-foreground" />
+      <div className="h-12 flex items-center px-4 border-b border-sidebar-border bg-sidebar">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-primary rounded-sm flex items-center justify-center">
+            <Shield size={16} className="text-primary-foreground" />
           </div>
-          <span className="text-foreground font-semibold text-xs">AEGIS NGFW</span>
+          <div>
+            <div className="text-foreground font-bold text-sm tracking-tight">AEGIS</div>
+            <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Next-Gen Firewall</div>
+          </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-1 px-1">
+      <nav className="flex-1 overflow-y-auto py-2">
         {navigation.map((section) => (
-          <div key={section.title} className={cn(
-            section.priority === 'low' && "opacity-70"
-          )}>
+          <div key={section.title}>
             <div className={cn(
-              "nav-section",
-              section.priority === 'high' && "text-foreground font-medium"
-            )}>{section.title}</div>
-            <ul>
+              section.priority === 'high' ? "nav-section-highlight" : "nav-section",
+              section.priority === 'low' && "opacity-60"
+            )}>
+              {section.title}
+            </div>
+            <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
@@ -120,11 +123,12 @@ export function Sidebar() {
                       className={cn(
                         "nav-item",
                         isActive && "active",
-                        item.muted && "text-muted-foreground text-[11px]"
+                        item.muted && "text-muted-foreground"
                       )}
                     >
                       <span className={cn(
-                        item.muted ? "opacity-40" : "opacity-60"
+                        "transition-colors",
+                        isActive ? "text-primary" : item.muted ? "opacity-50" : "opacity-70"
                       )}>{item.icon}</span>
                       <span>{item.label}</span>
                     </Link>
@@ -137,8 +141,9 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-2 py-2 border-t border-sidebar-border text-[10px] text-muted-foreground">
-        v1.0.0 | Primary
+      <div className="px-4 py-3 border-t border-sidebar-border">
+        <div className="text-xs text-muted-foreground">v1.0.0</div>
+        <div className="text-[10px] text-muted-foreground/60 mt-0.5">Primary Cluster</div>
       </div>
     </aside>
   );
