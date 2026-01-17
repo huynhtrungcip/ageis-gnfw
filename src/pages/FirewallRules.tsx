@@ -19,51 +19,64 @@ const FirewallRules = () => {
 
   return (
     <Shell>
-      <div className="space-y-3">
+      <div className="space-y-5">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-sm font-semibold">Policies</h1>
-          <button className="btn btn-primary flex items-center gap-1">
-            <Plus size={12} />
-            Add
+          <h1 className="text-base font-bold">Firewall Rules</h1>
+          <button className="btn btn-primary flex items-center gap-1.5">
+            <Plus size={14} />
+            Add Rule
           </button>
         </div>
 
-        <div className="flex items-center gap-1">
-          {interfaces.map((i) => (
-            <button
-              key={i}
-              onClick={() => setIface(i)}
-              className={cn(
-                "px-2 py-1 text-[11px]",
-                iface === i ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent"
-              )}
-            >
-              {i === 'all' ? 'All' : i}
-            </button>
-          ))}
+        {/* Filter Strip */}
+        <div className="action-strip">
+          <span className="text-xs text-muted-foreground">Filter by interface:</span>
+          <div className="flex items-center gap-1">
+            {interfaces.map((i) => (
+              <button
+                key={i}
+                onClick={() => setIface(i)}
+                className={cn(
+                  "px-3 py-1.5 text-xs rounded-sm transition-all",
+                  iface === i 
+                    ? "bg-primary text-primary-foreground font-medium" 
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
+                {i === 'all' ? 'All Interfaces' : i}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1" />
+          <span className="text-xs text-muted-foreground">{filtered.length} rules</span>
         </div>
 
+        {/* Rules Table */}
         <div className="section">
           <table className="data-table">
             <thead>
               <tr>
-                <th className="w-8">#</th>
-                <th className="w-12"></th>
-                <th>Action</th>
+                <th className="w-12">#</th>
+                <th className="w-14">Status</th>
+                <th className="w-24">Action</th>
                 <th>Interface</th>
                 <th>Protocol</th>
                 <th>Source</th>
                 <th>Destination</th>
                 <th>Description</th>
-                <th>Hits</th>
+                <th className="text-right">Hits</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((rule, idx) => (
-                <tr key={rule.id} className={cn(!rule.enabled && "opacity-40")}>
-                  <td className="text-muted-foreground">{idx + 1}</td>
+                <tr key={rule.id} className={cn(!rule.enabled && "opacity-50")}>
+                  <td className="text-muted-foreground font-mono">{idx + 1}</td>
                   <td>
-                    <span className={cn("status-dot", rule.enabled ? "status-healthy" : "status-inactive")} />
+                    <span className={cn(
+                      "status-dot-lg",
+                      rule.enabled ? "status-healthy" : "status-inactive"
+                    )} />
                   </td>
                   <td>
                     <span className={cn(
@@ -73,16 +86,16 @@ const FirewallRules = () => {
                       {rule.action.toUpperCase()}
                     </span>
                   </td>
-                  <td>{rule.interface}</td>
-                  <td className="font-mono text-[11px]">{rule.protocol.toUpperCase()}</td>
-                  <td className="font-mono text-[11px] text-muted-foreground">
+                  <td className="font-medium">{rule.interface}</td>
+                  <td className="mono">{rule.protocol.toUpperCase()}</td>
+                  <td className="mono text-muted-foreground">
                     {rule.source.value}{rule.source.port ? `:${rule.source.port}` : ''}
                   </td>
-                  <td className="font-mono text-[11px] text-muted-foreground">
+                  <td className="mono text-muted-foreground">
                     {rule.destination.value}{rule.destination.port ? `:${rule.destination.port}` : ''}
                   </td>
-                  <td className="max-w-[180px] truncate">{rule.description}</td>
-                  <td className="font-mono text-muted-foreground">{formatHits(rule.hits)}</td>
+                  <td className="max-w-[200px] truncate text-muted-foreground">{rule.description}</td>
+                  <td className="text-right mono text-muted-foreground">{formatHits(rule.hits)}</td>
                 </tr>
               ))}
             </tbody>
