@@ -17,6 +17,7 @@ import VPN from "./pages/VPN";
 import SystemLogs from "./pages/SystemLogs";
 import SystemMonitoring from "./pages/SystemMonitoring";
 import Schedules from "./pages/Schedules";
+import ConfigBackup from "./pages/ConfigBackup";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
           <Route path="/vpn/wireguard" element={<VPN />} />
           <Route path="/monitoring/logs" element={<SystemLogs />} />
           <Route path="/monitoring/traffic" element={<SystemMonitoring />} />
+          <Route path="/system/backup" element={<ConfigBackup />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
