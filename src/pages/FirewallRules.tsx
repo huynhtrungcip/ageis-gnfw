@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockFirewallRules } from '@/data/mockData';
 import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { FirewallRuleModal } from '@/components/firewall/FirewallRuleModal';
+import type { FirewallRule } from '@/types/firewall';
+import { toast } from 'sonner';
 
 const FirewallRules = () => {
-  const [rules] = useState(mockFirewallRules);
+  const [rules, setRules] = useState(mockFirewallRules);
   const [iface, setIface] = useState<string>('all');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<FirewallRule | null>(null);
 
   const interfaces = ['all', 'WAN', 'LAN', 'DMZ'];
   const filtered = iface === 'all' ? rules : rules.filter(r => r.interface === iface);
@@ -17,13 +22,47 @@ const FirewallRules = () => {
     return n.toString();
   };
 
+  const handleAddRule = () => {
+    setEditingRule(null);
+    setModalOpen(true);
+  };
+
+  const handleEditRule = (rule: FirewallRule) => {
+    setEditingRule(rule);
+    setModalOpen(true);
+  };
+
+  const handleSaveRule = (ruleData: Partial<FirewallRule>) => {
+    if (editingRule) {
+      setRules(prev => prev.map(r => 
+        r.id === editingRule.id ? { ...r, ...ruleData } : r
+      ));
+      toast.success('Rule updated successfully');
+    } else {
+      const newRule: FirewallRule = {
+        id: `rule-${Date.now()}`,
+        order: rules.length + 1,
+        hits: 0,
+        created: new Date(),
+        ...ruleData,
+      } as FirewallRule;
+      setRules(prev => [...prev, newRule]);
+      toast.success('Rule created successfully');
+    }
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    setRules(prev => prev.filter(r => r.id !== ruleId));
+    toast.success('Rule deleted');
+  };
+
   return (
     <Shell>
       <div className="space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-base font-bold">Firewall Rules</h1>
-          <button className="btn btn-primary flex items-center gap-1.5">
+          <button onClick={handleAddRule} className="btn btn-primary flex items-center gap-1.5">
             <Plus size={14} />
             Add Rule
           </button>
@@ -66,6 +105,7 @@ const FirewallRules = () => {
                 <th>Destination</th>
                 <th>Description</th>
                 <th className="text-right">Hits</th>
+                <th className="w-20">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -96,12 +136,37 @@ const FirewallRules = () => {
                   </td>
                   <td className="max-w-[200px] truncate text-muted-foreground">{rule.description}</td>
                   <td className="text-right mono text-muted-foreground">{formatHits(rule.hits)}</td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleEditRule(rule)}
+                        className="p-1.5 rounded hover:bg-muted transition-colors"
+                        title="Edit rule"
+                      >
+                        <Pencil size={14} className="text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRule(rule.id)}
+                        className="p-1.5 rounded hover:bg-destructive/10 transition-colors"
+                        title="Delete rule"
+                      >
+                        <Trash2 size={14} className="text-destructive" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      <FirewallRuleModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        rule={editingRule}
+        onSave={handleSaveRule}
+      />
     </Shell>
   );
 };
