@@ -13,6 +13,7 @@ import Interfaces from "./pages/Interfaces";
 import AISecurity from "./pages/AISecurity";
 import DHCP from "./pages/DHCP";
 import VPN from "./pages/VPN";
+import SystemLogs from "./pages/SystemLogs";
 import SystemMonitoring from "./pages/SystemMonitoring";
 import NotFound from "./pages/NotFound";
 
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/vpn/ipsec" element={<VPN />} />
           <Route path="/vpn/openvpn" element={<VPN />} />
           <Route path="/vpn/wireguard" element={<VPN />} />
+          <Route path="/monitoring/logs" element={<SystemLogs />} />
           <Route path="/monitoring/traffic" element={<SystemMonitoring />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
