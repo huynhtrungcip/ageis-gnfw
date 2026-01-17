@@ -16,6 +16,7 @@ import DHCP from "./pages/DHCP";
 import VPN from "./pages/VPN";
 import SystemLogs from "./pages/SystemLogs";
 import SystemMonitoring from "./pages/SystemMonitoring";
+import Schedules from "./pages/Schedules";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/firewall/rules" element={<FirewallRules />} />
           <Route path="/firewall/aliases" element={<Aliases />} />
           <Route path="/firewall/nat" element={<NATConfig />} />
+          <Route path="/firewall/schedules" element={<Schedules />} />
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/ai-security" element={<AISecurity />} />
           <Route path="/insights/behavioral" element={<AISecurity />} />
