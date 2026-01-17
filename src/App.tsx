@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ThreatMonitor from "./pages/ThreatMonitor";
 import ThreatDetail from "./pages/ThreatDetail";
+import Incidents from "./pages/Incidents";
 import FirewallRules from "./pages/FirewallRules";
 import NATConfig from "./pages/NATConfig";
 import Interfaces from "./pages/Interfaces";
@@ -27,10 +28,14 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/threats" element={<ThreatMonitor />} />
           <Route path="/threats/:id" element={<ThreatDetail />} />
+          <Route path="/incidents" element={<Incidents />} />
           <Route path="/firewall/rules" element={<FirewallRules />} />
           <Route path="/firewall/nat" element={<NATConfig />} />
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/ai-security" element={<AISecurity />} />
+          <Route path="/insights/behavioral" element={<AISecurity />} />
+          <Route path="/insights/recommendations" element={<AISecurity />} />
+          <Route path="/insights/trends" element={<AISecurity />} />
           <Route path="/dhcp" element={<DHCP />} />
           <Route path="/vpn/ipsec" element={<VPN />} />
           <Route path="/vpn/openvpn" element={<VPN />} />
