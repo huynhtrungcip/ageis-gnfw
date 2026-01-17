@@ -2,77 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* NGFW Design System - Professional Firewall Interface */
-/* All colors in HSL format */
+/* Aegis NGFW - Enterprise Command Interface */
+/* Minimal color, maximal meaning */
 
 @layer base {
   :root {
-    /* Dark theme - Commercial Firewall Style */
-    --background: 220 20% 10%;
-    --foreground: 210 20% 90%;
+    /* Core Dark Theme - Enterprise Grade */
+    --background: 220 25% 7%;
+    --background-elevated: 220 20% 10%;
+    --foreground: 210 15% 85%;
 
-    --card: 220 20% 12%;
-    --card-foreground: 210 20% 90%;
+    --card: 220 20% 10%;
+    --card-foreground: 210 15% 85%;
 
-    --popover: 220 20% 14%;
-    --popover-foreground: 210 20% 90%;
+    --popover: 220 20% 12%;
+    --popover-foreground: 210 15% 85%;
 
-    --primary: 199 89% 48%;
-    --primary-foreground: 220 20% 10%;
+    /* Primary - Steel Blue/Teal */
+    --primary: 200 70% 50%;
+    --primary-foreground: 220 25% 7%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 210 20% 90%;
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 210 15% 75%;
 
-    --muted: 220 15% 20%;
-    --muted-foreground: 215 15% 55%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 215 10% 50%;
 
-    --accent: 199 89% 48%;
-    --accent-foreground: 220 20% 10%;
+    --accent: 220 15% 20%;
+    --accent-foreground: 210 15% 85%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 20% 98%;
+    /* Semantic - ONLY for meaning */
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 20%;
-    --input: 220 15% 18%;
-    --ring: 199 89% 48%;
+    --border: 220 15% 15%;
+    --input: 220 15% 12%;
+    --ring: 200 70% 50%;
 
-    --radius: 0.375rem;
+    --radius: 0.25rem;
 
-    /* Status Colors */
-    --status-success: 142 71% 45%;
-    --status-warning: 38 92% 50%;
-    --status-danger: 0 72% 51%;
-    --status-info: 199 89% 48%;
-    --status-offline: 220 10% 40%;
-
-    /* Traffic Colors */
-    --traffic-inbound: 199 89% 48%;
-    --traffic-outbound: 142 71% 45%;
-    --traffic-blocked: 0 72% 51%;
-
-    /* Severity Levels */
-    --severity-critical: 0 72% 51%;
-    --severity-high: 25 95% 53%;
-    --severity-medium: 38 92% 50%;
-    --severity-low: 199 89% 48%;
-    --severity-info: 220 10% 50%;
+    /* Status - Strict usage */
+    --status-critical: 0 70% 55%;
+    --status-high: 25 90% 55%;
+    --status-medium: 45 90% 50%;
+    --status-low: 200 70% 50%;
+    --status-healthy: 150 60% 45%;
+    --status-inactive: 220 10% 35%;
 
     /* Sidebar */
-    --sidebar-background: 220 20% 8%;
-    --sidebar-foreground: 210 15% 70%;
-    --sidebar-primary: 199 89% 48%;
-    --sidebar-primary-foreground: 220 20% 10%;
-    --sidebar-accent: 220 20% 14%;
-    --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 220 15% 15%;
-    --sidebar-ring: 199 89% 48%;
-
-    /* Chart Colors */
-    --chart-1: 199 89% 48%;
-    --chart-2: 142 71% 45%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 0 72% 51%;
+    --sidebar-background: 220 25% 6%;
+    --sidebar-foreground: 215 10% 55%;
+    --sidebar-primary: 200 70% 50%;
+    --sidebar-primary-foreground: 220 25% 7%;
+    --sidebar-accent: 220 15% 12%;
+    --sidebar-accent-foreground: 210 15% 85%;
+    --sidebar-border: 220 15% 12%;
+    --sidebar-ring: 200 70% 50%;
   }
 }
 
@@ -84,21 +69,23 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
-  /* Custom scrollbar */
+  /* Minimal scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted));
-    border-radius: 4px;
+    background: hsl(var(--border));
+    border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -107,59 +94,60 @@
 }
 
 @layer components {
-  /* Status indicators */
-  .status-dot {
+  /* Command Bar */
+  .command-bar {
+    @apply h-12 bg-background border-b border-border flex items-center justify-between px-4;
+  }
+
+  /* Status indicators - Minimal */
+  .status-indicator {
     @apply w-2 h-2 rounded-full;
   }
 
-  .status-online {
-    background-color: hsl(var(--status-success));
-    box-shadow: 0 0 8px hsl(var(--status-success) / 0.6);
+  .status-critical { background-color: hsl(var(--status-critical)); }
+  .status-high { background-color: hsl(var(--status-high)); }
+  .status-medium { background-color: hsl(var(--status-medium)); }
+  .status-low { background-color: hsl(var(--status-low)); }
+  .status-healthy { background-color: hsl(var(--status-healthy)); }
+  .status-inactive { background-color: hsl(var(--status-inactive)); }
+
+  /* Panel - Clean, no glow */
+  .panel {
+    @apply bg-card border border-border rounded;
   }
 
-  .status-warning {
-    background-color: hsl(var(--status-warning));
-    box-shadow: 0 0 8px hsl(var(--status-warning) / 0.6);
+  .panel-header {
+    @apply px-4 py-3 border-b border-border flex items-center justify-between text-sm font-medium;
   }
 
-  .status-offline {
-    background-color: hsl(var(--status-offline));
+  .panel-body {
+    @apply p-4;
   }
 
-  .status-danger {
-    background-color: hsl(var(--status-danger));
-    box-shadow: 0 0 8px hsl(var(--status-danger) / 0.6);
-  }
-
-  /* Metric cards */
-  .metric-card {
-    @apply bg-card border border-border rounded-md p-4 transition-all duration-200;
-  }
-
-  .metric-card:hover {
-    @apply border-primary/30;
-  }
-
-  /* Data table */
+  /* Table - Enterprise style */
   .data-table {
     @apply w-full text-sm;
   }
 
   .data-table th {
-    @apply text-left text-muted-foreground font-medium py-3 px-4 border-b border-border;
+    @apply text-left text-muted-foreground font-medium text-xs uppercase tracking-wide py-2 px-3 border-b border-border;
   }
 
   .data-table td {
-    @apply py-3 px-4 border-b border-border;
+    @apply py-2 px-3 border-b border-border text-sm;
   }
 
-  .data-table tr:hover td {
-    @apply bg-secondary/50;
+  .data-table tbody tr:hover {
+    @apply bg-accent/50 cursor-pointer;
   }
 
-  /* Navigation items */
+  /* Navigation */
+  .nav-section {
+    @apply text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-3 py-2 mt-4 first:mt-0;
+  }
+
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-md text-sidebar-foreground transition-all duration-150;
+    @apply flex items-center gap-2.5 px-3 py-2 text-sm text-sidebar-foreground rounded transition-colors;
   }
 
   .nav-item:hover {
@@ -167,101 +155,49 @@
   }
 
   .nav-item.active {
-    @apply bg-primary/10 text-primary border-l-2 border-primary;
+    @apply bg-primary/10 text-primary;
   }
 
-  /* Panel sections */
-  .panel {
-    @apply bg-card border border-border rounded-md;
+  /* Buttons - Minimal */
+  .btn {
+    @apply px-3 py-1.5 text-sm font-medium rounded transition-colors;
   }
 
-  .panel-header {
-    @apply px-4 py-3 border-b border-border flex items-center justify-between;
-  }
-
-  .panel-body {
-    @apply p-4;
-  }
-
-  /* Badges */
-  .badge-success {
-    @apply bg-status-success/20 text-[hsl(var(--status-success))] px-2 py-0.5 rounded text-xs font-medium;
-  }
-
-  .badge-warning {
-    @apply bg-status-warning/20 text-[hsl(var(--status-warning))] px-2 py-0.5 rounded text-xs font-medium;
-  }
-
-  .badge-danger {
-    @apply bg-status-danger/20 text-[hsl(var(--status-danger))] px-2 py-0.5 rounded text-xs font-medium;
-  }
-
-  .badge-info {
-    @apply bg-status-info/20 text-[hsl(var(--status-info))] px-2 py-0.5 rounded text-xs font-medium;
-  }
-
-  /* Buttons */
   .btn-primary {
-    @apply bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium transition-all duration-150;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
   }
 
-  .btn-primary:hover {
-    @apply bg-primary/90;
+  .btn-ghost {
+    @apply text-muted-foreground hover:text-foreground hover:bg-accent;
   }
 
-  .btn-secondary {
-    @apply bg-secondary text-secondary-foreground px-4 py-2 rounded-md font-medium transition-all duration-150 border border-border;
+  .btn-outline {
+    @apply border border-border text-foreground hover:bg-accent;
   }
 
-  .btn-secondary:hover {
-    @apply bg-secondary/80 border-primary/30;
+  /* Tags - Semantic only */
+  .tag {
+    @apply text-xs font-medium px-1.5 py-0.5 rounded;
   }
 
-  /* Traffic bars */
-  .traffic-bar {
-    @apply h-1.5 rounded-full bg-muted overflow-hidden;
-  }
+  .tag-critical { @apply bg-status-critical/15 text-[hsl(var(--status-critical))]; }
+  .tag-high { @apply bg-status-high/15 text-[hsl(var(--status-high))]; }
+  .tag-medium { @apply bg-status-medium/15 text-[hsl(var(--status-medium))]; }
+  .tag-low { @apply bg-status-low/15 text-[hsl(var(--status-low))]; }
+  .tag-healthy { @apply bg-status-healthy/15 text-[hsl(var(--status-healthy))]; }
 
-  .traffic-bar-fill {
-    @apply h-full rounded-full transition-all duration-500;
-  }
-
-  /* Pulse animation for alerts */
-  @keyframes pulse-ring {
-    0% {
-      transform: scale(0.8);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(1.5);
-      opacity: 0;
-    }
-  }
-
-  .pulse-alert {
-    position: relative;
-  }
-
-  .pulse-alert::before {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    background: hsl(var(--status-danger) / 0.4);
-    animation: pulse-ring 1.5s ease-out infinite;
-  }
-
-  /* Gradient backgrounds */
-  .gradient-threat {
-    background: linear-gradient(135deg, hsl(var(--severity-critical) / 0.1), hsl(var(--severity-high) / 0.05));
-  }
-
-  .gradient-success {
-    background: linear-gradient(135deg, hsl(var(--status-success) / 0.1), hsl(var(--status-success) / 0.02));
-  }
-
-  /* Code/Technical text */
+  /* Code / Log text */
   .mono {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+    font-size: 12px;
+  }
+
+  /* Metric display */
+  .metric {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  .metric-label {
+    @apply text-xs text-muted-foreground uppercase tracking-wide;
   }
 }

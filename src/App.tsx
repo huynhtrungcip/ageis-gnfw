@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import ThreatMonitor from "./pages/ThreatMonitor";
 import FirewallRules from "./pages/FirewallRules";
 import NATConfig from "./pages/NATConfig";
 import Interfaces from "./pages/Interfaces";
@@ -23,6 +24,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/threats" element={<ThreatMonitor />} />
           <Route path="/firewall/rules" element={<FirewallRules />} />
           <Route path="/firewall/nat" element={<NATConfig />} />
           <Route path="/interfaces" element={<Interfaces />} />
