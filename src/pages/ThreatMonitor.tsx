@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Shell } from '@/components/layout/Shell';
 import { mockThreats } from '@/data/mockData';
 import { cn } from '@/lib/utils';
@@ -113,9 +114,12 @@ const ThreatMonitor = () => {
                     {formatTime(threat.timestamp)}
                   </td>
                   <td>
-                    <button className="text-primary hover:underline text-xs flex items-center gap-0.5">
+                    <Link 
+                      to={`/threats/${threat.id}`}
+                      className="text-primary hover:underline text-xs flex items-center gap-0.5"
+                    >
                       Details <ChevronRight size={12} />
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ))}
