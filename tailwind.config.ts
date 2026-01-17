@@ -14,11 +14,17 @@ export default {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
+        border: {
+          DEFAULT: "hsl(var(--border))",
+          highlight: "hsl(var(--border-highlight))",
+        },
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        "background-elevated": "hsl(var(--background-elevated))",
+        background: {
+          DEFAULT: "hsl(var(--background))",
+          elevated: "hsl(var(--background-elevated))",
+          highlight: "hsl(var(--background-highlight))",
+        },
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
