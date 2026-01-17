@@ -18,6 +18,10 @@ import SystemLogs from "./pages/SystemLogs";
 import SystemMonitoring from "./pages/SystemMonitoring";
 import Schedules from "./pages/Schedules";
 import ConfigBackup from "./pages/ConfigBackup";
+import IDSSettings from "./pages/IDSSettings";
+import Routing from "./pages/Routing";
+import Reports from "./pages/Reports";
+import SystemSettings from "./pages/SystemSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +41,9 @@ const App = () => (
           <Route path="/firewall/aliases" element={<Aliases />} />
           <Route path="/firewall/nat" element={<NATConfig />} />
           <Route path="/firewall/schedules" element={<Schedules />} />
+          <Route path="/security/ids" element={<IDSSettings />} />
           <Route path="/interfaces" element={<Interfaces />} />
+          <Route path="/routing" element={<Routing />} />
           <Route path="/ai-security" element={<AISecurity />} />
           <Route path="/insights/behavioral" element={<AISecurity />} />
           <Route path="/insights/recommendations" element={<AISecurity />} />
@@ -48,6 +54,8 @@ const App = () => (
           <Route path="/vpn/wireguard" element={<VPN />} />
           <Route path="/monitoring/logs" element={<SystemLogs />} />
           <Route path="/monitoring/traffic" element={<SystemMonitoring />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/system/general" element={<SystemSettings />} />
           <Route path="/system/backup" element={<ConfigBackup />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
