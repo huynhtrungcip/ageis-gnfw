@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockInterfaces } from '@/data/mockData';
-import { NetworkInterface } from '@/types/firewall';
 import { cn } from '@/lib/utils';
+import { Plus, Settings } from 'lucide-react';
 
 const Interfaces = () => {
-  const [interfaces] = useState<NetworkInterface[]>(mockInterfaces);
-  const [selectedInterface, setSelectedInterface] = useState<NetworkInterface | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = mockInterfaces.find(i => i.id === selectedId);
 
   const formatBytes = (bytes: number): string => {
     if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
@@ -14,77 +14,52 @@ const Interfaces = () => {
     return (bytes / 1024).toFixed(2) + ' KB';
   };
 
-  const formatPackets = (num: number): string => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
-  };
-
   return (
     <Shell>
-      <div className="space-y-6 animate-slide-in">
+      <div className="space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Network Interfaces</h1>
-            <p className="text-sm text-muted-foreground">Configure network interfaces and VLANs</p>
+            <h1 className="text-lg font-semibold">Interfaces</h1>
+            <p className="text-sm text-muted-foreground">Network interface configuration</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="btn-secondary text-xs">Add VLAN</button>
-            <button className="btn-primary text-xs">Assign Interface</button>
-          </div>
+          <button className="btn btn-primary flex items-center gap-1.5">
+            <Plus size={14} />
+            <span>Assign</span>
+          </button>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-12 gap-5">
           {/* Interface List */}
           <div className="col-span-5">
             <div className="panel">
               <div className="panel-header">
-                <h3 className="text-sm font-medium">Interfaces</h3>
-                <span className="text-xs text-muted-foreground">{interfaces.length} configured</span>
+                <span>Configured Interfaces</span>
               </div>
               <div className="divide-y divide-border">
-                {interfaces.map((iface) => (
-                  <div 
+                {mockInterfaces.map((iface) => (
+                  <div
                     key={iface.id}
-                    onClick={() => setSelectedInterface(iface)}
+                    onClick={() => setSelectedId(iface.id)}
                     className={cn(
-                      "p-4 cursor-pointer transition-colors",
-                      selectedInterface?.id === iface.id 
-                        ? "bg-primary/10 border-l-2 border-primary" 
-                        : "hover:bg-secondary/50"
+                      "px-4 py-3 cursor-pointer transition-colors",
+                      selectedId === iface.id ? "bg-accent" : "hover:bg-accent/50"
                     )}
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className={cn(
-                          "status-dot",
-                          iface.status === 'up' ? 'status-online' : 
-                          iface.status === 'down' ? 'status-danger' : 'status-offline'
+                          "status-indicator",
+                          iface.status === 'up' ? 'status-healthy' : 'status-inactive'
                         )} />
                         <div>
-                          <div className="font-medium">{iface.name}</div>
-                          <div className="text-xs text-muted-foreground font-mono">{iface.mac}</div>
+                          <div className="font-medium text-sm">{iface.name}</div>
+                          <div className="text-xs text-muted-foreground font-mono">{iface.ipAddress}/{iface.subnet.split('.').pop()}</div>
                         </div>
                       </div>
-                      <span className={cn(
-                        "text-xs px-2 py-1 rounded",
-                        iface.type === 'WAN' ? "bg-primary/20 text-primary" :
-                        iface.type === 'LAN' ? "bg-status-success/20 text-status-success" :
-                        iface.type === 'DMZ' ? "bg-status-warning/20 text-status-warning" :
-                        "bg-muted text-muted-foreground"
-                      )}>
-                        {iface.type}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">IP: </span>
-                        <span className="font-mono">{iface.ipAddress}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Speed: </span>
-                        <span>{iface.speed}</span>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">{iface.type}</div>
+                        <div className="text-xs text-muted-foreground">{iface.speed}</div>
                       </div>
                     </div>
                   </div>
@@ -93,104 +68,79 @@ const Interfaces = () => {
             </div>
           </div>
 
-          {/* Interface Details */}
+          {/* Interface Detail */}
           <div className="col-span-7">
-            {selectedInterface ? (
+            {selected ? (
               <div className="space-y-4">
-                {/* General Settings */}
                 <div className="panel">
                   <div className="panel-header">
-                    <h3 className="text-sm font-medium">General Configuration</h3>
-                    <button className="btn-primary text-xs">Save Changes</button>
+                    <span>Configuration</span>
+                    <button className="btn btn-ghost flex items-center gap-1.5">
+                      <Settings size={14} />
+                      <span>Edit</span>
+                    </button>
                   </div>
                   <div className="panel-body">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Interface Name</label>
-                        <input 
-                          type="text" 
-                          defaultValue={selectedInterface.name}
-                          className="w-full px-3 py-2 bg-input border border-border rounded text-sm"
-                        />
+                        <div className="text-xs text-muted-foreground mb-1">Interface Name</div>
+                        <div className="text-sm font-medium">{selected.name}</div>
                       </div>
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Type</label>
-                        <select className="w-full px-3 py-2 bg-input border border-border rounded text-sm">
-                          <option value="static">Static IPv4</option>
-                          <option value="dhcp">DHCP</option>
-                          <option value="pppoe">PPPoE</option>
-                          <option value="none">None</option>
-                        </select>
+                        <div className="text-xs text-muted-foreground mb-1">Type</div>
+                        <div className="text-sm">{selected.type}</div>
                       </div>
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">IPv4 Address</label>
-                        <input 
-                          type="text" 
-                          defaultValue={selectedInterface.ipAddress}
-                          className="w-full px-3 py-2 bg-input border border-border rounded text-sm font-mono"
-                        />
+                        <div className="text-xs text-muted-foreground mb-1">IPv4 Address</div>
+                        <div className="text-sm font-mono">{selected.ipAddress}</div>
                       </div>
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">Subnet Mask</label>
-                        <input 
-                          type="text" 
-                          defaultValue={selectedInterface.subnet}
-                          className="w-full px-3 py-2 bg-input border border-border rounded text-sm font-mono"
-                        />
+                        <div className="text-xs text-muted-foreground mb-1">Subnet</div>
+                        <div className="text-sm font-mono">{selected.subnet}</div>
                       </div>
-                      {selectedInterface.gateway && (
+                      {selected.gateway && (
                         <div>
-                          <label className="block text-xs text-muted-foreground mb-1">Gateway</label>
-                          <input 
-                            type="text" 
-                            defaultValue={selectedInterface.gateway}
-                            className="w-full px-3 py-2 bg-input border border-border rounded text-sm font-mono"
-                          />
+                          <div className="text-xs text-muted-foreground mb-1">Gateway</div>
+                          <div className="text-sm font-mono">{selected.gateway}</div>
                         </div>
                       )}
                       <div>
-                        <label className="block text-xs text-muted-foreground mb-1">MTU</label>
-                        <input 
-                          type="number" 
-                          defaultValue={selectedInterface.mtu}
-                          className="w-full px-3 py-2 bg-input border border-border rounded text-sm"
-                        />
+                        <div className="text-xs text-muted-foreground mb-1">MTU</div>
+                        <div className="text-sm">{selected.mtu}</div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Statistics */}
                 <div className="panel">
                   <div className="panel-header">
-                    <h3 className="text-sm font-medium">Traffic Statistics</h3>
-                    <button className="text-xs text-primary hover:underline">Reset Counters</button>
+                    <span>Statistics</span>
                   </div>
                   <div className="panel-body">
                     <div className="grid grid-cols-2 gap-6">
                       <div>
-                        <div className="text-xs text-muted-foreground mb-3">INBOUND</div>
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span className="text-sm">Bytes</span>
-                            <span className="font-mono text-traffic-inbound">{formatBytes(selectedInterface.rxBytes)}</span>
+                        <div className="text-xs text-muted-foreground mb-2">Inbound</div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Bytes</span>
+                            <span className="font-mono">{formatBytes(selected.rxBytes)}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Packets</span>
-                            <span className="font-mono">{formatPackets(selectedInterface.rxPackets)}</span>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Packets</span>
+                            <span className="font-mono">{selected.rxPackets.toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-muted-foreground mb-3">OUTBOUND</div>
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span className="text-sm">Bytes</span>
-                            <span className="font-mono text-traffic-outbound">{formatBytes(selectedInterface.txBytes)}</span>
+                        <div className="text-xs text-muted-foreground mb-2">Outbound</div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Bytes</span>
+                            <span className="font-mono">{formatBytes(selected.txBytes)}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Packets</span>
-                            <span className="font-mono">{formatPackets(selectedInterface.txPackets)}</span>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Packets</span>
+                            <span className="font-mono">{selected.txPackets.toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
@@ -198,42 +148,32 @@ const Interfaces = () => {
                   </div>
                 </div>
 
-                {/* Hardware Info */}
                 <div className="panel">
                   <div className="panel-header">
-                    <h3 className="text-sm font-medium">Hardware Information</h3>
+                    <span>Hardware</span>
                   </div>
                   <div className="panel-body">
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
                         <div className="text-xs text-muted-foreground mb-1">MAC Address</div>
-                        <div className="font-mono">{selectedInterface.mac}</div>
+                        <div className="font-mono text-xs">{selected.mac}</div>
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground mb-1">Speed</div>
-                        <div>{selectedInterface.speed}</div>
+                        <div>{selected.speed}</div>
                       </div>
                       <div>
                         <div className="text-xs text-muted-foreground mb-1">Duplex</div>
-                        <div className="capitalize">{selectedInterface.duplex}</div>
+                        <div className="capitalize">{selected.duplex}</div>
                       </div>
-                      {selectedInterface.vlan && (
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">VLAN Tag</div>
-                          <div>{selectedInterface.vlan}</div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="panel">
-                <div className="panel-body flex items-center justify-center py-24">
-                  <div className="text-center text-muted-foreground">
-                    <div className="text-lg mb-2">Select an interface</div>
-                    <div className="text-sm">Click on an interface to view and edit its configuration</div>
-                  </div>
+                <div className="panel-body flex items-center justify-center py-16">
+                  <span className="text-muted-foreground">Select an interface to view details</span>
                 </div>
               </div>
             )}

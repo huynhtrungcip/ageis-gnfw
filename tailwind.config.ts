@@ -18,6 +18,7 @@ export default {
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
+        "background-elevated": "hsl(var(--background-elevated))",
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
@@ -58,30 +59,12 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         status: {
-          success: "hsl(var(--status-success))",
-          warning: "hsl(var(--status-warning))",
-          danger: "hsl(var(--status-danger))",
-          info: "hsl(var(--status-info))",
-          offline: "hsl(var(--status-offline))",
-        },
-        traffic: {
-          inbound: "hsl(var(--traffic-inbound))",
-          outbound: "hsl(var(--traffic-outbound))",
-          blocked: "hsl(var(--traffic-blocked))",
-        },
-        severity: {
-          critical: "hsl(var(--severity-critical))",
-          high: "hsl(var(--severity-high))",
-          medium: "hsl(var(--severity-medium))",
-          low: "hsl(var(--severity-low))",
-          info: "hsl(var(--severity-info))",
-        },
-        chart: {
-          1: "hsl(var(--chart-1))",
-          2: "hsl(var(--chart-2))",
-          3: "hsl(var(--chart-3))",
-          4: "hsl(var(--chart-4))",
-          5: "hsl(var(--chart-5))",
+          critical: "hsl(var(--status-critical))",
+          high: "hsl(var(--status-high))",
+          medium: "hsl(var(--status-medium))",
+          low: "hsl(var(--status-low))",
+          healthy: "hsl(var(--status-healthy))",
+          inactive: "hsl(var(--status-inactive))",
         },
       },
       borderRadius: {
@@ -91,7 +74,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        mono: ['JetBrains Mono', 'SF Mono', 'Consolas', 'monospace'],
       },
       keyframes: {
         "accordion-down": {
@@ -102,20 +85,10 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "pulse-glow": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.5" },
-        },
-        "slide-in": {
-          from: { transform: "translateX(-10px)", opacity: "0" },
-          to: { transform: "translateX(0)", opacity: "1" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
-        "slide-in": "slide-in 0.3s ease-out",
       },
     },
   },

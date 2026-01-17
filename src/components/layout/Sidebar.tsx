@@ -1,147 +1,102 @@
-import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { 
+  LayoutDashboard, 
+  Shield, 
+  Network, 
+  ScrollText, 
+  Settings,
+  AlertTriangle,
+  FileText,
+  Globe,
+  Router,
+  ArrowLeftRight,
+  Lock,
+  Activity,
+  BarChart3,
+  Cpu
+} from 'lucide-react';
+
+interface NavItem {
+  label: string;
+  path: string;
+  icon: React.ReactNode;
+}
 
 interface NavSection {
   title: string;
   items: NavItem[];
 }
 
-interface NavItem {
-  label: string;
-  path: string;
-  badge?: string;
-}
-
 const navigation: NavSection[] = [
   {
-    title: 'OVERVIEW',
+    title: 'Overview',
     items: [
-      { label: 'Dashboard', path: '/' },
-      { label: 'AI Security Center', path: '/ai-security', badge: 'AI' },
+      { label: 'Dashboard', path: '/', icon: <LayoutDashboard size={16} /> },
+      { label: 'Threat Monitor', path: '/threats', icon: <AlertTriangle size={16} /> },
     ],
   },
   {
-    title: 'NETWORK',
+    title: 'Security',
     items: [
-      { label: 'Interfaces', path: '/interfaces' },
-      { label: 'Routing', path: '/routing' },
-      { label: 'DHCP Server', path: '/dhcp' },
-      { label: 'DNS', path: '/dns' },
+      { label: 'Policies', path: '/firewall/rules', icon: <Shield size={16} /> },
+      { label: 'Threat Prevention', path: '/security/ids', icon: <Lock size={16} /> },
+      { label: 'AI Insights', path: '/ai-security', icon: <Cpu size={16} /> },
     ],
   },
   {
-    title: 'FIREWALL',
+    title: 'Network',
     items: [
-      { label: 'Rules', path: '/firewall/rules' },
-      { label: 'NAT', path: '/firewall/nat' },
-      { label: 'Aliases', path: '/firewall/aliases' },
-      { label: 'Schedules', path: '/firewall/schedules' },
+      { label: 'Interfaces', path: '/interfaces', icon: <Network size={16} /> },
+      { label: 'Routing', path: '/routing', icon: <Router size={16} /> },
+      { label: 'NAT', path: '/firewall/nat', icon: <ArrowLeftRight size={16} /> },
+      { label: 'VPN', path: '/vpn/ipsec', icon: <Globe size={16} /> },
     ],
   },
   {
-    title: 'VPN',
+    title: 'System',
     items: [
-      { label: 'IPsec', path: '/vpn/ipsec' },
-      { label: 'OpenVPN', path: '/vpn/openvpn' },
-      { label: 'WireGuard', path: '/vpn/wireguard' },
-    ],
-  },
-  {
-    title: 'SECURITY',
-    items: [
-      { label: 'IDS/IPS', path: '/security/ids' },
-      { label: 'Threat Detection', path: '/security/threats' },
-      { label: 'Web Filter', path: '/security/webfilter' },
-    ],
-  },
-  {
-    title: 'MONITORING',
-    items: [
-      { label: 'Traffic Graphs', path: '/monitoring/traffic' },
-      { label: 'System Logs', path: '/monitoring/logs' },
-      { label: 'Firewall Logs', path: '/monitoring/firewall-logs' },
-    ],
-  },
-  {
-    title: 'SYSTEM',
-    items: [
-      { label: 'General Setup', path: '/system/general' },
-      { label: 'Users', path: '/system/users' },
-      { label: 'Certificates', path: '/system/certificates' },
-      { label: 'Backup/Restore', path: '/system/backup' },
+      { label: 'Logs', path: '/monitoring/logs', icon: <ScrollText size={16} /> },
+      { label: 'Reports', path: '/reports', icon: <BarChart3 size={16} /> },
+      { label: 'Settings', path: '/system/general', icon: <Settings size={16} /> },
     ],
   },
 ];
 
 export function Sidebar() {
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <aside 
-      className={cn(
-        "fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border z-40 transition-all duration-300 flex flex-col",
-        collapsed ? "w-16" : "w-60"
-      )}
-    >
+    <aside className="fixed left-0 top-0 h-screen w-52 bg-sidebar border-r border-sidebar-border z-40 flex flex-col">
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">NG</span>
-            </div>
-            <div>
-              <span className="text-foreground font-semibold text-sm">NGFW</span>
-              <span className="text-primary text-xs ml-1">Pro</span>
-            </div>
+      <div className="h-12 flex items-center px-4 border-b border-sidebar-border">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
+            <Shield size={14} className="text-primary-foreground" />
           </div>
-        )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="w-8 h-8 flex items-center justify-center rounded hover:bg-sidebar-accent text-sidebar-foreground"
-        >
-          <span className="text-xs">{collapsed ? '»' : '«'}</span>
-        </button>
+          <div className="flex items-baseline gap-1">
+            <span className="text-foreground font-semibold text-sm">Aegis</span>
+            <span className="text-muted-foreground text-xs">NGFW</span>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4">
+      <nav className="flex-1 overflow-y-auto py-2 px-2">
         {navigation.map((section) => (
-          <div key={section.title} className="mb-4">
-            {!collapsed && (
-              <div className="px-4 mb-2">
-                <span className="text-[10px] font-semibold text-muted-foreground tracking-wider">
-                  {section.title}
-                </span>
-              </div>
-            )}
-            <ul className="space-y-0.5 px-2">
+          <div key={section.title}>
+            <div className="nav-section">{section.title}</div>
+            <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <li key={item.path}>
                     <Link
                       to={item.path}
-                      className={cn(
-                        "nav-item",
-                        isActive && "active",
-                        collapsed && "justify-center px-2"
-                      )}
-                      title={collapsed ? item.label : undefined}
+                      className={cn("nav-item", isActive && "active")}
                     >
-                      <span className={cn(
-                        "text-sm",
-                        collapsed && "text-xs"
-                      )}>
-                        {collapsed ? item.label.charAt(0) : item.label}
-                      </span>
-                      {!collapsed && item.badge && (
-                        <span className="ml-auto text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded">
-                          {item.badge}
-                        </span>
-                      )}
+                      <span className="text-current opacity-70">{item.icon}</span>
+                      <span>{item.label}</span>
                     </Link>
                   </li>
                 );
@@ -152,13 +107,11 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
-        {!collapsed && (
-          <div className="text-[10px] text-muted-foreground">
-            <div>Version 1.0.0</div>
-            <div>© 2024 NGFW Pro</div>
-          </div>
-        )}
+      <div className="p-3 border-t border-sidebar-border">
+        <div className="text-[10px] text-muted-foreground">
+          <div>Aegis NGFW v1.0</div>
+          <div className="opacity-60">Enterprise AI-Assisted Firewall</div>
+        </div>
       </div>
     </aside>
   );
