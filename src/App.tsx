@@ -8,6 +8,7 @@ import ThreatMonitor from "./pages/ThreatMonitor";
 import ThreatDetail from "./pages/ThreatDetail";
 import Incidents from "./pages/Incidents";
 import FirewallRules from "./pages/FirewallRules";
+import Aliases from "./pages/Aliases";
 import NATConfig from "./pages/NATConfig";
 import Interfaces from "./pages/Interfaces";
 import AISecurity from "./pages/AISecurity";
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/threats/:id" element={<ThreatDetail />} />
           <Route path="/incidents" element={<Incidents />} />
           <Route path="/firewall/rules" element={<FirewallRules />} />
+          <Route path="/firewall/aliases" element={<Aliases />} />
           <Route path="/firewall/nat" element={<NATConfig />} />
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/ai-security" element={<AISecurity />} />
