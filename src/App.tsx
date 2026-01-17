@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ThreatMonitor from "./pages/ThreatMonitor";
+import ThreatDetail from "./pages/ThreatDetail";
 import FirewallRules from "./pages/FirewallRules";
 import NATConfig from "./pages/NATConfig";
 import Interfaces from "./pages/Interfaces";
@@ -25,6 +26,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/threats" element={<ThreatMonitor />} />
+          <Route path="/threats/:id" element={<ThreatDetail />} />
           <Route path="/firewall/rules" element={<FirewallRules />} />
           <Route path="/firewall/nat" element={<NATConfig />} />
           <Route path="/interfaces" element={<Interfaces />} />

@@ -15,7 +15,7 @@ interface Threat {
 
 const threats: Threat[] = [
   {
-    id: '1',
+    id: 'threat-1',
     severity: 'critical',
     title: 'SSH Brute Force Attack',
     source: '45.33.32.156',
@@ -25,7 +25,7 @@ const threats: Threat[] = [
     confidence: 'High',
   },
   {
-    id: '2',
+    id: 'threat-2',
     severity: 'high',
     title: 'C2 Communication Detected',
     source: '192.168.1.105',
@@ -35,7 +35,7 @@ const threats: Threat[] = [
     confidence: 'High',
   },
   {
-    id: '3',
+    id: 'threat-3',
     severity: 'high',
     title: 'SQL Injection Attempt',
     source: '89.248.167.131',
@@ -57,7 +57,11 @@ export function ActiveThreats() {
       </div>
       <div className="divide-y divide-border">
         {threats.map((threat) => (
-          <div key={threat.id} className="px-4 py-3 hover:bg-accent/50 cursor-pointer transition-colors">
+          <Link 
+            key={threat.id} 
+            to={`/threats/${threat.id}`}
+            className="block px-4 py-3 hover:bg-accent/50 cursor-pointer transition-colors"
+          >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 min-w-0">
                 <span className={cn(
@@ -88,11 +92,11 @@ export function ActiveThreats() {
               <span className="text-muted-foreground">
                 Confidence: <span className="text-foreground">{threat.confidence}</span>
               </span>
-              <Link to={`/threats/${threat.id}`} className="text-primary hover:underline">
-                View Evidence
-              </Link>
+              <span className="text-primary hover:underline flex items-center gap-0.5">
+                View Details <ChevronRight size={10} />
+              </span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
