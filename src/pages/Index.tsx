@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -7,7 +8,6 @@ import {
   Cpu, 
   HardDrive, 
   Shield, 
-  AlertTriangle, 
   Network, 
   Globe, 
   Activity, 
@@ -21,14 +21,45 @@ import {
   X,
   RefreshCw,
   CheckCircle2,
-  Clock,
   Server,
   Wifi,
   Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  Legend
+} from 'recharts';
 
-// Mock data
+// Mock chart data
+const generateFileJobData = () => {
+  const dates = ['05/03/17', '06/03/17', '07/03/17', '08/03/17', '09/03/17'];
+  return dates.map(date => ({
+    date,
+    onDemand: Math.floor(Math.random() * 3),
+    sniffer: Math.floor(Math.random() * 2),
+    device: Math.floor(Math.random() * 5) + 1,
+    networkShare: Math.floor(Math.random() * 2),
+    adapter: Math.floor(Math.random() * 1),
+  }));
+};
+
+const generateScanningActivityData = () => {
+  const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+  return weeks.map((week, i) => ({
+    week,
+    files: 3000 + Math.floor(Math.random() * 3000) + (i * 500),
+  }));
+};
+
 const scanningStats = [
   { rating: 'Malicious', sniffer: 0, device: 0, onDemand: 0, network: 0, adapter: 0, url: 0, all: 0 },
   { rating: 'Suspicious - High Risk', sniffer: 0, device: 2, onDemand: 0, network: 0, adapter: 0, url: 0, all: 2 },
@@ -92,6 +123,19 @@ const WidgetHeader = ({
 const Dashboard = () => {
   const { cpu, memory, uptime, hostname } = mockSystemStatus;
   const memPct = Math.round((memory.used / memory.total) * 100);
+  
+  // Real-time chart data with updates
+  const [fileJobData, setFileJobData] = useState(generateFileJobData);
+  const [scanningData, setScanningData] = useState(generateScanningActivityData);
+
+  // Simulate real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFileJobData(generateFileJobData());
+      setScanningData(generateScanningActivityData());
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
@@ -397,14 +441,33 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Bottom Row - Full Width Charts */}
+        {/* Bottom Row - Full Width Charts with Recharts */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Traffic Chart Placeholder */}
+          {/* File Job Statistics Chart */}
           <div className="widget">
-            <WidgetHeader title="File Job Statistics" icon={Activity} onSettings={() => {}} onMaximize={() => {}} />
+            <WidgetHeader title="Pending File Job Statistics" icon={Activity} onSettings={() => {}} onMaximize={() => {}} />
             <div className="widget-body">
-              <div className="h-32 flex items-center justify-center bg-muted/30 rounded">
-                <span className="text-xs text-muted-foreground">[Traffic Chart Placeholder]</span>
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={fileJobData} barSize={12}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        fontSize: 11, 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 4
+                      }} 
+                    />
+                    <Bar dataKey="onDemand" fill="#ef4444" name="On Demand" />
+                    <Bar dataKey="sniffer" fill="#22c55e" name="Sniffer" />
+                    <Bar dataKey="device" fill="#3b82f6" name="Device(s)" />
+                    <Bar dataKey="networkShare" fill="#8b5cf6" name="Network Share" />
+                    <Bar dataKey="adapter" fill="#f97316" name="Adapter" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
               <div className="mt-2 flex items-center gap-4 text-[10px]">
                 <span className="flex items-center gap-1"><span className="w-3 h-2 bg-red-500 rounded-sm" /> On Demand</span>
@@ -419,12 +482,34 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Scanning Activity Chart */}
+          {/* File Scanning Activity Chart */}
           <div className="widget">
             <WidgetHeader title="File Scanning Activity - Last 4 Weeks" icon={Activity} onSettings={() => {}} onMaximize={() => {}} />
             <div className="widget-body">
-              <div className="h-32 flex items-center justify-center bg-muted/30 rounded">
-                <span className="text-xs text-muted-foreground">[Scanning Activity Chart Placeholder]</span>
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={scanningData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="week" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        fontSize: 11, 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 4
+                      }} 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="files" 
+                      stroke="#22c55e" 
+                      fill="#22c55e" 
+                      fillOpacity={0.3}
+                      name="Files Scanned"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
               <div className="mt-2 text-[10px] text-muted-foreground text-right">
                 Last Updated: {new Date().toLocaleString()}
