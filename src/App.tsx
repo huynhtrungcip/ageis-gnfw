@@ -34,6 +34,8 @@ import ApplicationControl from "./pages/ApplicationControl";
 import HighAvailability from "./pages/HighAvailability";
 import CertificateManagement from "./pages/CertificateManagement";
 import LogReport from "./pages/LogReport";
+import WiFiController from "./pages/WiFiController";
+import FirmwareManagement from "./pages/FirmwareManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -86,10 +88,11 @@ const App = () => (
           <Route path="/system/backup" element={<ConfigBackup />} />
           <Route path="/system/users" element={<UserManagement />} />
           <Route path="/system/admins" element={<UserManagement />} />
-          <Route path="/system/firmware" element={<SystemSettings />} />
+          <Route path="/system/firmware" element={<FirmwareManagement />} />
           <Route path="/system/feature-visibility" element={<FeatureVisibility />} />
           <Route path="/system/ha" element={<HighAvailability />} />
           <Route path="/system/certificates" element={<CertificateManagement />} />
+          <Route path="/wifi" element={<WiFiController />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

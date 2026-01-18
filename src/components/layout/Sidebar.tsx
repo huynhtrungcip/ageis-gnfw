@@ -94,7 +94,7 @@ const navigation: NavSection[] = [
       { label: 'Settings', path: '/system/general' },
       { label: 'High Availability', path: '/system/ha', starred: true },
       { label: 'Certificates', path: '/system/certificates' },
-      { label: 'Firmware', path: '/system/firmware' },
+      { label: 'Firmware', path: '/system/firmware', starred: true },
     ],
   },
   {
@@ -154,7 +154,7 @@ const navigation: NavSection[] = [
     icon: Wifi,
     defaultOpen: false,
     items: [
-      { label: 'Managed FortiAPs', path: '/interfaces' },
+      { label: 'Managed FortiAPs', path: '/wifi', starred: true },
       { label: 'Managed FortiSwitches', path: '/interfaces' },
     ],
   },
