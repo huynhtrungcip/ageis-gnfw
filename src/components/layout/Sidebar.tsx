@@ -208,11 +208,10 @@ export function Sidebar() {
           <div className="w-5 h-5 bg-[#4caf50] rounded flex items-center justify-center">
             <Shield size={12} className="text-white" />
           </div>
-          <span className="text-white text-xs font-bold">FortiGate</span>
+          <span className="text-white text-xs font-bold">Aegis NGFW</span>
         </div>
-        <span className="text-[10px] text-gray-400 ml-1">100E</span>
         <div className="flex-1" />
-        <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">FG100E</span>
+        <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">v1.0</span>
       </div>
 
       {/* Navigation */}

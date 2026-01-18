@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Bell, 
   User, 
   ChevronDown, 
   LogOut, 
-  Settings, 
   Key,
   HelpCircle,
-  AlertTriangle,
   Terminal,
-  Maximize2
+  Maximize2,
+  Shield
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -23,7 +22,6 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export function Header() {
-  const location = useLocation();
   const [alerts, setAlerts] = useState([
     { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago' },
     { id: 2, type: 'high', message: 'New firmware available', time: '1h ago' },
@@ -43,11 +41,11 @@ export function Header() {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 bg-[#4caf50] rounded flex items-center justify-center">
-            <span className="text-[10px] text-white font-bold">FG</span>
+            <Shield size={12} className="text-white" />
           </div>
-          <span className="text-white text-xs font-semibold">FortiGate 100E</span>
+          <span className="text-white text-xs font-semibold">Aegis NGFW</span>
         </div>
-        <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">FG100E-DATECH</span>
+        <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">AEGIS-PRIMARY</span>
       </div>
 
       {/* Right: Actions */}
