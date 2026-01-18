@@ -63,6 +63,7 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+          muted: "hsl(var(--sidebar-muted))",
         },
         status: {
           critical: "hsl(var(--status-critical))",
@@ -71,6 +72,11 @@ export default {
           low: "hsl(var(--status-low))",
           healthy: "hsl(var(--status-healthy))",
           inactive: "hsl(var(--status-inactive))",
+        },
+        forti: {
+          green: "hsl(var(--forti-green))",
+          "green-light": "hsl(var(--forti-green-light))",
+          "green-dark": "hsl(var(--forti-green-dark))",
         },
       },
       borderRadius: {
