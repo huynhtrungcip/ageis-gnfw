@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil, Trash2, Search, Network, Server, Hash, ChevronDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Network, Server, Hash, ChevronDown, Download, Upload } from 'lucide-react';
+import { exportToJSON, exportToCSV, importFromJSON, createFileInput } from '@/lib/exportImport';
 import {
   Dialog,
   DialogContent,
@@ -218,6 +219,43 @@ const Aliases = () => {
     toast.success(`${toDelete.length} alias(es) deleted`);
   };
 
+  const handleExportJSON = () => {
+    exportToJSON(aliases, 'aliases-config.json');
+    toast.success(`Exported ${aliases.length} aliases to JSON`);
+  };
+
+  const handleExportCSV = () => {
+    const csvData = aliases.map(a => ({
+      name: a.name,
+      type: a.type,
+      values: a.values.join('; '),
+      description: a.description,
+      usageCount: a.usageCount,
+    }));
+    exportToCSV(csvData, 'aliases-config.csv');
+    toast.success(`Exported ${aliases.length} aliases to CSV`);
+  };
+
+  const handleImport = () => {
+    createFileInput('.json', (file) => {
+      importFromJSON<Alias>(
+        file,
+        (data) => {
+          const newAliases = data.map(a => ({
+            ...a,
+            id: `alias-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            usageCount: 0,
+            created: new Date(),
+            updated: new Date(),
+          }));
+          setAliases(prev => [...prev, ...newAliases]);
+          toast.success(`Imported ${newAliases.length} aliases`);
+        },
+        (error) => toast.error(error)
+      );
+    });
+  };
+
   const onSubmit = (values: FormValues) => {
     const valuesArray = values.values
       .split(/[\n,]/)
@@ -342,6 +380,29 @@ const Aliases = () => {
           </div>
 
           <div className="forti-toolbar-right">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="forti-action-btn">
+                  <Download size={14} />
+                  Export
+                  <ChevronDown size={12} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
+                <DropdownMenuItem onClick={handleExportJSON} className="cursor-pointer">
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+                  Export as CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <button className="forti-action-btn" onClick={handleImport}>
+              <Upload size={14} />
+              Import
+            </button>
+            
             <div className="forti-search">
               <Search size={14} />
               <input

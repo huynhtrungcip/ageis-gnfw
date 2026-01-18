@@ -23,6 +23,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -85,6 +95,7 @@ const Interfaces = () => {
     role: 'WAN' as 'WAN' | 'LAN' | 'DMZ' | 'Undefined',
     status: 'up' as 'up' | 'down',
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -177,17 +188,19 @@ const Interfaces = () => {
     setEditModalOpen(false);
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteConfirm = () => {
     const protectedIds = interfaces.filter(i => i.type === 'WAN' || i.type === 'LAN').map(i => i.id);
     const deletableIds = selectedIds.filter(id => !protectedIds.includes(id));
     
     if (deletableIds.length === 0) {
       toast.error('Cannot delete WAN/LAN interfaces');
+      setDeleteDialogOpen(false);
       return;
     }
     
     setInterfaces(prev => prev.filter(i => !deletableIds.includes(i.id)));
     setSelectedIds([]);
+    setDeleteDialogOpen(false);
     toast.success(`${deletableIds.length} interface(s) deleted`);
   };
 
@@ -266,7 +279,7 @@ const Interfaces = () => {
             Edit
           </button>
           <button 
-            onClick={handleDeleteSelected}
+            onClick={() => setDeleteDialogOpen(true)}
             className="forti-toolbar-btn"
             disabled={selectedIds.length === 0}
           >
@@ -533,6 +546,24 @@ const Interfaces = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Interface(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} interface(s)? WAN/LAN interfaces cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };
