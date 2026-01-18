@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockInterfaces } from '@/data/mockData';
 import { cn } from '@/lib/utils';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Trash2, Power, PowerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -20,18 +20,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type { NetworkInterface } from '@/types/firewall';
 
 const Interfaces = () => {
-  const [interfaces, setInterfaces] = useState(mockInterfaces);
+  const [interfaces, setInterfaces] = useState<NetworkInterface[]>(mockInterfaces);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [newInterface, setNewInterface] = useState({
     name: '',
-    type: 'ethernet',
+    type: 'LAN' as 'WAN' | 'LAN' | 'DMZ' | 'OPT',
     ipAddress: '',
     subnet: '255.255.255.0',
+    gateway: '',
     mtu: '1500',
   });
   
@@ -66,16 +68,17 @@ const Interfaces = () => {
       toast.error('Name and IP Address are required');
       return;
     }
-    const iface = {
+    const iface: NetworkInterface = {
       id: `iface-${Date.now()}`,
       name: newInterface.name,
-      type: newInterface.type as 'ethernet' | 'vlan' | 'bridge' | 'loopback',
-      status: 'up' as const,
+      type: newInterface.type,
+      status: 'up',
       ipAddress: newInterface.ipAddress,
       subnet: newInterface.subnet,
+      gateway: newInterface.gateway || undefined,
       mac: `00:${Math.random().toString(16).slice(2, 4)}:${Math.random().toString(16).slice(2, 4)}:${Math.random().toString(16).slice(2, 4)}:${Math.random().toString(16).slice(2, 4)}:${Math.random().toString(16).slice(2, 4)}`.toUpperCase(),
       speed: '1 Gbps',
-      duplex: 'full' as const,
+      duplex: 'full',
       mtu: parseInt(newInterface.mtu),
       rxBytes: 0,
       txBytes: 0,
@@ -84,7 +87,7 @@ const Interfaces = () => {
     };
     setInterfaces(prev => [...prev, iface]);
     setModalOpen(false);
-    setNewInterface({ name: '', type: 'ethernet', ipAddress: '', subnet: '255.255.255.0', mtu: '1500' });
+    setNewInterface({ name: '', type: 'LAN', ipAddress: '', subnet: '255.255.255.0', gateway: '', mtu: '1500' });
     toast.success('Interface added successfully');
   };
 
@@ -94,9 +97,10 @@ const Interfaces = () => {
       i.id === selected.id ? { 
         ...i, 
         name: newInterface.name,
-        type: newInterface.type as 'ethernet' | 'vlan' | 'bridge' | 'loopback',
+        type: newInterface.type,
         ipAddress: newInterface.ipAddress,
         subnet: newInterface.subnet,
+        gateway: newInterface.gateway || undefined,
         mtu: parseInt(newInterface.mtu) 
       } : i
     ));
@@ -111,9 +115,32 @@ const Interfaces = () => {
       type: selected.type,
       ipAddress: selected.ipAddress,
       subnet: selected.subnet,
+      gateway: selected.gateway || '',
       mtu: selected.mtu.toString(),
     });
     setEditModalOpen(true);
+  };
+
+  const handleToggleStatus = (ifaceId: string) => {
+    setInterfaces(prev => prev.map(i => {
+      if (i.id === ifaceId) {
+        const newStatus = i.status === 'up' ? 'down' : 'up';
+        toast.success(`Interface ${i.name} is now ${newStatus}`);
+        return { ...i, status: newStatus };
+      }
+      return i;
+    }));
+  };
+
+  const handleDeleteInterface = (ifaceId: string) => {
+    const iface = interfaces.find(i => i.id === ifaceId);
+    if (iface && (iface.type === 'WAN' || iface.type === 'LAN')) {
+      toast.error(`Cannot delete ${iface.type} interface`);
+      return;
+    }
+    setInterfaces(prev => prev.filter(i => i.id !== ifaceId));
+    if (selectedId === ifaceId) setSelectedId(null);
+    toast.success('Interface deleted');
   };
 
   return (
@@ -210,7 +237,27 @@ const Interfaces = () => {
                 <div className="section">
                   <div className="section-header">
                     <span>Configuration</span>
-                    <button onClick={openEditModal} className="btn btn-ghost text-xs">Edit</button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleToggleStatus(selected.id)}
+                        className={cn(
+                          "btn text-xs flex items-center gap-1",
+                          selected.status === 'up' ? "btn-outline text-status-critical" : "btn-primary"
+                        )}
+                      >
+                        {selected.status === 'up' ? <PowerOff size={12} /> : <Power size={12} />}
+                        {selected.status === 'up' ? 'Disable' : 'Enable'}
+                      </button>
+                      <button onClick={openEditModal} className="btn btn-ghost text-xs">Edit</button>
+                      {selected.type !== 'WAN' && selected.type !== 'LAN' && (
+                        <button 
+                          onClick={() => handleDeleteInterface(selected.id)}
+                          className="btn btn-ghost text-xs text-destructive"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="section-body">
                     <div className="info-grid grid-cols-2">
@@ -321,7 +368,7 @@ const Interfaces = () => {
             <div className="space-y-2">
               <Label>Name</Label>
               <Input 
-                placeholder="eth2"
+                placeholder="OPT1"
                 value={newInterface.name}
                 onChange={(e) => setNewInterface(prev => ({ ...prev, name: e.target.value }))}
               />
@@ -330,16 +377,16 @@ const Interfaces = () => {
               <Label>Type</Label>
               <Select 
                 value={newInterface.type} 
-                onValueChange={(v) => setNewInterface(prev => ({ ...prev, type: v }))}
+                onValueChange={(v: 'WAN' | 'LAN' | 'DMZ' | 'OPT') => setNewInterface(prev => ({ ...prev, type: v }))}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ethernet">Ethernet</SelectItem>
-                  <SelectItem value="vlan">VLAN</SelectItem>
-                  <SelectItem value="bridge">Bridge</SelectItem>
-                  <SelectItem value="loopback">Loopback</SelectItem>
+                  <SelectItem value="WAN">WAN</SelectItem>
+                  <SelectItem value="LAN">LAN</SelectItem>
+                  <SelectItem value="DMZ">DMZ</SelectItem>
+                  <SelectItem value="OPT">OPT (Optional)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -357,6 +404,14 @@ const Interfaces = () => {
                 placeholder="255.255.255.0"
                 value={newInterface.subnet}
                 onChange={(e) => setNewInterface(prev => ({ ...prev, subnet: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Gateway (Optional)</Label>
+              <Input 
+                placeholder="192.168.1.254"
+                value={newInterface.gateway}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, gateway: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -394,16 +449,16 @@ const Interfaces = () => {
               <Label>Type</Label>
               <Select 
                 value={newInterface.type} 
-                onValueChange={(v) => setNewInterface(prev => ({ ...prev, type: v }))}
+                onValueChange={(v: 'WAN' | 'LAN' | 'DMZ' | 'OPT') => setNewInterface(prev => ({ ...prev, type: v }))}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ethernet">Ethernet</SelectItem>
-                  <SelectItem value="vlan">VLAN</SelectItem>
-                  <SelectItem value="bridge">Bridge</SelectItem>
-                  <SelectItem value="loopback">Loopback</SelectItem>
+                  <SelectItem value="WAN">WAN</SelectItem>
+                  <SelectItem value="LAN">LAN</SelectItem>
+                  <SelectItem value="DMZ">DMZ</SelectItem>
+                  <SelectItem value="OPT">OPT (Optional)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -419,6 +474,13 @@ const Interfaces = () => {
               <Input 
                 value={newInterface.subnet}
                 onChange={(e) => setNewInterface(prev => ({ ...prev, subnet: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Gateway (Optional)</Label>
+              <Input 
+                value={newInterface.gateway}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, gateway: e.target.value }))}
               />
             </div>
             <div className="space-y-2">

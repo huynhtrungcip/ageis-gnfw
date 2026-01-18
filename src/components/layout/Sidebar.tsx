@@ -16,7 +16,10 @@ import {
   FileWarning,
   TrendingUp,
   Lightbulb,
-  LineChart
+  LineChart,
+  Users,
+  Database,
+  HardDrive
 } from 'lucide-react';
 
 interface NavItem {
@@ -65,6 +68,7 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Interfaces', path: '/interfaces', icon: <Network size={14} /> },
       { label: 'Routing', path: '/routing', icon: <Router size={14} /> },
+      { label: 'DHCP Server', path: '/dhcp', icon: <Database size={14} /> },
       { label: 'VPN', path: '/vpn/ipsec', icon: <Globe size={14} /> },
     ],
   },
@@ -82,7 +86,7 @@ const navigation: NavSection[] = [
     priority: 'high',
     items: [
       { label: 'Traffic Analysis', path: '/monitoring/traffic', icon: <LineChart size={14} /> },
-      { label: 'Logs', path: '/monitoring/logs', icon: <ScrollText size={14} /> },
+      { label: 'System Logs', path: '/monitoring/logs', icon: <ScrollText size={14} /> },
       { label: 'Reports', path: '/reports', icon: <BarChart3 size={14} /> },
     ],
   },
@@ -90,8 +94,9 @@ const navigation: NavSection[] = [
     title: 'System',
     priority: 'high',
     items: [
-      { label: 'Config Backup', path: '/system/backup', icon: <Settings size={14} /> },
-      { label: 'Settings', path: '/system/general', icon: <Settings size={14} /> },
+      { label: 'User Management', path: '/system/users', icon: <Users size={14} /> },
+      { label: 'Config Backup', path: '/system/backup', icon: <HardDrive size={14} /> },
+      { label: 'General Settings', path: '/system/general', icon: <Settings size={14} /> },
     ],
   },
 ];
