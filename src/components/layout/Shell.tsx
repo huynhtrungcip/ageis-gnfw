@@ -8,9 +8,9 @@ interface ShellProps {
 
 export function Shell({ children }: ShellProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#ecf0f1]">
       <Sidebar />
-      <div className="ml-56">
+      <div className="ml-[220px]">
         <Header />
         <main className="p-4">
           {children}
