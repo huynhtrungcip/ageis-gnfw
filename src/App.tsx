@@ -20,6 +20,7 @@ import Schedules from "./pages/Schedules";
 import ConfigBackup from "./pages/ConfigBackup";
 import IDSSettings from "./pages/IDSSettings";
 import SecurityProfiles from "./pages/SecurityProfiles";
+import SSLInspection from "./pages/SSLInspection";
 import SDWAN from "./pages/SDWAN";
 import Routing from "./pages/Routing";
 import Reports from "./pages/Reports";
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/security/antivirus" element={<SecurityProfiles />} />
           <Route path="/security/webfilter" element={<SecurityProfiles />} />
           <Route path="/security/appcontrol" element={<SecurityProfiles />} />
+          <Route path="/security/ssl" element={<SSLInspection />} />
           <Route path="/sdwan" element={<SDWAN />} />
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/routing" element={<Routing />} />
