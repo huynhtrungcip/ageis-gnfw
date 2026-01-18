@@ -235,15 +235,15 @@ const Dashboard = () => {
           </Widget>
         </div>
 
-        {/* Third Row - FortiGate Unit + Interfaces */}
+        {/* Third Row - Device Unit + Interfaces */}
         <div className="grid grid-cols-3 gap-3">
-          {/* FortiGate Unit Visualization */}
+          {/* Aegis Unit Visualization */}
           <Widget title="Unit Operation">
             <div className="flex flex-col items-center py-2">
-              {/* FortiGate Device Visual */}
+              {/* Device Visual */}
               <div className="bg-[#333] rounded px-4 py-2 text-center mb-2">
-                <div className="text-[10px] text-gray-400 mb-1">FORTINET</div>
-                <div className="text-[11px] text-white font-bold">FortiGate 100E</div>
+                <div className="text-[10px] text-gray-400 mb-1">AEGIS</div>
+                <div className="text-[11px] text-white font-bold">Aegis NGFW-500</div>
                 <div className="flex items-center justify-center gap-1 mt-2">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
                     <div 
