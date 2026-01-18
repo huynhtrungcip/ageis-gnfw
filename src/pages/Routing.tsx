@@ -1,43 +1,24 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Router, 
   Plus, 
-  Pencil, 
+  Edit2, 
   Trash2, 
   Network,
-  ArrowRight,
   Globe,
-  Check
+  Search,
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'sonner';
 
 interface Route {
@@ -60,41 +41,35 @@ const mockRoutes: Route[] = [
   { id: 'rt-6', destination: '10.100.0.0/16', gateway: '192.168.1.254', interface: 'LAN', metric: 20, type: 'static', enabled: false, description: 'Legacy network' },
 ];
 
-const formSchema = z.object({
-  destination: z.string().min(1, 'Destination is required'),
-  gateway: z.string(),
-  interface: z.string().min(1, 'Interface is required'),
-  metric: z.number().min(0).max(255),
-  enabled: z.boolean(),
-  description: z.string().max(100),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
 const Routing = () => {
   const [routes, setRoutes] = useState<Route[]>(mockRoutes);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
   const [filter, setFilter] = useState<'all' | 'static' | 'connected'>('all');
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      destination: '',
-      gateway: '',
-      interface: 'WAN',
-      metric: 1,
-      enabled: true,
-      description: '',
-    },
+  const [search, setSearch] = useState('');
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [formData, setFormData] = useState({
+    destination: '',
+    gateway: '',
+    interface: 'WAN',
+    metric: 1,
+    enabled: true,
+    description: '',
   });
 
-  const filtered = routes.filter(r => filter === 'all' || r.type === filter);
   const interfaces = ['WAN', 'LAN', 'DMZ', 'GUEST'];
+
+  const filtered = routes.filter(r => {
+    const matchesFilter = filter === 'all' || r.type === filter;
+    const matchesSearch = search === '' || 
+      r.destination.toLowerCase().includes(search.toLowerCase()) ||
+      r.description.toLowerCase().includes(search.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   const handleAdd = () => {
     setEditingRoute(null);
-    form.reset({
+    setFormData({
       destination: '',
       gateway: '',
       interface: 'WAN',
@@ -103,6 +78,7 @@ const Routing = () => {
       description: '',
     });
     setModalOpen(true);
+    setShowCreateMenu(false);
   };
 
   const handleEdit = (route: Route) => {
@@ -111,7 +87,7 @@ const Routing = () => {
       return;
     }
     setEditingRoute(route);
-    form.reset({
+    setFormData({
       destination: route.destination,
       gateway: route.gateway,
       interface: route.interface,
@@ -132,21 +108,26 @@ const Routing = () => {
     toast.success('Route deleted');
   };
 
-  const onSubmit = (values: FormValues) => {
+  const toggleRoute = (id: string) => {
+    const route = routes.find(r => r.id === id);
+    if (route?.type === 'connected') return;
+    setRoutes(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
+  };
+
+  const onSubmit = () => {
+    if (!formData.destination) {
+      toast.error('Destination is required');
+      return;
+    }
     if (editingRoute) {
       setRoutes(prev => prev.map(r =>
-        r.id === editingRoute.id ? { ...r, ...values, type: 'static' } : r
+        r.id === editingRoute.id ? { ...r, ...formData, type: 'static' } : r
       ));
       toast.success('Route updated');
     } else {
       const newRoute: Route = {
         id: `rt-${Date.now()}`,
-        destination: values.destination,
-        gateway: values.gateway,
-        interface: values.interface,
-        metric: values.metric,
-        enabled: values.enabled,
-        description: values.description,
+        ...formData,
         type: 'static',
       };
       setRoutes(prev => [...prev, newRoute]);
@@ -155,95 +136,116 @@ const Routing = () => {
     setModalOpen(false);
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'static': return 'text-blue-400 bg-blue-500/10';
-      case 'connected': return 'text-emerald-400 bg-emerald-500/10';
-      case 'dynamic': return 'text-purple-400 bg-purple-500/10';
-      default: return 'text-muted-foreground bg-muted';
-    }
-  };
-
   return (
     <Shell>
-      <div className="space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold">Routing</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Static routes and routing table</p>
+      <div className="space-y-0 animate-slide-in">
+        {/* FortiGate Toolbar */}
+        <div className="forti-toolbar">
+          <div className="relative">
+            <button 
+              className="forti-toolbar-btn primary"
+              onClick={() => setShowCreateMenu(!showCreateMenu)}
+            >
+              <Plus className="w-3 h-3" />
+              Create New
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {showCreateMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
+                <button 
+                  onClick={handleAdd}
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                >
+                  <Router className="w-3 h-3" />
+                  Static Route
+                </button>
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                  <Network className="w-3 h-3" />
+                  Policy Route
+                </button>
+              </div>
+            )}
           </div>
-          <Button onClick={handleAdd} size="sm" className="gap-1.5">
-            <Plus size={14} />
-            Add Route
-          </Button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="section p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Router size={18} className="text-blue-400" />
-              </div>
-              <div>
-                <div className="text-xl font-bold">{routes.filter(r => r.type === 'static').length}</div>
-                <div className="text-xs text-muted-foreground">Static Routes</div>
-              </div>
-            </div>
-          </div>
-          <div className="section p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10">
-                <Network size={18} className="text-emerald-400" />
-              </div>
-              <div>
-                <div className="text-xl font-bold">{routes.filter(r => r.type === 'connected').length}</div>
-                <div className="text-xs text-muted-foreground">Connected Networks</div>
-              </div>
-            </div>
-          </div>
-          <div className="section p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <Globe size={18} className="text-amber-400" />
-              </div>
-              <div>
-                <div className="text-xl font-bold">{routes.filter(r => r.enabled).length}</div>
-                <div className="text-xs text-muted-foreground">Active Routes</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter */}
-        <div className="action-strip">
-          <div className="flex items-center gap-1">
-            {(['all', 'static', 'connected'] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setFilter(type)}
-                className={cn(
-                  "px-3 py-1.5 text-xs rounded-sm transition-all capitalize",
-                  filter === type
-                    ? "bg-primary text-primary-foreground font-medium"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                {type === 'all' ? 'All Routes' : type}
-              </button>
-            ))}
-          </div>
+          <button className="forti-toolbar-btn">
+            <Edit2 className="w-3 h-3" />
+            Edit
+          </button>
+          <button className="forti-toolbar-btn">
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn">
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
           <div className="flex-1" />
-          <span className="text-xs text-muted-foreground">{filtered.length} routes</span>
+          <div className="forti-search">
+            <Search className="w-3 h-3 text-[#999]" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-40"
+            />
+          </div>
+        </div>
+
+        {/* Stats Strip */}
+        <div className="flex items-center gap-4 px-4 py-3 bg-white border-b border-[#ddd]">
+          <div className="flex items-center gap-2">
+            <Router className="w-4 h-4 text-blue-500" />
+            <span className="text-lg font-bold">{routes.filter(r => r.type === 'static').length}</span>
+            <span className="text-[11px] text-[#666]">Static Routes</span>
+          </div>
+          <div className="w-px h-6 bg-[#ddd]" />
+          <div className="flex items-center gap-2">
+            <Network className="w-4 h-4 text-green-500" />
+            <span className="text-lg font-bold">{routes.filter(r => r.type === 'connected').length}</span>
+            <span className="text-[11px] text-[#666]">Connected</span>
+          </div>
+          <div className="w-px h-6 bg-[#ddd]" />
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-amber-500" />
+            <span className="text-lg font-bold">{routes.filter(r => r.enabled).length}</span>
+            <span className="text-[11px] text-[#666]">Active</span>
+          </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex items-center bg-[#e8e8e8] border-b border-[#ccc]">
+          {(['all', 'static', 'connected'] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilter(type)}
+              className={cn(
+                "px-4 py-2 text-[11px] font-medium transition-colors border-b-2 capitalize",
+                filter === type 
+                  ? "bg-white text-[hsl(142,70%,35%)] border-[hsl(142,70%,35%)]" 
+                  : "text-[#666] border-transparent hover:text-[#333] hover:bg-[#f0f0f0]"
+              )}
+            >
+              {type === 'all' ? 'All Routes' : type}
+              <span className={cn(
+                "ml-2 px-1.5 py-0.5 text-[10px] rounded",
+                filter === type ? "bg-[hsl(142,70%,35%)]/20" : "bg-[#ddd]"
+              )}>
+                {type === 'all' ? routes.length : routes.filter(r => r.type === type).length}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Routes Table */}
-        <div className="section">
+        <div className="p-4">
           <table className="data-table">
             <thead>
               <tr>
-                <th className="w-14">Status</th>
+                <th className="w-8">
+                  <input type="checkbox" className="forti-checkbox" />
+                </th>
+                <th className="w-16">Status</th>
                 <th>Destination</th>
                 <th>Gateway</th>
                 <th>Interface</th>
@@ -255,39 +257,56 @@ const Routing = () => {
             </thead>
             <tbody>
               {filtered.map((route) => (
-                <tr key={route.id} className={cn(!route.enabled && "opacity-50")}>
+                <tr key={route.id} className={cn(!route.enabled && "opacity-60")}>
+                  <td>
+                    <input type="checkbox" className="forti-checkbox" />
+                  </td>
+                  <td>
+                    {route.type === 'static' ? (
+                      <FortiToggle 
+                        enabled={route.enabled} 
+                        onToggle={() => toggleRoute(route.id)}
+                        size="sm"
+                      />
+                    ) : (
+                      <span className="forti-status-dot up" />
+                    )}
+                  </td>
+                  <td className="mono text-[11px]">{route.destination}</td>
+                  <td className="mono text-[10px] text-[#666]">
+                    {route.gateway || <span className="text-[#999]">—</span>}
+                  </td>
+                  <td>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">
+                      {route.interface}
+                    </span>
+                  </td>
+                  <td className="text-center text-[11px] text-[#666]">{route.metric}</td>
                   <td>
                     <span className={cn(
-                      "status-dot-lg",
-                      route.enabled ? "status-healthy" : "status-inactive"
-                    )} />
-                  </td>
-                  <td className="font-mono">{route.destination}</td>
-                  <td className="font-mono text-muted-foreground">
-                    {route.gateway || <span className="text-muted-foreground/50">—</span>}
-                  </td>
-                  <td className="font-medium">{route.interface}</td>
-                  <td className="text-center font-mono text-muted-foreground">{route.metric}</td>
-                  <td>
-                    <span className={cn("px-2 py-0.5 text-[10px] font-medium rounded capitalize", getTypeColor(route.type))}>
+                      "text-[10px] px-1.5 py-0.5 border capitalize",
+                      route.type === 'static' ? "bg-blue-100 text-blue-700 border-blue-200" :
+                      route.type === 'connected' ? "bg-green-100 text-green-700 border-green-200" :
+                      "bg-purple-100 text-purple-700 border-purple-200"
+                    )}>
                       {route.type}
                     </span>
                   </td>
-                  <td className="text-muted-foreground text-sm">{route.description}</td>
+                  <td className="text-[11px] text-[#666]">{route.description}</td>
                   <td>
                     {route.type === 'static' && (
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleEdit(route)}
-                          className="p-1.5 rounded hover:bg-muted transition-colors"
+                          className="p-1 rounded hover:bg-[#e8e8e8] transition-colors"
                         >
-                          <Pencil size={12} className="text-muted-foreground" />
+                          <Edit2 size={12} className="text-[#666]" />
                         </button>
                         <button
                           onClick={() => handleDelete(route.id)}
-                          className="p-1.5 rounded hover:bg-destructive/10 transition-colors"
+                          className="p-1 rounded hover:bg-red-100 transition-colors"
                         >
-                          <Trash2 size={12} className="text-destructive" />
+                          <Trash2 size={12} className="text-red-500" />
                         </button>
                       </div>
                     )}
@@ -296,131 +315,92 @@ const Routing = () => {
               ))}
             </tbody>
           </table>
+          <div className="text-[11px] text-[#666] mt-2 px-1">
+            {filtered.length} routes
+          </div>
         </div>
       </div>
 
       {/* Add/Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Router size={18} />
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <div className="forti-modal-header">
+            <DialogTitle className="text-sm">
               {editingRoute ? 'Edit Route' : 'Add Static Route'}
             </DialogTitle>
-          </DialogHeader>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="destination"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Destination Network</FormLabel>
-                    <FormControl>
-                      <Input placeholder="192.168.0.0/24" className="font-mono" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          </div>
+          <div className="forti-modal-body space-y-4">
+            <div>
+              <label className="forti-label">Destination Network</label>
+              <input
+                type="text"
+                value={formData.destination}
+                onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                className="forti-input w-full"
+                placeholder="192.168.0.0/24"
               />
-
-              <FormField
-                control={form.control}
-                name="gateway"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gateway</FormLabel>
-                    <FormControl>
-                      <Input placeholder="10.0.0.1" className="font-mono" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            </div>
+            <div>
+              <label className="forti-label">Gateway</label>
+              <input
+                type="text"
+                value={formData.gateway}
+                onChange={(e) => setFormData({ ...formData, gateway: e.target.value })}
+                className="forti-input w-full"
+                placeholder="10.0.0.1"
               />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="interface"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Interface</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {interfaces.map(iface => (
-                            <SelectItem key={iface} value={iface}>{iface}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="metric"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Metric</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min={0} 
-                          max={255}
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="forti-label">Interface</label>
+                <select 
+                  value={formData.interface}
+                  onChange={(e) => setFormData({ ...formData, interface: e.target.value })}
+                  className="forti-select w-full"
+                >
+                  {interfaces.map(iface => (
+                    <option key={iface} value={iface}>{iface}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="forti-label">Metric</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={255}
+                  value={formData.metric}
+                  onChange={(e) => setFormData({ ...formData, metric: parseInt(e.target.value) || 0 })}
+                  className="forti-input w-full"
                 />
               </div>
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Optional description..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            </div>
+            <div>
+              <label className="forti-label">Description</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="forti-input w-full"
+                placeholder="Optional description..."
               />
-
-              <FormField
-                control={form.control}
-                name="enabled"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/30">
-                    <FormLabel>Enabled</FormLabel>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
+            </div>
+            <div className="flex items-center justify-between p-3 bg-[#f5f5f5] border border-[#ddd]">
+              <span className="text-[11px]">Enable Route</span>
+              <FortiToggle 
+                enabled={formData.enabled} 
+                onToggle={() => setFormData({ ...formData, enabled: !formData.enabled })}
               />
-
-              <div className="flex items-center justify-end gap-2 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingRoute ? 'Save Changes' : 'Create Route'}
-                </Button>
-              </div>
-            </form>
-          </Form>
+            </div>
+          </div>
+          <div className="forti-modal-footer">
+            <button onClick={() => setModalOpen(false)} className="forti-btn forti-btn-secondary">
+              Cancel
+            </button>
+            <button onClick={onSubmit} className="forti-btn forti-btn-primary">
+              {editingRoute ? 'Save Changes' : 'Create Route'}
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </Shell>

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockVPNTunnels } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
-  Pencil, 
   Trash2, 
   Search, 
   ChevronDown, 
@@ -15,7 +15,8 @@ import {
   Key,
   Globe,
   Users,
-  Download
+  Download,
+  Edit2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -24,23 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface VPNTunnel {
   id: string;
@@ -84,11 +68,11 @@ const VPN = () => {
     phase2: 'aes256-sha256',
   })));
   const [sslUsers] = useState<SSLVPNUser[]>(mockSSLUsers);
-  const [activeTab, setActiveTab] = useState('ipsec');
+  const [activeTab, setActiveTab] = useState<'ipsec' | 'ssl' | 'monitor'>('ipsec');
   const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingTunnel, setEditingTunnel] = useState<VPNTunnel | null>(null);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [newTunnel, setNewTunnel] = useState({
     name: '',
     type: 'ipsec' as 'ipsec' | 'openvpn' | 'wireguard',
@@ -200,215 +184,208 @@ const VPN = () => {
 
   return (
     <Shell>
-      <div className="space-y-4">
-        {/* Toolbar */}
+      <div className="space-y-0 animate-slide-in">
+        {/* FortiGate Toolbar */}
         <div className="forti-toolbar">
-          <div className="forti-toolbar-left">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="forti-action-btn forti-action-btn-primary">
-                  <Plus size={14} />
-                  Create New
-                  <ChevronDown size={12} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-white border shadow-lg z-50">
-                <DropdownMenuItem onClick={() => { setNewTunnel({ ...newTunnel, type: 'ipsec' }); setModalOpen(true); }} className="cursor-pointer">
-                  <Shield size={14} className="mr-2" />
-                  IPsec Tunnel
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Key size={14} className="mr-2" />
-                  SSL-VPN Portal
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Users size={14} className="mr-2" />
-                  SSL-VPN User
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {selectedRows.length > 0 && (
-              <>
-                <button 
-                  onClick={() => selectedRows.forEach(id => handleConnect(id))}
-                  className="forti-action-btn"
-                >
-                  <Play size={14} />
-                  Bring Up
-                </button>
-                <button 
-                  onClick={() => selectedRows.forEach(id => handleDelete(id))}
-                  className="forti-action-btn"
-                >
-                  <Trash2 size={14} />
-                  Delete
-                </button>
-              </>
-            )}
-
-            <button className="forti-action-btn">
-              <RefreshCw size={14} />
-              Refresh
+          <div className="relative">
+            <button 
+              className="forti-toolbar-btn primary"
+              onClick={() => setShowCreateMenu(!showCreateMenu)}
+            >
+              <Plus className="w-3 h-3" />
+              Create New
+              <ChevronDown className="w-3 h-3" />
             </button>
+            {showCreateMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
+                <button 
+                  onClick={() => { setNewTunnel({ ...newTunnel, type: 'ipsec' }); setModalOpen(true); setShowCreateMenu(false); }}
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                >
+                  <Shield className="w-3 h-3" />
+                  IPsec Tunnel
+                </button>
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                  <Key className="w-3 h-3" />
+                  SSL-VPN Portal
+                </button>
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                  <Users className="w-3 h-3" />
+                  SSL-VPN User
+                </button>
+              </div>
+            )}
           </div>
-
-          <div className="forti-toolbar-right">
-            <div className="forti-search">
-              <Search size={14} />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
+          <button className="forti-toolbar-btn">
+            <Edit2 className="w-3 h-3" />
+            Edit
+          </button>
+          <button className="forti-toolbar-btn">
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn">
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+          <div className="flex-1" />
+          <div className="forti-search">
+            <Search className="w-3 h-3 text-[#999]" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-40"
+            />
           </div>
         </div>
 
-        {/* Stats Strip */}
-        <div className="summary-strip">
-          <div className="summary-item">
-            <Shield size={16} className="text-primary" />
-            <span className="summary-count">{stats.ipsecTotal}</span>
-            <span className="summary-label">IPsec Tunnels</span>
+        {/* Stats Strip - Fixed horizontal layout */}
+        <div className="flex items-center gap-4 px-4 py-3 bg-white border-b border-[#ddd]">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-[hsl(142,70%,35%)]" />
+            <span className="text-lg font-bold">{stats.ipsecTotal}</span>
+            <span className="text-[11px] text-[#666]">IPsec Tunnels</span>
           </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="summary-item">
-            <span className="status-dot-lg status-healthy" />
-            <span className="summary-count text-status-healthy">{stats.ipsecUp}</span>
-            <span className="summary-label">Up</span>
+          <div className="w-px h-6 bg-[#ddd]" />
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+            <span className="text-lg font-bold text-green-600">{stats.ipsecUp}</span>
+            <span className="text-[11px] text-[#666]">Up</span>
           </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="summary-item">
-            <Key size={16} className="text-blue-600" />
-            <span className="summary-count">{stats.sslTotal}</span>
-            <span className="summary-label">SSL-VPN Users</span>
+          <div className="w-px h-6 bg-[#ddd]" />
+          <div className="flex items-center gap-2">
+            <Key className="w-4 h-4 text-blue-600" />
+            <span className="text-lg font-bold">{stats.sslTotal}</span>
+            <span className="text-[11px] text-[#666]">SSL-VPN Users</span>
           </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="summary-item">
-            <Users size={16} className="text-green-600" />
-            <span className="summary-count text-green-600">{stats.sslOnline}</span>
-            <span className="summary-label">Online</span>
+          <div className="w-px h-6 bg-[#ddd]" />
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-green-600" />
+            <span className="text-lg font-bold text-green-600">{stats.sslOnline}</span>
+            <span className="text-[11px] text-[#666]">Online</span>
           </div>
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-muted/50">
-            <TabsTrigger value="ipsec" className="gap-1.5">
-              <Shield size={14} />
-              IPsec Tunnels
-            </TabsTrigger>
-            <TabsTrigger value="ssl" className="gap-1.5">
-              <Key size={14} />
-              SSL-VPN
-            </TabsTrigger>
-            <TabsTrigger value="monitor" className="gap-1.5">
-              <Globe size={14} />
-              VPN Monitor
-            </TabsTrigger>
-          </TabsList>
-
-          {/* IPsec Tab */}
-          <TabsContent value="ipsec" className="mt-4">
-            <div className="section">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th className="w-10">
-                      <input type="checkbox" className="rounded border-gray-300" />
-                    </th>
-                    <th className="w-16">Status</th>
-                    <th>Name</th>
-                    <th>Remote Gateway</th>
-                    <th>Phase 1</th>
-                    <th>Phase 2</th>
-                    <th className="w-24">Uptime</th>
-                    <th className="w-32">Traffic</th>
-                    <th className="w-24">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTunnels.map((tunnel) => (
-                    <tr 
-                      key={tunnel.id}
-                      className={cn(
-                        selectedRows.includes(tunnel.id) && "data-table-row-selected"
-                      )}
-                    >
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedRows.includes(tunnel.id)}
-                          onChange={() => toggleRowSelection(tunnel.id)}
-                          className="rounded border-gray-300"
-                        />
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "status-dot-lg",
-                            tunnel.status === 'connected' ? 'status-healthy' :
-                            tunnel.status === 'connecting' ? 'status-medium' : 'status-inactive'
-                          )} />
-                        </div>
-                      </td>
-                      <td className="font-medium">{tunnel.name}</td>
-                      <td className="font-mono text-sm text-muted-foreground">{tunnel.remoteGateway}</td>
-                      <td className="text-xs text-muted-foreground">{tunnel.phase1}</td>
-                      <td className="text-xs text-muted-foreground">{tunnel.phase2}</td>
-                      <td className="text-sm">{formatUptime(tunnel.uptime)}</td>
-                      <td>
-                        <div className="text-xs">
-                          <span className="text-green-600">↓{formatBytes(tunnel.bytesIn)}</span>
-                          <span className="text-muted-foreground mx-1">/</span>
-                          <span className="text-blue-600">↑{formatBytes(tunnel.bytesOut)}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleConnect(tunnel.id)}
-                            className={cn(
-                              "p-1.5 rounded transition-colors",
-                              tunnel.status === 'connected' 
-                                ? "hover:bg-red-100 text-red-600" 
-                                : "hover:bg-green-100 text-green-600"
-                            )}
-                            title={tunnel.status === 'connected' ? 'Bring Down' : 'Bring Up'}
-                          >
-                            {tunnel.status === 'connected' ? <Square size={14} /> : <Play size={14} />}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(tunnel.id)}
-                            className="p-1.5 rounded hover:bg-red-100 text-red-600 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {filteredTunnels.length === 0 && (
-                <div className="p-12 text-center">
-                  <Shield size={32} className="mx-auto text-muted-foreground/50 mb-3" />
-                  <p className="text-sm text-muted-foreground">No IPsec tunnels configured</p>
-                </div>
+        <div className="flex items-center bg-[#e8e8e8] border-b border-[#ccc]">
+          {[
+            { id: 'ipsec', label: 'IPsec Tunnels', icon: Shield },
+            { id: 'ssl', label: 'SSL-VPN', icon: Key },
+            { id: 'monitor', label: 'VPN Monitor', icon: Globe },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium transition-colors border-b-2",
+                activeTab === tab.id 
+                  ? "bg-white text-[hsl(142,70%,35%)] border-[hsl(142,70%,35%)]" 
+                  : "text-[#666] border-transparent hover:text-[#333] hover:bg-[#f0f0f0]"
               )}
-            </div>
-          </TabsContent>
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          {/* SSL-VPN Tab */}
-          <TabsContent value="ssl" className="mt-4">
+        {/* IPsec Tab */}
+        {activeTab === 'ipsec' && (
+          <div className="p-4">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-8">
+                    <input type="checkbox" className="forti-checkbox" />
+                  </th>
+                  <th className="w-16">Status</th>
+                  <th>Name</th>
+                  <th>Remote Gateway</th>
+                  <th>Phase 1</th>
+                  <th>Phase 2</th>
+                  <th>Uptime</th>
+                  <th>Traffic</th>
+                  <th className="w-20">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTunnels.map((tunnel) => (
+                  <tr 
+                    key={tunnel.id}
+                    className={cn(selectedRows.includes(tunnel.id) && "selected")}
+                  >
+                    <td>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedRows.includes(tunnel.id)}
+                        onChange={() => toggleRowSelection(tunnel.id)}
+                        className="forti-checkbox"
+                      />
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "forti-status-dot",
+                          tunnel.status === 'connected' ? 'up' :
+                          tunnel.status === 'connecting' ? 'warning' : 'down'
+                        )} />
+                      </div>
+                    </td>
+                    <td className="text-[11px] font-medium">{tunnel.name}</td>
+                    <td className="mono text-[10px]">{tunnel.remoteGateway}</td>
+                    <td className="text-[10px] text-[#666]">{tunnel.phase1}</td>
+                    <td className="text-[10px] text-[#666]">{tunnel.phase2}</td>
+                    <td className="text-[11px]">{formatUptime(tunnel.uptime)}</td>
+                    <td>
+                      <div className="text-[10px]">
+                        <span className="text-green-600">↓{formatBytes(tunnel.bytesIn)}</span>
+                        <span className="text-[#999] mx-1">/</span>
+                        <span className="text-blue-600">↑{formatBytes(tunnel.bytesOut)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleConnect(tunnel.id)}
+                          className={cn(
+                            "p-1 rounded transition-colors",
+                            tunnel.status === 'connected' 
+                              ? "hover:bg-red-100 text-red-600" 
+                              : "hover:bg-green-100 text-green-600"
+                          )}
+                          title={tunnel.status === 'connected' ? 'Bring Down' : 'Bring Up'}
+                        >
+                          {tunnel.status === 'connected' ? <Square size={12} /> : <Play size={12} />}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(tunnel.id)}
+                          className="p-1 rounded hover:bg-red-100 text-red-600 transition-colors"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="text-[11px] text-[#666] mt-2 px-1">
+              {filteredTunnels.length} tunnels
+            </div>
+          </div>
+        )}
+
+        {/* SSL-VPN Tab */}
+        {activeTab === 'ssl' && (
+          <div className="p-4">
             <div className="section">
               <div className="section-header">
                 <span>SSL-VPN Users</span>
-                <button className="forti-action-btn text-xs">
-                  <Download size={12} />
+                <button className="text-[10px] text-white/80 hover:text-white flex items-center gap-1">
+                  <Download size={10} />
                   Export
                 </button>
               </div>
@@ -429,34 +406,28 @@ const VPN = () => {
                     <tr key={user.id}>
                       <td>
                         <span className={cn(
-                          "forti-tag",
+                          "text-[10px] px-1.5 py-0.5 border",
                           user.status === 'online' 
-                            ? "bg-green-100 text-green-700" 
-                            : "bg-gray-100 text-gray-500"
+                            ? "bg-green-100 text-green-700 border-green-200" 
+                            : "bg-gray-100 text-gray-500 border-gray-200"
                         )}>
                           {user.status.toUpperCase()}
                         </span>
                       </td>
-                      <td className="font-medium">{user.username}</td>
-                      <td className="text-muted-foreground">{user.group}</td>
-                      <td className="font-mono text-sm text-muted-foreground">
-                        {user.sourceIp || '--'}
-                      </td>
-                      <td className="font-mono text-sm text-muted-foreground">
-                        {user.assignedIp || '--'}
-                      </td>
-                      <td className="text-sm text-muted-foreground">
-                        {formatLoginTime(user.loginTime)}
-                      </td>
+                      <td className="text-[11px] font-medium">{user.username}</td>
+                      <td className="text-[11px] text-[#666]">{user.group}</td>
+                      <td className="mono text-[10px]">{user.sourceIp || '--'}</td>
+                      <td className="mono text-[10px]">{user.assignedIp || '--'}</td>
+                      <td className="text-[11px] text-[#666]">{formatLoginTime(user.loginTime)}</td>
                       <td>
                         {user.status === 'online' ? (
-                          <div className="text-xs">
+                          <div className="text-[10px]">
                             <span className="text-green-600">↓{formatBytes(user.bytesIn)}</span>
-                            <span className="text-muted-foreground mx-1">/</span>
+                            <span className="text-[#999] mx-1">/</span>
                             <span className="text-blue-600">↑{formatBytes(user.bytesOut)}</span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">--</span>
+                          <span className="text-[10px] text-[#999]">--</span>
                         )}
                       </td>
                     </tr>
@@ -464,134 +435,132 @@ const VPN = () => {
                 </tbody>
               </table>
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Monitor Tab */}
-          <TabsContent value="monitor" className="mt-4">
+        {/* VPN Monitor Tab */}
+        {activeTab === 'monitor' && (
+          <div className="p-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="section">
                 <div className="section-header">
-                  <span>IPsec Status</span>
+                  <span>IPsec Tunnel Status</span>
                 </div>
-                <div className="p-4 space-y-3">
-                  {tunnels.filter(t => t.type === 'ipsec').map(tunnel => (
-                    <div key={tunnel.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <span className={cn(
-                          "status-dot-lg",
-                          tunnel.status === 'connected' ? 'status-healthy' : 'status-inactive'
-                        )} />
-                        <div>
-                          <div className="font-medium text-sm">{tunnel.name}</div>
-                          <div className="text-xs text-muted-foreground">{tunnel.remoteGateway}</div>
+                <div className="section-body">
+                  <div className="space-y-2">
+                    {tunnels.filter(t => t.type === 'ipsec').map((tunnel) => (
+                      <div key={tunnel.id} className="flex items-center justify-between p-2 bg-[#f8f8f8] border border-[#ddd]">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "forti-status-dot",
+                            tunnel.status === 'connected' ? 'up' : 'down'
+                          )} />
+                          <span className="text-[11px] font-medium">{tunnel.name}</span>
+                        </div>
+                        <div className="text-[10px] text-[#666]">
+                          {tunnel.status === 'connected' ? formatUptime(tunnel.uptime) : 'Down'}
                         </div>
                       </div>
-                      <div className="text-right text-xs">
-                        <div className={cn(
-                          tunnel.status === 'connected' ? "text-green-600" : "text-muted-foreground"
-                        )}>
-                          {tunnel.status.toUpperCase()}
-                        </div>
-                        <div className="text-muted-foreground">{formatUptime(tunnel.uptime)}</div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div className="section">
                 <div className="section-header">
-                  <span>SSL-VPN Sessions</span>
+                  <span>SSL-VPN Statistics</span>
                 </div>
-                <div className="p-4 space-y-3">
-                  {sslUsers.filter(u => u.status === 'online').map(user => (
-                    <div key={user.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Users size={14} className="text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm">{user.username}</div>
-                          <div className="text-xs text-muted-foreground">{user.group}</div>
-                        </div>
-                      </div>
-                      <div className="text-right text-xs">
-                        <div className="text-muted-foreground">{user.assignedIp}</div>
-                        <div className="text-muted-foreground">{formatLoginTime(user.loginTime)}</div>
-                      </div>
+                <div className="section-body">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="p-3 bg-[#f5f5f5] border border-[#ddd] text-center">
+                      <div className="text-2xl font-bold text-green-600">{stats.sslOnline}</div>
+                      <div className="text-[10px] text-[#666]">Online Users</div>
                     </div>
-                  ))}
-                  {sslUsers.filter(u => u.status === 'online').length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No active SSL-VPN sessions
+                    <div className="p-3 bg-[#f5f5f5] border border-[#ddd] text-center">
+                      <div className="text-2xl font-bold">{stats.sslTotal}</div>
+                      <div className="text-[10px] text-[#666]">Total Users</div>
                     </div>
-                  )}
+                  </div>
+                  <table className="widget-table">
+                    <tbody>
+                      <tr>
+                        <td className="widget-label">Max Concurrent</td>
+                        <td className="widget-value">100</td>
+                      </tr>
+                      <tr>
+                        <td className="widget-label">Current Sessions</td>
+                        <td className="widget-value">{stats.sslOnline}</td>
+                      </tr>
+                      <tr>
+                        <td className="widget-label">Available Licenses</td>
+                        <td className="widget-value">{100 - stats.sslOnline}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{filteredTunnels.length} tunnels</span>
-          {selectedRows.length > 0 && (
-            <span>{selectedRows.length} selected</span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Add Tunnel Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield size={18} />
-              New IPsec Tunnel
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input 
-                placeholder="Site-to-Site VPN"
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          <div className="forti-modal-header">
+            <DialogTitle className="text-sm">Create IPsec Tunnel</DialogTitle>
+          </div>
+          <div className="forti-modal-body space-y-4">
+            <div>
+              <label className="forti-label">Name</label>
+              <input
+                type="text"
                 value={newTunnel.name}
-                onChange={(e) => setNewTunnel(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => setNewTunnel({ ...newTunnel, name: e.target.value })}
+                className="forti-input w-full"
+                placeholder="Branch-Office-VPN"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Remote Gateway</Label>
-              <Input 
-                placeholder="vpn.example.com or IP address"
+            <div>
+              <label className="forti-label">Remote Gateway</label>
+              <input
+                type="text"
                 value={newTunnel.remoteGateway}
-                onChange={(e) => setNewTunnel(prev => ({ ...prev, remoteGateway: e.target.value }))}
-                className="font-mono"
+                onChange={(e) => setNewTunnel({ ...newTunnel, remoteGateway: e.target.value })}
+                className="forti-input w-full"
+                placeholder="203.113.152.1"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Local Subnet</Label>
-                <Input 
-                  placeholder="192.168.1.0/24"
+              <div>
+                <label className="forti-label">Local Network</label>
+                <input
+                  type="text"
                   value={newTunnel.localNetwork}
-                  onChange={(e) => setNewTunnel(prev => ({ ...prev, localNetwork: e.target.value }))}
-                  className="font-mono"
+                  onChange={(e) => setNewTunnel({ ...newTunnel, localNetwork: e.target.value })}
+                  className="forti-input w-full"
+                  placeholder="192.168.1.0/24"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Remote Subnet</Label>
-                <Input 
-                  placeholder="10.0.0.0/24"
+              <div>
+                <label className="forti-label">Remote Network</label>
+                <input
+                  type="text"
                   value={newTunnel.remoteNetwork}
-                  onChange={(e) => setNewTunnel(prev => ({ ...prev, remoteNetwork: e.target.value }))}
-                  className="font-mono"
+                  onChange={(e) => setNewTunnel({ ...newTunnel, remoteNetwork: e.target.value })}
+                  className="forti-input w-full"
+                  placeholder="10.0.0.0/24"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddTunnel} className="bg-[#4caf50] hover:bg-[#43a047]">OK</Button>
-            </div>
+          </div>
+          <div className="forti-modal-footer">
+            <button onClick={() => setModalOpen(false)} className="forti-btn forti-btn-secondary">
+              Cancel
+            </button>
+            <button onClick={handleAddTunnel} className="forti-btn forti-btn-primary">
+              Create
+            </button>
           </div>
         </DialogContent>
       </Dialog>

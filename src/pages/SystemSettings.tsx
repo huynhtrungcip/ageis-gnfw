@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Settings, 
   Save,
@@ -11,20 +12,9 @@ import {
   Shield,
   Users,
   Database,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
 const SystemSettings = () => {
@@ -40,6 +30,7 @@ const SystemSettings = () => {
   const [sshEnabled, setSshEnabled] = useState(true);
   const [sshPort, setSshPort] = useState('22');
   const [sessionTimeout, setSessionTimeout] = useState('30');
+  const [activeTab, setActiveTab] = useState<'general' | 'network' | 'admin' | 'notifications'>('general');
 
   const handleSave = () => {
     toast.success('Settings saved successfully');
@@ -49,274 +40,299 @@ const SystemSettings = () => {
     toast.success('System reboot scheduled');
   };
 
+  const notificationSettings = [
+    { label: 'Critical Security Alerts', enabled: true },
+    { label: 'System Health Warnings', enabled: true },
+    { label: 'Daily Summary Reports', enabled: false },
+    { label: 'Configuration Changes', enabled: true },
+    { label: 'VPN Connection Events', enabled: false },
+  ];
+
+  const [notifications, setNotifications] = useState(notificationSettings);
+
+  const toggleNotification = (index: number) => {
+    setNotifications(prev => prev.map((n, i) => 
+      i === index ? { ...n, enabled: !n.enabled } : n
+    ));
+  };
+
   return (
     <Shell>
-      <div className="space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold">System Settings</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">General system configuration</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleReboot}>
-              <RefreshCw size={14} />
-              Reboot
-            </Button>
-            <Button size="sm" className="gap-1.5" onClick={handleSave}>
-              <Save size={14} />
-              Save Changes
-            </Button>
-          </div>
+      <div className="space-y-0 animate-slide-in">
+        {/* FortiGate Toolbar */}
+        <div className="forti-toolbar">
+          <button onClick={handleSave} className="forti-toolbar-btn primary">
+            <Save className="w-3 h-3" />
+            Save Changes
+          </button>
+          <button onClick={handleReboot} className="forti-toolbar-btn">
+            <RefreshCw className="w-3 h-3" />
+            Reboot
+          </button>
+          <div className="flex-1" />
         </div>
 
-        <Tabs defaultValue="general" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="network">Network</TabsTrigger>
-            <TabsTrigger value="admin">Administration</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          </TabsList>
+        {/* Tabs */}
+        <div className="flex items-center bg-[#e8e8e8] border-b border-[#ccc]">
+          {[
+            { id: 'general', label: 'General', icon: Server },
+            { id: 'network', label: 'Network', icon: Globe },
+            { id: 'admin', label: 'Administration', icon: Users },
+            { id: 'notifications', label: 'Notifications', icon: Bell },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium transition-colors border-b-2",
+                activeTab === tab.id 
+                  ? "bg-white text-[hsl(142,70%,35%)] border-[hsl(142,70%,35%)]" 
+                  : "text-[#666] border-transparent hover:text-[#333] hover:bg-[#f0f0f0]"
+              )}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          {/* General Tab */}
-          <TabsContent value="general" className="space-y-4">
-            <div className="section p-5 space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-border/50">
-                <div className="p-2.5 rounded-lg bg-blue-500/10">
-                  <Server size={20} className="text-blue-400" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold">System Identity</h2>
-                  <p className="text-xs text-muted-foreground">Hostname and domain settings</p>
+        {/* General Tab */}
+        {activeTab === 'general' && (
+          <div className="p-4 space-y-4">
+            <div className="section">
+              <div className="section-header">
+                <div className="flex items-center gap-2">
+                  <Server className="w-3.5 h-3.5" />
+                  <span>System Identity</span>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="hostname">Hostname</Label>
-                  <Input
-                    id="hostname"
-                    value={hostname}
-                    onChange={(e) => setHostname(e.target.value)}
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="domain">Domain</Label>
-                  <Input
-                    id="domain"
-                    value={domain}
-                    onChange={(e) => setDomain(e.target.value)}
-                    className="font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="section p-5 space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-border/50">
-                <div className="p-2.5 rounded-lg bg-amber-500/10">
-                  <Clock size={20} className="text-amber-400" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold">Time Settings</h2>
-                  <p className="text-xs text-muted-foreground">Timezone and NTP configuration</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select value={timezone} onValueChange={setTimezone}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (UTC+7)</SelectItem>
-                      <SelectItem value="Asia/Bangkok">Asia/Bangkok (UTC+7)</SelectItem>
-                      <SelectItem value="Asia/Singapore">Asia/Singapore (UTC+8)</SelectItem>
-                      <SelectItem value="UTC">UTC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ntp">NTP Server</Label>
-                  <Input
-                    id="ntp"
-                    value={ntpServer}
-                    onChange={(e) => setNtpServer(e.target.value)}
-                    className="font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="section p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-lg bg-emerald-500/10">
-                    <Shield size={20} className="text-emerald-400" />
+              <div className="section-body">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="forti-label">Hostname</label>
+                    <input
+                      type="text"
+                      value={hostname}
+                      onChange={(e) => setHostname(e.target.value)}
+                      className="forti-input w-full"
+                    />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold">Auto Update</h2>
-                    <p className="text-xs text-muted-foreground">Automatically update signatures and system</p>
+                    <label className="forti-label">Domain</label>
+                    <input
+                      type="text"
+                      value={domain}
+                      onChange={(e) => setDomain(e.target.value)}
+                      className="forti-input w-full"
+                    />
                   </div>
                 </div>
-                <Switch checked={autoUpdate} onCheckedChange={setAutoUpdate} />
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Network Tab */}
-          <TabsContent value="network" className="space-y-4">
-            <div className="section p-5 space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-border/50">
-                <div className="p-2.5 rounded-lg bg-blue-500/10">
-                  <Globe size={20} className="text-blue-400" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold">DNS Settings</h2>
-                  <p className="text-xs text-muted-foreground">DNS resolver configuration</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dns">DNS Servers</Label>
-                <Input
-                  id="dns"
-                  value={dnsServers}
-                  onChange={(e) => setDnsServers(e.target.value)}
-                  placeholder="Comma separated DNS servers"
-                  className="font-mono"
-                />
-                <p className="text-[10px] text-muted-foreground">Comma separated list of DNS servers</p>
               </div>
             </div>
 
-            <div className="section p-5 space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-border/50">
-                <div className="p-2.5 rounded-lg bg-purple-500/10">
-                  <Database size={20} className="text-purple-400" />
+            <div className="section">
+              <div className="section-header">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Time Settings</span>
                 </div>
+              </div>
+              <div className="section-body">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="forti-label">Timezone</label>
+                    <select 
+                      value={timezone} 
+                      onChange={(e) => setTimezone(e.target.value)}
+                      className="forti-select w-full"
+                    >
+                      <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (UTC+7)</option>
+                      <option value="Asia/Bangkok">Asia/Bangkok (UTC+7)</option>
+                      <option value="Asia/Singapore">Asia/Singapore (UTC+8)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="forti-label">NTP Server</label>
+                    <input
+                      type="text"
+                      value={ntpServer}
+                      onChange={(e) => setNtpServer(e.target.value)}
+                      className="forti-input w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="section">
+              <div className="section-header-neutral">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Auto Update</span>
+                </div>
+              </div>
+              <div className="section-body">
+                <div className="forti-feature-item">
+                  <div>
+                    <div className="text-[11px] font-medium">Enable Auto Update</div>
+                    <div className="text-[10px] text-[#666]">Automatically update signatures and system</div>
+                  </div>
+                  <FortiToggle enabled={autoUpdate} onToggle={() => setAutoUpdate(!autoUpdate)} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Network Tab */}
+        {activeTab === 'network' && (
+          <div className="p-4 space-y-4">
+            <div className="section">
+              <div className="section-header">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>DNS Settings</span>
+                </div>
+              </div>
+              <div className="section-body space-y-4">
                 <div>
-                  <h2 className="text-sm font-bold">Syslog</h2>
-                  <p className="text-xs text-muted-foreground">Remote logging configuration</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <Label>Enable Remote Syslog</Label>
-                <Switch checked={syslogEnabled} onCheckedChange={setSyslogEnabled} />
-              </div>
-
-              {syslogEnabled && (
-                <div className="space-y-2">
-                  <Label htmlFor="syslog">Syslog Server</Label>
-                  <Input
-                    id="syslog"
-                    value={syslogServer}
-                    onChange={(e) => setSyslogServer(e.target.value)}
-                    className="font-mono"
+                  <label className="forti-label">DNS Servers</label>
+                  <input
+                    type="text"
+                    value={dnsServers}
+                    onChange={(e) => setDnsServers(e.target.value)}
+                    placeholder="Comma separated DNS servers"
+                    className="forti-input w-full"
                   />
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Administration Tab */}
-          <TabsContent value="admin" className="space-y-4">
-            <div className="section p-5 space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-border/50">
-                <div className="p-2.5 rounded-lg bg-blue-500/10">
-                  <Users size={20} className="text-blue-400" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold">Web Interface</h2>
-                  <p className="text-xs text-muted-foreground">WebGUI access settings</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="webport">HTTPS Port</Label>
-                  <Input
-                    id="webport"
-                    value={webGuiPort}
-                    onChange={(e) => setWebGuiPort(e.target.value)}
-                    className="font-mono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="timeout">Session Timeout (minutes)</Label>
-                  <Input
-                    id="timeout"
-                    value={sessionTimeout}
-                    onChange={(e) => setSessionTimeout(e.target.value)}
-                  />
+                  <p className="text-[10px] text-[#666] mt-1">Comma separated list of DNS servers</p>
                 </div>
               </div>
             </div>
 
-            <div className="section p-5 space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-border/50">
-                <div className="p-2.5 rounded-lg bg-emerald-500/10">
-                  <Settings size={20} className="text-emerald-400" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold">SSH Access</h2>
-                  <p className="text-xs text-muted-foreground">Secure shell configuration</p>
+            <div className="section">
+              <div className="section-header">
+                <div className="flex items-center gap-2">
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Syslog</span>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <Label>Enable SSH</Label>
-                <Switch checked={sshEnabled} onCheckedChange={setSshEnabled} />
-              </div>
-
-              {sshEnabled && (
-                <div className="space-y-2">
-                  <Label htmlFor="sshport">SSH Port</Label>
-                  <Input
-                    id="sshport"
-                    value={sshPort}
-                    onChange={(e) => setSshPort(e.target.value)}
-                    className="font-mono"
-                  />
+              <div className="section-body space-y-4">
+                <div className="forti-feature-item">
+                  <div>
+                    <div className="text-[11px] font-medium">Enable Remote Syslog</div>
+                    <div className="text-[10px] text-[#666]">Send logs to remote syslog server</div>
+                  </div>
+                  <FortiToggle enabled={syslogEnabled} onToggle={() => setSyslogEnabled(!syslogEnabled)} />
                 </div>
-              )}
+
+                {syslogEnabled && (
+                  <div>
+                    <label className="forti-label">Syslog Server</label>
+                    <input
+                      type="text"
+                      value={syslogServer}
+                      onChange={(e) => setSyslogServer(e.target.value)}
+                      className="forti-input w-full"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-4">
-            <div className="section p-5 space-y-5">
-              <div className="flex items-center gap-3 pb-4 border-b border-border/50">
-                <div className="p-2.5 rounded-lg bg-amber-500/10">
-                  <Bell size={20} className="text-amber-400" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold">Alert Notifications</h2>
-                  <p className="text-xs text-muted-foreground">Configure email and notification settings</p>
+        {/* Administration Tab */}
+        {activeTab === 'admin' && (
+          <div className="p-4 space-y-4">
+            <div className="section">
+              <div className="section-header">
+                <div className="flex items-center gap-2">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Web Interface</span>
                 </div>
               </div>
+              <div className="section-body">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="forti-label">HTTPS Port</label>
+                    <input
+                      type="text"
+                      value={webGuiPort}
+                      onChange={(e) => setWebGuiPort(e.target.value)}
+                      className="forti-input w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="forti-label">Session Timeout (minutes)</label>
+                    <input
+                      type="text"
+                      value={sessionTimeout}
+                      onChange={(e) => setSessionTimeout(e.target.value)}
+                      className="forti-input w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
 
-              <div className="space-y-3">
-                {[
-                  { label: 'Critical Security Alerts', enabled: true },
-                  { label: 'System Health Warnings', enabled: true },
-                  { label: 'Daily Summary Reports', enabled: false },
-                  { label: 'Configuration Changes', enabled: true },
-                  { label: 'VPN Connection Events', enabled: false },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <Label>{item.label}</Label>
-                    <Switch defaultChecked={item.enabled} />
+            <div className="section">
+              <div className="section-header">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-3.5 h-3.5" />
+                  <span>SSH Access</span>
+                </div>
+              </div>
+              <div className="section-body space-y-4">
+                <div className="forti-feature-item">
+                  <div>
+                    <div className="text-[11px] font-medium">Enable SSH</div>
+                    <div className="text-[10px] text-[#666]">Allow SSH access to the firewall</div>
+                  </div>
+                  <FortiToggle enabled={sshEnabled} onToggle={() => setSshEnabled(!sshEnabled)} />
+                </div>
+
+                {sshEnabled && (
+                  <div>
+                    <label className="forti-label">SSH Port</label>
+                    <input
+                      type="text"
+                      value={sshPort}
+                      onChange={(e) => setSshPort(e.target.value)}
+                      className="forti-input w-full"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notifications Tab */}
+        {activeTab === 'notifications' && (
+          <div className="p-4">
+            <div className="section">
+              <div className="section-header">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>Alert Notifications</span>
+                </div>
+              </div>
+              <div className="section-body space-y-2">
+                {notifications.map((item, idx) => (
+                  <div key={idx} className="forti-feature-item">
+                    <span className="text-[11px]">{item.label}</span>
+                    <FortiToggle 
+                      enabled={item.enabled} 
+                      onToggle={() => toggleNotification(idx)}
+                      size="sm"
+                    />
                   </div>
                 ))}
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
     </Shell>
   );
