@@ -24,6 +24,13 @@ import SecurityProfiles from "./pages/SecurityProfiles";
 import SSLInspection from "./pages/SSLInspection";
 import SDWAN from "./pages/SDWAN";
 import Routing from "./pages/Routing";
+import StaticRoutes from "./pages/StaticRoutes";
+import PolicyRoutes from "./pages/PolicyRoutes";
+import RIPConfig from "./pages/RIPConfig";
+import OSPFConfig from "./pages/OSPFConfig";
+import BGPConfig from "./pages/BGPConfig";
+import MulticastConfig from "./pages/MulticastConfig";
+import PacketCapture from "./pages/PacketCapture";
 import Reports from "./pages/Reports";
 import SystemSettings from "./pages/SystemSettings";
 import TrafficAnalysis from "./pages/TrafficAnalysis";
@@ -94,6 +101,13 @@ const App = () => (
           <Route path="/sdwan" element={<SDWAN />} />
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/routing" element={<Routing />} />
+          <Route path="/routing/static" element={<StaticRoutes />} />
+          <Route path="/routing/policy" element={<PolicyRoutes />} />
+          <Route path="/routing/rip" element={<RIPConfig />} />
+          <Route path="/routing/ospf" element={<OSPFConfig />} />
+          <Route path="/routing/bgp" element={<BGPConfig />} />
+          <Route path="/routing/multicast" element={<MulticastConfig />} />
+          <Route path="/packet-capture" element={<PacketCapture />} />
           <Route path="/dns" element={<DNSServer />} />
           <Route path="/topology" element={<NetworkTopology />} />
           <Route path="/packet-flow" element={<PacketFlow />} />
