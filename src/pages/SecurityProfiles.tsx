@@ -8,31 +8,13 @@ import {
   RefreshCw,
   Globe,
   Bug,
-  Lock,
   Layers,
-  FileText,
-  AlertTriangle,
-  Check,
-  X,
-  Ban,
-  Eye,
-  Filter,
-  Settings,
   Edit,
   Trash2,
   Copy
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { toast } from 'sonner';
 
 // AntiVirus Profiles
@@ -45,16 +27,14 @@ interface AVProfile {
   imapScan: boolean;
   pop3Scan: boolean;
   smtpScan: boolean;
-  smbScan: boolean;
   action: 'block' | 'monitor' | 'quarantine';
   emulatorEnabled: boolean;
-  analyticsEnabled: boolean;
 }
 
 const mockAVProfiles: AVProfile[] = [
-  { id: 'av-1', name: 'default', comment: 'Default antivirus profile', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, smbScan: false, action: 'block', emulatorEnabled: true, analyticsEnabled: true },
-  { id: 'av-2', name: 'high-security', comment: 'Maximum protection profile', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, smbScan: true, action: 'quarantine', emulatorEnabled: true, analyticsEnabled: true },
-  { id: 'av-3', name: 'monitor-only', comment: 'Detection without blocking', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, smbScan: false, action: 'monitor', emulatorEnabled: false, analyticsEnabled: true },
+  { id: 'av-1', name: 'default', comment: 'Default antivirus profile', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, action: 'block', emulatorEnabled: true },
+  { id: 'av-2', name: 'high-security', comment: 'Maximum protection profile', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, action: 'quarantine', emulatorEnabled: true },
+  { id: 'av-3', name: 'monitor-only', comment: 'Detection without blocking', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, action: 'monitor', emulatorEnabled: false },
 ];
 
 // Web Filter Profiles
@@ -63,54 +43,14 @@ interface WebFilterProfile {
   name: string;
   comment: string;
   mode: 'proxy' | 'flow' | 'dns';
-  action: 'block' | 'warning' | 'monitor' | 'authenticate';
-  categories: { name: string; action: 'allow' | 'block' | 'monitor' | 'warning'; }[];
+  action: 'block' | 'warning' | 'monitor';
   urlFiltering: boolean;
   safeSearch: boolean;
-  youtubeRestrict: boolean;
 }
 
-const webCategories = [
-  'Adult/Mature Content', 'Malware', 'Phishing', 'Spam URLs', 'Gambling', 
-  'Games', 'Social Networking', 'Streaming Media', 'Peer-to-Peer', 'Proxy Avoidance',
-  'Hacking', 'Illegal Drugs', 'Weapons', 'Violence', 'Alcohol'
-];
-
 const mockWebProfiles: WebFilterProfile[] = [
-  { 
-    id: 'wf-1', 
-    name: 'default', 
-    comment: 'Default web filter', 
-    mode: 'proxy', 
-    action: 'block',
-    categories: [
-      { name: 'Adult/Mature Content', action: 'block' },
-      { name: 'Malware', action: 'block' },
-      { name: 'Phishing', action: 'block' },
-      { name: 'Gambling', action: 'warning' },
-      { name: 'Social Networking', action: 'monitor' },
-    ],
-    urlFiltering: true,
-    safeSearch: true,
-    youtubeRestrict: false
-  },
-  { 
-    id: 'wf-2', 
-    name: 'strict', 
-    comment: 'Strict filtering for schools', 
-    mode: 'proxy', 
-    action: 'block',
-    categories: [
-      { name: 'Adult/Mature Content', action: 'block' },
-      { name: 'Malware', action: 'block' },
-      { name: 'Games', action: 'block' },
-      { name: 'Streaming Media', action: 'block' },
-      { name: 'Social Networking', action: 'block' },
-    ],
-    urlFiltering: true,
-    safeSearch: true,
-    youtubeRestrict: true
-  },
+  { id: 'wf-1', name: 'default', comment: 'Default web filter', mode: 'proxy', action: 'block', urlFiltering: true, safeSearch: true },
+  { id: 'wf-2', name: 'strict', comment: 'Strict filtering for schools', mode: 'proxy', action: 'block', urlFiltering: true, safeSearch: true },
 ];
 
 // IPS Signatures
@@ -123,21 +63,20 @@ interface IPSSignature {
   action: 'default' | 'pass' | 'block' | 'reset' | 'monitor';
   enabled: boolean;
   cve?: string;
-  target: 'client' | 'server' | 'both';
 }
 
 const mockIPSSignatures: IPSSignature[] = [
-  { id: 'ips-1', sid: 44228, name: 'Apache.Log4j.Error.Log.Remote.Code.Execution', category: 'Application', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2021-44228', target: 'server' },
-  { id: 'ips-2', sid: 51006, name: 'MS.SMBv3.Compression.Buffer.Overflow', category: 'Network', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2020-0796', target: 'both' },
-  { id: 'ips-3', sid: 48247, name: 'HTTP.Request.Smuggling', category: 'Web', severity: 'high', action: 'block', enabled: true, target: 'server' },
-  { id: 'ips-4', sid: 39294, name: 'DNS.Query.Flood.DoS', category: 'DoS', severity: 'high', action: 'block', enabled: true, target: 'server' },
-  { id: 'ips-5', sid: 17942, name: 'SSH.Brute.Force.Login', category: 'Brute Force', severity: 'medium', action: 'monitor', enabled: true, target: 'server' },
-  { id: 'ips-6', sid: 35213, name: 'TLS.Invalid.Certificate', category: 'SSL/TLS', severity: 'low', action: 'default', enabled: false, target: 'both' },
-  { id: 'ips-7', sid: 49021, name: 'Spring4Shell.RCE.Attempt', category: 'Application', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2022-22965', target: 'server' },
-  { id: 'ips-8', sid: 50182, name: 'ProxyShell.Exchange.RCE', category: 'Application', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2021-34473', target: 'server' },
+  { id: 'ips-1', sid: 44228, name: 'Apache.Log4j.Error.Log.Remote.Code.Execution', category: 'Application', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2021-44228' },
+  { id: 'ips-2', sid: 51006, name: 'MS.SMBv3.Compression.Buffer.Overflow', category: 'Network', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2020-0796' },
+  { id: 'ips-3', sid: 48247, name: 'HTTP.Request.Smuggling', category: 'Web', severity: 'high', action: 'block', enabled: true },
+  { id: 'ips-4', sid: 39294, name: 'DNS.Query.Flood.DoS', category: 'DoS', severity: 'high', action: 'block', enabled: true },
+  { id: 'ips-5', sid: 17942, name: 'SSH.Brute.Force.Login', category: 'Brute Force', severity: 'medium', action: 'monitor', enabled: true },
+  { id: 'ips-6', sid: 35213, name: 'TLS.Invalid.Certificate', category: 'SSL/TLS', severity: 'low', action: 'default', enabled: false },
+  { id: 'ips-7', sid: 49021, name: 'Spring4Shell.RCE.Attempt', category: 'Application', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2022-22965' },
+  { id: 'ips-8', sid: 50182, name: 'ProxyShell.Exchange.RCE', category: 'Application', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2021-34473' },
 ];
 
-const ipsCategories = ['All', 'Application', 'Network', 'Web', 'DoS', 'Brute Force', 'SSL/TLS', 'Botnet', 'Malware'];
+const ipsCategories = ['All', 'Application', 'Network', 'Web', 'DoS', 'Brute Force', 'SSL/TLS'];
 
 const SecurityProfiles = () => {
   const [activeTab, setActiveTab] = useState('antivirus');
@@ -162,335 +101,360 @@ const SecurityProfiles = () => {
     setIpsSignatures(prev => prev.map(s =>
       s.id === id ? { ...s, enabled: !s.enabled } : s
     ));
+    toast.success('Signature status updated');
   };
 
-  const handleChangeIPSAction = (id: string, action: IPSSignature['action']) => {
-    setIpsSignatures(prev => prev.map(s =>
-      s.id === id ? { ...s, action } : s
-    ));
-    toast.success('Signature action updated');
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'high': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'low': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'block': case 'quarantine': return 'text-red-400';
-      case 'monitor': case 'warning': return 'text-yellow-400';
-      case 'pass': case 'allow': return 'text-emerald-400';
-      default: return 'text-muted-foreground';
-    }
+  // Stats
+  const stats = {
+    avProfiles: avProfiles.length,
+    webProfiles: webProfiles.length,
+    ipsTotal: ipsSignatures.length,
+    ipsEnabled: ipsSignatures.filter(s => s.enabled).length,
+    critical: ipsSignatures.filter(s => s.severity === 'critical').length,
   };
 
   return (
     <Shell>
-      <div className="space-y-5">
+      <div className="space-y-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold">Security Profiles</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Configure AntiVirus, Web Filter, and IPS protection</p>
-          </div>
+        <div className="section-header-neutral">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <RefreshCw size={14} />
-              Update Definitions
-            </Button>
-            <Button size="sm" className="gap-1.5 bg-[#4caf50] hover:bg-[#43a047]">
-              <Plus size={14} />
-              Create New
-            </Button>
+            <Shield size={14} />
+            <span className="font-semibold">Security Profiles</span>
+            <span className="text-[10px] text-[#888]">AntiVirus, Web Filter, IPS</span>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="forti-toolbar">
+          <button className="forti-toolbar-btn primary">
+            <Plus size={12} />
+            <span>Create New</span>
+          </button>
+          <button className="forti-toolbar-btn">
+            <Edit size={12} />
+            <span>Edit</span>
+          </button>
+          <button className="forti-toolbar-btn">
+            <Copy size={12} />
+            <span>Clone</span>
+          </button>
+          <button className="forti-toolbar-btn">
+            <Trash2 size={12} />
+            <span>Delete</span>
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn">
+            <RefreshCw size={12} />
+            <span>Update Definitions</span>
+          </button>
+          <div className="flex-1" />
+          <div className="forti-search">
+            <Search size={12} className="text-[#999]" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex items-center gap-0 border-x border-[#ddd]">
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <Bug size={14} className="text-red-600" />
+            <span className="text-lg font-bold text-red-600">{stats.avProfiles}</span>
+            <span className="text-[11px] text-[#666]">AV Profiles</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <Globe size={14} className="text-blue-600" />
+            <span className="text-lg font-bold text-blue-600">{stats.webProfiles}</span>
+            <span className="text-[11px] text-[#666]">Web Filter Profiles</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <Shield size={14} className="text-purple-600" />
+            <span className="text-lg font-bold text-purple-600">{stats.ipsEnabled}/{stats.ipsTotal}</span>
+            <span className="text-[11px] text-[#666]">IPS Signatures</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
+            <span className="text-lg font-bold text-orange-600">{stats.critical}</span>
+            <span className="text-[11px] text-[#666]">Critical Signatures</span>
           </div>
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-[#1e293b]">
-            <TabsTrigger value="antivirus" className="gap-1.5 data-[state=active]:bg-[#4caf50]">
-              <Bug size={14} />
-              AntiVirus
-            </TabsTrigger>
-            <TabsTrigger value="webfilter" className="gap-1.5 data-[state=active]:bg-[#4caf50]">
-              <Globe size={14} />
-              Web Filter
-            </TabsTrigger>
-            <TabsTrigger value="ips" className="gap-1.5 data-[state=active]:bg-[#4caf50]">
-              <Shield size={14} />
-              IPS Signatures
-            </TabsTrigger>
-            <TabsTrigger value="appcontrol" className="gap-1.5 data-[state=active]:bg-[#4caf50]">
-              <Layers size={14} />
-              Application Control
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="bg-[#f0f0f0] border-x border-b border-[#ddd]">
+            <TabsList className="bg-transparent h-auto p-0 rounded-none">
+              <TabsTrigger 
+                value="antivirus" 
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+              >
+                AntiVirus
+              </TabsTrigger>
+              <TabsTrigger 
+                value="webfilter" 
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+              >
+                Web Filter
+              </TabsTrigger>
+              <TabsTrigger 
+                value="ips" 
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+              >
+                IPS Signatures
+              </TabsTrigger>
+              <TabsTrigger 
+                value="appcontrol" 
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+              >
+                Application Control
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* AntiVirus Tab */}
-          <TabsContent value="antivirus" className="space-y-4 mt-4">
-            <div className="grid gap-4">
-              {avProfiles.map((profile) => (
-                <div key={profile.id} className="section p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-red-500/20">
-                        <Bug size={18} className="text-red-400" />
+          <TabsContent value="antivirus" className="mt-0">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Comment</th>
+                  <th>HTTP</th>
+                  <th>FTP</th>
+                  <th>IMAP</th>
+                  <th>POP3</th>
+                  <th>SMTP</th>
+                  <th>Action</th>
+                  <th>Emulator</th>
+                  <th className="w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {avProfiles.map((profile) => (
+                  <tr key={profile.id}>
+                    <td className="font-medium text-[#333]">{profile.name}</td>
+                    <td className="text-[#666]">{profile.comment}</td>
+                    <td>
+                      <span className={cn("forti-tag", profile.httpScan ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200')}>
+                        {profile.httpScan ? 'ON' : 'OFF'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={cn("forti-tag", profile.ftpScan ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200')}>
+                        {profile.ftpScan ? 'ON' : 'OFF'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={cn("forti-tag", profile.imapScan ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200')}>
+                        {profile.imapScan ? 'ON' : 'OFF'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={cn("forti-tag", profile.pop3Scan ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200')}>
+                        {profile.pop3Scan ? 'ON' : 'OFF'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={cn("forti-tag", profile.smtpScan ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200')}>
+                        {profile.smtpScan ? 'ON' : 'OFF'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={cn(
+                        "forti-tag",
+                        profile.action === 'block' ? 'bg-red-100 text-red-700 border-red-200' :
+                        profile.action === 'quarantine' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                        'bg-yellow-100 text-yellow-700 border-yellow-200'
+                      )}>
+                        {profile.action.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>
+                      <FortiToggle enabled={profile.emulatorEnabled} onChange={() => {}} size="sm" />
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button className="p-1 hover:bg-[#f0f0f0]">
+                          <Edit size={12} className="text-[#666]" />
+                        </button>
+                        <button className="p-1 hover:bg-[#f0f0f0]">
+                          <Copy size={12} className="text-[#666]" />
+                        </button>
+                        <button className="p-1 hover:bg-[#f0f0f0]">
+                          <Trash2 size={12} className="text-red-500" />
+                        </button>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-bold">{profile.name}</h3>
-                        <p className="text-xs text-muted-foreground">{profile.comment}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm"><Edit size={14} /></Button>
-                      <Button variant="ghost" size="sm"><Copy size={14} /></Button>
-                      <Button variant="ghost" size="sm" className="text-red-400"><Trash2 size={14} /></Button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-6 gap-4">
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">HTTP</div>
-                      <div className={cn("text-xs font-medium", profile.httpScan ? "text-emerald-400" : "text-muted-foreground")}>
-                        {profile.httpScan ? 'Enabled' : 'Disabled'}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">FTP</div>
-                      <div className={cn("text-xs font-medium", profile.ftpScan ? "text-emerald-400" : "text-muted-foreground")}>
-                        {profile.ftpScan ? 'Enabled' : 'Disabled'}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">IMAP</div>
-                      <div className={cn("text-xs font-medium", profile.imapScan ? "text-emerald-400" : "text-muted-foreground")}>
-                        {profile.imapScan ? 'Enabled' : 'Disabled'}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">POP3</div>
-                      <div className={cn("text-xs font-medium", profile.pop3Scan ? "text-emerald-400" : "text-muted-foreground")}>
-                        {profile.pop3Scan ? 'Enabled' : 'Disabled'}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">SMTP</div>
-                      <div className={cn("text-xs font-medium", profile.smtpScan ? "text-emerald-400" : "text-muted-foreground")}>
-                        {profile.smtpScan ? 'Enabled' : 'Disabled'}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">Action</div>
-                      <div className={cn("text-xs font-medium", getActionColor(profile.action))}>
-                        {profile.action.charAt(0).toUpperCase() + profile.action.slice(1)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center gap-6 pt-3 border-t border-border">
-                    <div className="flex items-center gap-2">
-                      <Switch checked={profile.emulatorEnabled} disabled />
-                      <span className="text-xs text-muted-foreground">Emulator</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={profile.analyticsEnabled} disabled />
-                      <span className="text-xs text-muted-foreground">FortiSandbox</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </TabsContent>
 
           {/* Web Filter Tab */}
-          <TabsContent value="webfilter" className="space-y-4 mt-4">
-            <div className="grid gap-4">
-              {webProfiles.map((profile) => (
-                <div key={profile.id} className="section p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-500/20">
-                        <Globe size={18} className="text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold">{profile.name}</h3>
-                        <p className="text-xs text-muted-foreground">{profile.comment}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "text-[10px] px-2 py-0.5 rounded border",
-                        profile.mode === 'proxy' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
-                        profile.mode === 'flow' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
-                        'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                      )}>
-                        {profile.mode.toUpperCase()} Mode
+          <TabsContent value="webfilter" className="mt-0">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Comment</th>
+                  <th>Mode</th>
+                  <th>Action</th>
+                  <th>URL Filter</th>
+                  <th>Safe Search</th>
+                  <th className="w-24">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {webProfiles.map((profile) => (
+                  <tr key={profile.id}>
+                    <td className="font-medium text-[#333]">{profile.name}</td>
+                    <td className="text-[#666]">{profile.comment}</td>
+                    <td>
+                      <span className="forti-tag bg-purple-100 text-purple-700 border-purple-200">
+                        {profile.mode.toUpperCase()}
                       </span>
-                      <Button variant="ghost" size="sm"><Edit size={14} /></Button>
-                      <Button variant="ghost" size="sm"><Copy size={14} /></Button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <div className="text-[10px] text-muted-foreground uppercase mb-2">Category Actions</div>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.categories.map((cat, i) => (
-                        <span key={i} className={cn(
-                          "text-[10px] px-2 py-1 rounded border",
-                          cat.action === 'block' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                          cat.action === 'warning' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
-                          cat.action === 'monitor' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        )}>
-                          {cat.name}: {cat.action}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center gap-6 pt-3 border-t border-border">
-                    <div className="flex items-center gap-2">
-                      <Switch checked={profile.urlFiltering} disabled />
-                      <span className="text-xs text-muted-foreground">URL Filter</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={profile.safeSearch} disabled />
-                      <span className="text-xs text-muted-foreground">Safe Search</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={profile.youtubeRestrict} disabled />
-                      <span className="text-xs text-muted-foreground">YouTube Restrict</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </td>
+                    <td>
+                      <span className={cn(
+                        "forti-tag",
+                        profile.action === 'block' ? 'bg-red-100 text-red-700 border-red-200' :
+                        profile.action === 'warning' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                        'bg-blue-100 text-blue-700 border-blue-200'
+                      )}>
+                        {profile.action.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>
+                      <FortiToggle enabled={profile.urlFiltering} onChange={() => {}} size="sm" />
+                    </td>
+                    <td>
+                      <FortiToggle enabled={profile.safeSearch} onChange={() => {}} size="sm" />
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button className="p-1 hover:bg-[#f0f0f0]">
+                          <Edit size={12} className="text-[#666]" />
+                        </button>
+                        <button className="p-1 hover:bg-[#f0f0f0]">
+                          <Copy size={12} className="text-[#666]" />
+                        </button>
+                        <button className="p-1 hover:bg-[#f0f0f0]">
+                          <Trash2 size={12} className="text-red-500" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </TabsContent>
 
           {/* IPS Tab */}
-          <TabsContent value="ips" className="space-y-4 mt-4">
+          <TabsContent value="ips" className="mt-0">
             {/* Filter Bar */}
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 max-w-xs">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search signatures or CVE..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8 h-9"
-                />
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#f5f5f5] border-x border-b border-[#ddd]">
+              <span className="text-[11px] text-[#666]">Category:</span>
+              <div className="flex items-center gap-0.5">
+                {ipsCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategory(cat)}
+                    className={cn(
+                      "px-2 py-1 text-[11px] font-medium border transition-colors",
+                      category === cat 
+                        ? "bg-[hsl(142,70%,35%)] text-white border-[hsl(142,75%,28%)]" 
+                        : "bg-white text-[#666] border-[#ccc] hover:bg-[#f5f5f5]"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-40 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ipsCategories.map(cat => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={severity} onValueChange={setSeverity}>
-                <SelectTrigger className="w-32 h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Severity</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="forti-toolbar-separator" />
+              <span className="text-[11px] text-[#666]">Severity:</span>
+              <div className="flex items-center gap-0.5">
+                {['all', 'critical', 'high', 'medium', 'low'].map((sev) => (
+                  <button
+                    key={sev}
+                    onClick={() => setSeverity(sev)}
+                    className={cn(
+                      "px-2 py-1 text-[11px] font-medium border transition-colors capitalize",
+                      severity === sev 
+                        ? "bg-[hsl(142,70%,35%)] text-white border-[hsl(142,75%,28%)]" 
+                        : "bg-white text-[#666] border-[#ccc] hover:bg-[#f5f5f5]"
+                    )}
+                  >
+                    {sev === 'all' ? 'All' : sev}
+                  </button>
+                ))}
+              </div>
               <div className="flex-1" />
-              <span className="text-xs text-muted-foreground">{filteredIPS.length} signatures</span>
+              <span className="text-[11px] text-[#666]">{filteredIPS.length} signatures</span>
             </div>
 
-            {/* IPS Table */}
-            <div className="section">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th className="w-14">Status</th>
-                    <th className="w-20">ID</th>
-                    <th>Signature Name</th>
-                    <th>Category</th>
-                    <th className="w-24">CVE</th>
-                    <th className="w-20">Severity</th>
-                    <th className="w-20">Target</th>
-                    <th className="w-28">Action</th>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-16">Status</th>
+                  <th className="w-20">SID</th>
+                  <th>Signature Name</th>
+                  <th>Category</th>
+                  <th>Severity</th>
+                  <th>CVE</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredIPS.map((sig) => (
+                  <tr key={sig.id} className={cn(!sig.enabled && "opacity-60")}>
+                    <td>
+                      <FortiToggle 
+                        enabled={sig.enabled}
+                        onChange={() => handleToggleIPS(sig.id)}
+                        size="sm"
+                      />
+                    </td>
+                    <td className="mono text-[#666]">{sig.sid}</td>
+                    <td className="font-medium text-[#333]">{sig.name}</td>
+                    <td className="text-[#666]">{sig.category}</td>
+                    <td>
+                      <span className={cn(
+                        "forti-tag",
+                        sig.severity === 'critical' ? 'bg-red-100 text-red-700 border-red-200' :
+                        sig.severity === 'high' ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                        sig.severity === 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                        sig.severity === 'low' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                        'bg-gray-100 text-gray-500 border-gray-200'
+                      )}>
+                        {sig.severity.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="mono text-[#666]">{sig.cve || '-'}</td>
+                    <td>
+                      <span className={cn(
+                        "forti-tag",
+                        sig.action === 'block' || sig.action === 'reset' ? 'bg-red-100 text-red-700 border-red-200' :
+                        sig.action === 'monitor' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                        sig.action === 'pass' ? 'bg-green-100 text-green-700 border-green-200' :
+                        'bg-gray-100 text-gray-500 border-gray-200'
+                      )}>
+                        {sig.action.toUpperCase()}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredIPS.map((sig) => (
-                    <tr key={sig.id} className={cn(!sig.enabled && "opacity-50")}>
-                      <td>
-                        <Switch
-                          checked={sig.enabled}
-                          onCheckedChange={() => handleToggleIPS(sig.id)}
-                          className="scale-75"
-                        />
-                      </td>
-                      <td className="font-mono text-muted-foreground text-xs">{sig.sid}</td>
-                      <td>
-                        <div className="font-medium text-sm">{sig.name}</div>
-                      </td>
-                      <td className="text-xs text-muted-foreground">{sig.category}</td>
-                      <td>
-                        {sig.cve && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                            {sig.cve}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={cn("text-[10px] px-2 py-0.5 rounded border uppercase", getSeverityColor(sig.severity))}>
-                          {sig.severity}
-                        </span>
-                      </td>
-                      <td className="text-xs text-muted-foreground capitalize">{sig.target}</td>
-                      <td>
-                        <Select 
-                          value={sig.action} 
-                          onValueChange={(value) => handleChangeIPSAction(sig.id, value as IPSSignature['action'])}
-                        >
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="default">Default</SelectItem>
-                            <SelectItem value="pass">Pass</SelectItem>
-                            <SelectItem value="monitor">Monitor</SelectItem>
-                            <SelectItem value="block">Block</SelectItem>
-                            <SelectItem value="reset">Reset</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </TabsContent>
 
-          {/* Application Control Tab */}
-          <TabsContent value="appcontrol" className="space-y-4 mt-4">
-            <div className="section p-8 text-center">
-              <Layers size={48} className="mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-bold mb-2">Application Control</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Control application usage on your network. Create profiles to allow, block, or monitor applications.
-              </p>
-              <Button className="gap-1.5 bg-[#4caf50] hover:bg-[#43a047]">
-                <Plus size={14} />
-                Create Application Sensor
-              </Button>
+          {/* App Control Tab */}
+          <TabsContent value="appcontrol" className="mt-0 p-4 bg-white border-x border-b border-[#ddd]">
+            <div className="flex items-center justify-center py-8 text-[#999]">
+              <Layers size={24} className="mr-2" />
+              <span>Application Control profiles will be configured here</span>
             </div>
           </TabsContent>
         </Tabs>

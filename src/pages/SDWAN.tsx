@@ -5,34 +5,18 @@ import {
   Globe, 
   Plus,
   RefreshCw,
-  ArrowRight,
-  Server,
   Activity,
-  Clock,
-  AlertTriangle,
   Check,
   X,
-  Wifi,
   Network,
   BarChart3,
-  Settings,
   Edit,
   Trash2,
-  Play,
-  Pause,
-  Zap
+  Zap,
+  Search
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 
 // SD-WAN Interfaces
 interface SDWANInterface {
@@ -52,51 +36,9 @@ interface SDWANInterface {
 }
 
 const mockInterfaces: SDWANInterface[] = [
-  { 
-    id: 'sdwan-1', 
-    name: 'wan1', 
-    interface: 'port1', 
-    gateway: '203.0.113.1', 
-    status: 'up', 
-    priority: 1, 
-    weight: 100, 
-    cost: 10,
-    latency: 12,
-    jitter: 2,
-    packetLoss: 0,
-    bandwidth: { in: 450, out: 280, max: 1000 },
-    slaStatus: 'pass'
-  },
-  { 
-    id: 'sdwan-2', 
-    name: 'wan2', 
-    interface: 'port2', 
-    gateway: '198.51.100.1', 
-    status: 'up', 
-    priority: 2, 
-    weight: 50, 
-    cost: 20,
-    latency: 28,
-    jitter: 5,
-    packetLoss: 0.1,
-    bandwidth: { in: 180, out: 120, max: 500 },
-    slaStatus: 'pass'
-  },
-  { 
-    id: 'sdwan-3', 
-    name: 'wan3-lte', 
-    interface: 'usb0', 
-    gateway: '100.64.0.1', 
-    status: 'up', 
-    priority: 3, 
-    weight: 10, 
-    cost: 100,
-    latency: 65,
-    jitter: 15,
-    packetLoss: 0.5,
-    bandwidth: { in: 45, out: 20, max: 100 },
-    slaStatus: 'warning'
-  },
+  { id: 'sdwan-1', name: 'wan1', interface: 'port1', gateway: '203.0.113.1', status: 'up', priority: 1, weight: 100, cost: 10, latency: 12, jitter: 2, packetLoss: 0, bandwidth: { in: 450, out: 280, max: 1000 }, slaStatus: 'pass' },
+  { id: 'sdwan-2', name: 'wan2', interface: 'port2', gateway: '198.51.100.1', status: 'up', priority: 2, weight: 50, cost: 20, latency: 28, jitter: 5, packetLoss: 0.1, bandwidth: { in: 180, out: 120, max: 500 }, slaStatus: 'pass' },
+  { id: 'sdwan-3', name: 'wan3-lte', interface: 'usb0', gateway: '100.64.0.1', status: 'up', priority: 3, weight: 10, cost: 100, latency: 65, jitter: 15, packetLoss: 0.5, bandwidth: { in: 45, out: 20, max: 100 }, slaStatus: 'warning' },
 ];
 
 // SD-WAN Rules
@@ -134,51 +76,9 @@ interface SLAProfile {
 }
 
 const mockSLAs: SLAProfile[] = [
-  { 
-    id: 'sla-1', 
-    name: 'voice-sla', 
-    probeServer: '8.8.8.8', 
-    probeMode: 'ping', 
-    interval: 500,
-    latencyThreshold: 100,
-    jitterThreshold: 30,
-    packetLossThreshold: 1,
-    linkStatus: [
-      { member: 'wan1', status: 'pass' },
-      { member: 'wan2', status: 'pass' },
-      { member: 'wan3-lte', status: 'fail' },
-    ]
-  },
-  { 
-    id: 'sla-2', 
-    name: 'video-sla', 
-    probeServer: '1.1.1.1', 
-    probeMode: 'ping', 
-    interval: 500,
-    latencyThreshold: 150,
-    jitterThreshold: 50,
-    packetLossThreshold: 2,
-    linkStatus: [
-      { member: 'wan1', status: 'pass' },
-      { member: 'wan2', status: 'pass' },
-      { member: 'wan3-lte', status: 'pass' },
-    ]
-  },
-  { 
-    id: 'sla-3', 
-    name: 'default-sla', 
-    probeServer: '208.67.222.222', 
-    probeMode: 'dns', 
-    interval: 1000,
-    latencyThreshold: 250,
-    jitterThreshold: 100,
-    packetLossThreshold: 5,
-    linkStatus: [
-      { member: 'wan1', status: 'pass' },
-      { member: 'wan2', status: 'pass' },
-      { member: 'wan3-lte', status: 'pass' },
-    ]
-  },
+  { id: 'sla-1', name: 'voice-sla', probeServer: '8.8.8.8', probeMode: 'ping', interval: 500, latencyThreshold: 100, jitterThreshold: 30, packetLossThreshold: 1, linkStatus: [{ member: 'wan1', status: 'pass' }, { member: 'wan2', status: 'pass' }, { member: 'wan3-lte', status: 'fail' }] },
+  { id: 'sla-2', name: 'video-sla', probeServer: '1.1.1.1', probeMode: 'ping', interval: 500, latencyThreshold: 150, jitterThreshold: 50, packetLossThreshold: 2, linkStatus: [{ member: 'wan1', status: 'pass' }, { member: 'wan2', status: 'pass' }, { member: 'wan3-lte', status: 'pass' }] },
+  { id: 'sla-3', name: 'default-sla', probeServer: '208.67.222.222', probeMode: 'dns', interval: 1000, latencyThreshold: 250, jitterThreshold: 100, packetLossThreshold: 5, linkStatus: [{ member: 'wan1', status: 'pass' }, { member: 'wan2', status: 'pass' }, { member: 'wan3-lte', status: 'pass' }] },
 ];
 
 const SDWAN = () => {
@@ -193,326 +93,283 @@ const SDWAN = () => {
     ));
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'up': case 'pass': return 'text-emerald-400';
-      case 'down': case 'fail': return 'text-red-400';
-      case 'degraded': case 'warning': return 'text-yellow-400';
-      default: return 'text-muted-foreground';
-    }
-  };
-
-  const getStatusBg = (status: string) => {
-    switch (status) {
-      case 'up': case 'pass': return 'bg-emerald-500';
-      case 'down': case 'fail': return 'bg-red-500';
-      case 'degraded': case 'warning': return 'bg-yellow-500';
-      default: return 'bg-muted';
-    }
+  // Stats
+  const stats = {
+    activeMembers: interfaces.filter(i => i.status === 'up').length,
+    totalBandwidth: Math.round(interfaces.reduce((a, i) => a + i.bandwidth.in, 0)),
+    avgLatency: Math.round(interfaces.reduce((a, i) => a + i.latency, 0) / interfaces.length),
+    activeRules: rules.filter(r => r.enabled).length,
   };
 
   return (
     <Shell>
-      <div className="space-y-5">
+      <div className="space-y-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold">SD-WAN</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Software-Defined Wide Area Network Configuration</p>
-          </div>
+        <div className="section-header-neutral">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <RefreshCw size={14} />
-              Refresh
-            </Button>
-            <Button size="sm" className="gap-1.5 bg-[#4caf50] hover:bg-[#43a047]">
-              <Plus size={14} />
-              Create New
-            </Button>
+            <Globe size={14} />
+            <span className="font-semibold">SD-WAN</span>
+            <span className="text-[10px] text-[#888]">Software-Defined Wide Area Network</span>
           </div>
         </div>
 
-        {/* Overview Cards */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="section p-4">
-            <div className="flex items-center justify-between">
-              <div className="p-2 rounded-lg bg-emerald-500/20">
-                <Network size={18} className="text-emerald-400" />
-              </div>
-              <span className="text-2xl font-bold text-emerald-400">{interfaces.filter(i => i.status === 'up').length}</span>
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">Active Members</div>
+        {/* Toolbar */}
+        <div className="forti-toolbar">
+          <button className="forti-toolbar-btn primary">
+            <Plus size={12} />
+            <span>Create New</span>
+          </button>
+          <button className="forti-toolbar-btn">
+            <Edit size={12} />
+            <span>Edit</span>
+          </button>
+          <button className="forti-toolbar-btn">
+            <Trash2 size={12} />
+            <span>Delete</span>
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn">
+            <RefreshCw size={12} />
+            <span>Refresh</span>
+          </button>
+          <div className="flex-1" />
+          <div className="forti-search">
+            <Search size={12} className="text-[#999]" />
+            <input type="text" placeholder="Search..." />
           </div>
-          <div className="section p-4">
-            <div className="flex items-center justify-between">
-              <div className="p-2 rounded-lg bg-blue-500/20">
-                <BarChart3 size={18} className="text-blue-400" />
-              </div>
-              <span className="text-2xl font-bold">
-                {Math.round(interfaces.reduce((a, i) => a + i.bandwidth.in, 0))} Mbps
-              </span>
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">Total Bandwidth In</div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex items-center gap-0 border-x border-[#ddd]">
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <Network size={14} className="text-green-600" />
+            <span className="text-lg font-bold text-green-600">{stats.activeMembers}</span>
+            <span className="text-[11px] text-[#666]">Active Members</span>
           </div>
-          <div className="section p-4">
-            <div className="flex items-center justify-between">
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <Activity size={18} className="text-purple-400" />
-              </div>
-              <span className="text-2xl font-bold">
-                {Math.round(interfaces.reduce((a, i) => a + i.latency, 0) / interfaces.length)} ms
-              </span>
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">Avg Latency</div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <BarChart3 size={14} className="text-blue-600" />
+            <span className="text-lg font-bold text-blue-600">{stats.totalBandwidth}</span>
+            <span className="text-[11px] text-[#666]">Mbps Total</span>
           </div>
-          <div className="section p-4">
-            <div className="flex items-center justify-between">
-              <div className="p-2 rounded-lg bg-amber-500/20">
-                <Zap size={18} className="text-amber-400" />
-              </div>
-              <span className="text-2xl font-bold">{rules.filter(r => r.enabled).length}</span>
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">Active Rules</div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <Activity size={14} className="text-purple-600" />
+            <span className="text-lg font-bold text-purple-600">{stats.avgLatency}</span>
+            <span className="text-[11px] text-[#666]">ms Avg Latency</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
+            <Zap size={14} className="text-orange-600" />
+            <span className="text-lg font-bold text-orange-600">{stats.activeRules}</span>
+            <span className="text-[11px] text-[#666]">Active Rules</span>
           </div>
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-[#1e293b]">
-            <TabsTrigger value="zones" className="gap-1.5 data-[state=active]:bg-[#4caf50]">
-              <Globe size={14} />
-              SD-WAN Zones
-            </TabsTrigger>
-            <TabsTrigger value="rules" className="gap-1.5 data-[state=active]:bg-[#4caf50]">
-              <ArrowRight size={14} />
-              SD-WAN Rules
-            </TabsTrigger>
-            <TabsTrigger value="sla" className="gap-1.5 data-[state=active]:bg-[#4caf50]">
-              <Activity size={14} />
-              Performance SLA
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="bg-[#f0f0f0] border-x border-b border-[#ddd]">
+            <TabsList className="bg-transparent h-auto p-0 rounded-none">
+              <TabsTrigger 
+                value="zones" 
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+              >
+                SD-WAN Zones
+              </TabsTrigger>
+              <TabsTrigger 
+                value="rules" 
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+              >
+                SD-WAN Rules
+              </TabsTrigger>
+              <TabsTrigger 
+                value="sla" 
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+              >
+                Performance SLA
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-          {/* Zones Tab - Interface Status */}
-          <TabsContent value="zones" className="space-y-4 mt-4">
-            <div className="grid gap-4">
-              {interfaces.map((iface) => (
-                <div key={iface.id} className={cn(
-                  "section p-4",
-                  iface.status === 'up' && "border-emerald-500/30",
-                  iface.status === 'degraded' && "border-yellow-500/30",
-                  iface.status === 'down' && "border-red-500/30"
-                )}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-12 h-12 rounded-lg flex items-center justify-center",
-                        iface.status === 'up' ? "bg-emerald-500/20" : 
-                        iface.status === 'degraded' ? "bg-yellow-500/20" : "bg-red-500/20"
+          {/* Zones Tab */}
+          <TabsContent value="zones" className="mt-0">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-16">Status</th>
+                  <th>Name</th>
+                  <th>Interface</th>
+                  <th>Gateway</th>
+                  <th className="w-20">Latency</th>
+                  <th className="w-20">Jitter</th>
+                  <th className="w-20">Pkt Loss</th>
+                  <th className="w-24">Bandwidth In</th>
+                  <th className="w-20">SLA</th>
+                  <th className="w-16">Priority</th>
+                </tr>
+              </thead>
+              <tbody>
+                {interfaces.map((iface) => (
+                  <tr key={iface.id}>
+                    <td>
+                      <span className={cn(
+                        "forti-tag",
+                        iface.status === 'up' ? 'bg-green-100 text-green-700 border-green-200' :
+                        iface.status === 'degraded' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                        'bg-red-100 text-red-700 border-red-200'
                       )}>
-                        <Wifi size={24} className={getStatusColor(iface.status)} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold">{iface.name}</h3>
-                          <span className={cn("w-2 h-2 rounded-full", getStatusBg(iface.status))} />
-                          <span className={cn("text-xs", getStatusColor(iface.status))}>
-                            {iface.status.toUpperCase()}
-                          </span>
+                        {iface.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="font-medium text-[#333]">{iface.name}</td>
+                    <td className="text-[#666]">{iface.interface}</td>
+                    <td className="mono text-[#666]">{iface.gateway}</td>
+                    <td className="text-[#666]">{iface.latency} ms</td>
+                    <td className="text-[#666]">{iface.jitter} ms</td>
+                    <td className="text-[#666]">{iface.packetLoss}%</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-[#e0e0e0] rounded overflow-hidden">
+                          <div 
+                            className="h-full bg-[hsl(142,70%,35%)]" 
+                            style={{ width: `${(iface.bandwidth.in / iface.bandwidth.max) * 100}%` }}
+                          />
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {iface.interface} → {iface.gateway}
-                        </p>
+                        <span className="text-[10px] text-[#666]">{iface.bandwidth.in}/{iface.bandwidth.max}</span>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-6 text-center">
-                      <div>
-                        <div className="text-lg font-bold">{iface.latency}ms</div>
-                        <div className="text-[10px] text-muted-foreground">Latency</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-bold">{iface.jitter}ms</div>
-                        <div className="text-[10px] text-muted-foreground">Jitter</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-bold">{iface.packetLoss}%</div>
-                        <div className="text-[10px] text-muted-foreground">Packet Loss</div>
-                      </div>
-                      <div>
-                        <span className={cn(
-                          "text-[10px] px-2 py-1 rounded border",
-                          iface.slaStatus === 'pass' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                          iface.slaStatus === 'warning' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                          'bg-red-500/20 text-red-400 border-red-500/30'
-                        )}>
-                          SLA {iface.slaStatus.toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Bandwidth In</span>
-                        <span>{iface.bandwidth.in} / {iface.bandwidth.max} Mbps</span>
-                      </div>
-                      <Progress value={(iface.bandwidth.in / iface.bandwidth.max) * 100} className="h-2" />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Bandwidth Out</span>
-                        <span>{iface.bandwidth.out} / {iface.bandwidth.max} Mbps</span>
-                      </div>
-                      <Progress value={(iface.bandwidth.out / iface.bandwidth.max) * 100} className="h-2" />
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center gap-4 pt-3 border-t border-border text-xs text-muted-foreground">
-                    <span>Priority: <span className="text-foreground font-medium">{iface.priority}</span></span>
-                    <span>Weight: <span className="text-foreground font-medium">{iface.weight}</span></span>
-                    <span>Cost: <span className="text-foreground font-medium">{iface.cost}</span></span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </td>
+                    <td>
+                      <span className={cn(
+                        "forti-tag",
+                        iface.slaStatus === 'pass' ? 'bg-green-100 text-green-700 border-green-200' :
+                        iface.slaStatus === 'warning' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                        'bg-red-100 text-red-700 border-red-200'
+                      )}>
+                        {iface.slaStatus.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="text-center text-[#666]">{iface.priority}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </TabsContent>
 
           {/* Rules Tab */}
-          <TabsContent value="rules" className="space-y-4 mt-4">
-            <div className="section">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th className="w-14">Status</th>
-                    <th>Name</th>
-                    <th>Source</th>
-                    <th>Destination</th>
-                    <th>Service</th>
-                    <th>Mode</th>
-                    <th>Members</th>
-                    <th className="text-right">Hits</th>
-                    <th className="w-24">Actions</th>
+          <TabsContent value="rules" className="mt-0">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-16">Status</th>
+                  <th>Name</th>
+                  <th>Source</th>
+                  <th>Destination</th>
+                  <th>Service</th>
+                  <th>Mode</th>
+                  <th>Members</th>
+                  <th className="text-right">Hits</th>
+                  <th className="w-20">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rules.map((rule) => (
+                  <tr key={rule.id} className={cn(!rule.enabled && "opacity-60")}>
+                    <td>
+                      <FortiToggle 
+                        enabled={rule.enabled}
+                        onChange={() => handleToggleRule(rule.id)}
+                        size="sm"
+                      />
+                    </td>
+                    <td className="font-medium text-[#333]">{rule.name}</td>
+                    <td className="text-[#666]">{rule.source}</td>
+                    <td className="text-[#666]">{rule.destination}</td>
+                    <td className="text-[#666]">{rule.service}</td>
+                    <td>
+                      <span className={cn(
+                        "forti-tag",
+                        rule.mode === 'sla' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                        rule.mode === 'load-balance' ? 'bg-cyan-100 text-cyan-700 border-cyan-200' :
+                        rule.mode === 'priority' ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                        'bg-gray-100 text-gray-700 border-gray-200'
+                      )}>
+                        {rule.mode}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex gap-1">
+                        {rule.members.map((m, i) => (
+                          <span key={i} className="text-[10px] px-1.5 py-0.5 bg-[#f0f0f0] text-[#666] border border-[#ddd]">
+                            {m}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="text-right mono text-[#666]">{rule.hits.toLocaleString()}</td>
+                    <td>
+                      <div className="flex items-center gap-1">
+                        <button className="p-1 hover:bg-[#f0f0f0]">
+                          <Edit size={12} className="text-[#666]" />
+                        </button>
+                        <button className="p-1 hover:bg-[#f0f0f0]">
+                          <Trash2 size={12} className="text-red-500" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rules.map((rule) => (
-                    <tr key={rule.id} className={cn(!rule.enabled && "opacity-50")}>
-                      <td>
-                        <Switch
-                          checked={rule.enabled}
-                          onCheckedChange={() => handleToggleRule(rule.id)}
-                          className="scale-75"
-                        />
-                      </td>
-                      <td className="font-medium">{rule.name}</td>
-                      <td className="text-xs text-muted-foreground">{rule.source}</td>
-                      <td className="text-xs text-muted-foreground">{rule.destination}</td>
-                      <td className="text-xs text-muted-foreground">{rule.service}</td>
-                      <td>
-                        <span className={cn(
-                          "text-[10px] px-2 py-0.5 rounded border",
-                          rule.mode === 'sla' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
-                          rule.mode === 'load-balance' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
-                          rule.mode === 'priority' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
-                          'bg-gray-500/20 text-gray-400 border-gray-500/30'
-                        )}>
-                          {rule.mode}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex gap-1">
-                          {rule.members.map((m, i) => (
-                            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                              {m}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="text-right font-mono text-muted-foreground">
-                        {rule.hits.toLocaleString()}
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                            <Edit size={12} />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-400">
-                            <Trash2 size={12} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </TabsContent>
 
-          {/* Performance SLA Tab */}
-          <TabsContent value="sla" className="space-y-4 mt-4">
-            <div className="grid gap-4">
-              {slas.map((sla) => (
-                <div key={sla.id} className="section p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-500/20">
-                        <Activity size={18} className="text-blue-400" />
+          {/* SLA Tab */}
+          <TabsContent value="sla" className="mt-0">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Probe Server</th>
+                  <th>Mode</th>
+                  <th>Interval</th>
+                  <th>Latency Threshold</th>
+                  <th>Jitter Threshold</th>
+                  <th>Pkt Loss Threshold</th>
+                  <th>Link Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {slas.map((sla) => (
+                  <tr key={sla.id}>
+                    <td className="font-medium text-[#333]">{sla.name}</td>
+                    <td className="mono text-[#666]">{sla.probeServer}</td>
+                    <td>
+                      <span className="forti-tag bg-blue-100 text-blue-700 border-blue-200">
+                        {sla.probeMode.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="text-[#666]">{sla.interval} ms</td>
+                    <td className="text-[#666]">{sla.latencyThreshold} ms</td>
+                    <td className="text-[#666]">{sla.jitterThreshold} ms</td>
+                    <td className="text-[#666]">{sla.packetLossThreshold}%</td>
+                    <td>
+                      <div className="flex gap-1">
+                        {sla.linkStatus.map((link, i) => (
+                          <span 
+                            key={i} 
+                            className={cn(
+                              "text-[10px] px-1.5 py-0.5 border flex items-center gap-1",
+                              link.status === 'pass' 
+                                ? 'bg-green-100 text-green-700 border-green-200' 
+                                : 'bg-red-100 text-red-700 border-red-200'
+                            )}
+                          >
+                            {link.status === 'pass' ? <Check size={10} /> : <X size={10} />}
+                            {link.member}
+                          </span>
+                        ))}
                       </div>
-                      <div>
-                        <h3 className="text-sm font-bold">{sla.name}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {sla.probeMode.toUpperCase()} probe to {sla.probeServer}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm"><Edit size={14} /></Button>
-                      <Button variant="ghost" size="sm" className="text-red-400"><Trash2 size={14} /></Button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-4 gap-4">
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">Probe Interval</div>
-                      <div className="text-sm font-medium">{sla.interval}ms</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">Max Latency</div>
-                      <div className="text-sm font-medium">{sla.latencyThreshold}ms</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">Max Jitter</div>
-                      <div className="text-sm font-medium">{sla.jitterThreshold}ms</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase">Max Packet Loss</div>
-                      <div className="text-sm font-medium">{sla.packetLossThreshold}%</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-border">
-                    <div className="text-[10px] text-muted-foreground uppercase mb-2">Member Status</div>
-                    <div className="flex gap-3">
-                      {sla.linkStatus.map((link, i) => (
-                        <div key={i} className={cn(
-                          "flex items-center gap-2 px-3 py-1.5 rounded border",
-                          link.status === 'pass' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'
-                        )}>
-                          {link.status === 'pass' ? (
-                            <Check size={12} className="text-emerald-400" />
-                          ) : (
-                            <X size={12} className="text-red-400" />
-                          )}
-                          <span className="text-xs">{link.member}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </TabsContent>
         </Tabs>
       </div>

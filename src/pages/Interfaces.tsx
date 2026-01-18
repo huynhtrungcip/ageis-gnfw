@@ -5,16 +5,15 @@ import { cn } from '@/lib/utils';
 import { 
   Plus, 
   RefreshCw, 
-  Trash2, 
-  Wifi, 
   ChevronDown,
-  CheckCircle2,
-  XCircle,
   Search,
   Network,
   Server,
   Globe,
-  Shield
+  Shield,
+  Edit,
+  Trash2,
+  Wifi
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -29,7 +28,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -39,8 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
 import type { NetworkInterface } from '@/types/firewall';
 
 // Extended interface with access options
@@ -107,14 +103,6 @@ const Interfaces = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedIds.length === interfaces.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(interfaces.map(i => i.id));
-    }
   };
 
   const openEditModal = (iface?: ExtendedInterface) => {
@@ -211,6 +199,15 @@ const Interfaces = () => {
 
   const selectedInterface = selectedIds.length === 1 ? interfaces.find(i => i.id === selectedIds[0]) : null;
 
+  // Stats
+  const stats = {
+    total: interfaces.length,
+    up: interfaces.filter(i => i.status === 'up').length,
+    down: interfaces.filter(i => i.status === 'down').length,
+    wan: interfaces.filter(i => i.type === 'WAN').length,
+    lan: interfaces.filter(i => i.type === 'LAN').length,
+  };
+
   // Access Badge Component
   const AccessBadge = ({ label, active }: { label: string; active: boolean }) => (
     <span className={cn(
@@ -224,61 +221,23 @@ const Interfaces = () => {
   return (
     <Shell>
       <div className="space-y-0">
-        {/* Port Visualization Header */}
-        <div className="widget mb-3">
-          <div className="widget-body flex items-center justify-center py-4">
-            <div className="bg-[#333] rounded px-6 py-3 text-center">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield size={14} className="text-[#4caf50]" />
-                <span className="text-[11px] text-gray-400">AEGIS</span>
-                <span className="text-[11px] text-white font-bold">NGFW-500</span>
-              </div>
-              <div className="flex items-center gap-1 mb-1">
-                <span className="text-[9px] text-gray-500 w-8">1</span>
-                <span className="text-[9px] text-gray-500 w-5">3</span>
-                <span className="text-[9px] text-gray-500 w-5">5</span>
-                <span className="text-[9px] text-gray-500 w-5">7</span>
-                <span className="text-[9px] text-gray-500 w-5">9</span>
-              </div>
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => {
-                  const isUp = i <= 4;
-                  return (
-                    <div 
-                      key={i}
-                      className={cn(
-                        "w-5 h-5 border text-[8px] font-bold flex items-center justify-center",
-                        isUp 
-                          ? "bg-[#4caf50] border-[#388e3c] text-white" 
-                          : "bg-[#666] border-[#444] text-[#999]"
-                      )}
-                    >
-                      {i}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-[9px] text-gray-500 w-8">2</span>
-                <span className="text-[9px] text-gray-500 w-5">4</span>
-                <span className="text-[9px] text-gray-500 w-5">6</span>
-                <span className="text-[9px] text-gray-500 w-5">8</span>
-                <span className="text-[9px] text-gray-500 w-5">10</span>
-              </div>
-            </div>
+        {/* Header */}
+        <div className="section-header-neutral">
+          <div className="flex items-center gap-2">
+            <Network size={14} />
+            <span className="font-semibold">Interfaces</span>
           </div>
         </div>
 
         {/* Toolbar */}
-        <div className="flex items-center gap-0.5 px-1 py-1 bg-[#f0f0f0] border border-[#ccc]">
-          {/* Create New Dropdown */}
+        <div className="forti-toolbar">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="forti-toolbar-btn primary">
                 <Plus size={12} /> Create New <ChevronDown size={10} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuContent align="start" className="w-48 bg-white border border-[#ccc]">
               <DropdownMenuItem onClick={() => openEditModal()} className="text-[11px] gap-2">
                 <Network size={12} />
                 Interface
@@ -295,22 +254,6 @@ const Interfaces = () => {
                 <Wifi size={12} />
                 Zone
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-[11px] gap-2">
-                <Server size={12} />
-                Aggregate
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-[11px] gap-2">
-                <Server size={12} />
-                Redundant Interface
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-[11px] gap-2">
-                <Globe size={12} />
-                Software Switch
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-[11px] gap-2">
-                <Shield size={12} />
-                Hardware Switch
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -319,16 +262,27 @@ const Interfaces = () => {
             className="forti-toolbar-btn"
             disabled={selectedIds.length !== 1}
           >
-            ✏️ Edit
+            <Edit size={12} />
+            Edit
           </button>
           <button 
             onClick={handleDeleteSelected}
             className="forti-toolbar-btn"
             disabled={selectedIds.length === 0}
           >
-            🗑️ Delete
+            <Trash2 size={12} />
+            Delete
           </button>
-
+          <div className="forti-toolbar-separator" />
+          <button 
+            onClick={handleRefresh}
+            className="forti-toolbar-btn"
+            disabled={isRefreshing}
+          >
+            <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+          
           <div className="flex-1" />
 
           {/* View Toggle */}
@@ -352,317 +306,230 @@ const Interfaces = () => {
               Alphabetically
             </button>
           </div>
+
+          <div className="forti-search">
+            <Search size={12} className="text-[#999]" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex items-center gap-0 border-x border-[#ddd]">
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <span className="text-lg font-bold text-[#333]">{stats.total}</span>
+            <span className="text-[11px] text-[#666]">Total</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+            <span className="text-lg font-bold text-green-600">{stats.up}</span>
+            <span className="text-[11px] text-[#666]">Up</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span className="text-lg font-bold text-red-600">{stats.down}</span>
+            <span className="text-[11px] text-[#666]">Down</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <span className="text-lg font-bold text-blue-600">{stats.wan}</span>
+            <span className="text-[11px] text-[#666]">WAN</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
+            <span className="text-lg font-bold text-purple-600">{stats.lan}</span>
+            <span className="text-[11px] text-[#666]">LAN</span>
+          </div>
+        </div>
+
+        {/* Port Visualization */}
+        <div className="bg-white border-x border-b border-[#ddd] py-3 flex justify-center">
+          <div className="bg-[#333] rounded px-6 py-3 text-center">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield size={14} className="text-[#4caf50]" />
+              <span className="text-[11px] text-gray-400">AEGIS</span>
+              <span className="text-[11px] text-white font-bold">NGFW-500</span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => {
+                const isUp = i <= stats.up;
+                return (
+                  <div 
+                    key={i}
+                    className={cn(
+                      "w-5 h-5 border text-[8px] font-bold flex items-center justify-center",
+                      isUp 
+                        ? "bg-[#4caf50] border-[#388e3c] text-white" 
+                        : "bg-[#666] border-[#444] text-[#999]"
+                    )}
+                  >
+                    {i}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Interface Table */}
-        <div className="border border-[#ccc] border-t-0">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="w-8">
-                  <span className="text-[10px]">▼</span>
-                </th>
-                <th className="w-12">
-                  <span className="flex items-center gap-1">
-                    ▼ Status
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th className="w-10">Status</th>
+              <th>Name</th>
+              <th>Members</th>
+              <th>IP/Netmask</th>
+              <th>Type</th>
+              <th>Access</th>
+              <th className="w-12 text-right">Ref.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* Group Header - Physical */}
+            <tr className="group-header">
+              <td colSpan={7} className="py-1 px-2">
+                <div className="flex items-center gap-2">
+                  <ChevronDown size={12} />
+                  <span>Physical ({filteredInterfaces.length})</span>
+                </div>
+              </td>
+            </tr>
+
+            {/* Interface Rows */}
+            {filteredInterfaces.map((iface) => (
+              <tr 
+                key={iface.id}
+                onClick={() => handleSelect(iface.id)}
+                className={cn(
+                  "cursor-pointer",
+                  selectedIds.includes(iface.id) && "bg-[#fff8e1]"
+                )}
+              >
+                <td>
+                  <span className={cn(
+                    "inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-bold",
+                    iface.status === 'up' 
+                      ? 'bg-[#4caf50] text-white' 
+                      : 'bg-[#ccc] text-[#666]'
+                  )}>
+                    {iface.status === 'up' ? '⬆' : '⬇'}
                   </span>
-                </th>
-                <th>
-                  <span className="flex items-center gap-1">
-                    ▼ Name
+                </td>
+                <td className="font-medium text-[#333]">{iface.name}</td>
+                <td className="text-[#999]">--</td>
+                <td className="mono text-[#666]">
+                  {iface.ipAddress ? `${iface.ipAddress} ${iface.subnet}` : '0.0.0.0 0.0.0.0'}
+                </td>
+                <td>
+                  <span className="inline-flex items-center gap-1 text-[#666]">
+                    <Network size={12} className="text-[#999]" />
+                    Physical Interface
                   </span>
-                </th>
-                <th>
-                  <span className="flex items-center gap-1">
-                    ▼ Members
-                  </span>
-                </th>
-                <th>
-                  <span className="flex items-center gap-1">
-                    IP/Netmask
-                  </span>
-                </th>
-                <th>
-                  <span className="flex items-center gap-1">
-                    ▼ Type
-                  </span>
-                </th>
-                <th>
-                  <span className="flex items-center gap-1">
-                    Access
-                  </span>
-                </th>
-                <th className="w-12 text-right">
-                  <span className="flex items-center gap-1 justify-end">
-                    ▼ Ref.
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Group Header - Physical */}
-              <tr className="group-header">
-                <td colSpan={8} className="py-1 px-2">
-                  <div className="flex items-center gap-2">
-                    <ChevronDown size={12} />
-                    <span>Physical ({filteredInterfaces.length})</span>
+                </td>
+                <td>
+                  <div className="flex items-center gap-0.5">
+                    {iface.access.ping && <AccessBadge label="PING" active={true} />}
+                    {iface.access.https && <AccessBadge label="HTTPS" active={true} />}
+                    {iface.access.ssh && <AccessBadge label="SSH" active={true} />}
+                    {iface.access.http && <AccessBadge label="HTTP" active={true} />}
                   </div>
                 </td>
+                <td className="text-right text-[#666]">{iface.refs}</td>
               </tr>
-
-              {/* Interface Rows */}
-              {filteredInterfaces.map((iface) => (
-                <tr 
-                  key={iface.id}
-                  onClick={() => handleSelect(iface.id)}
-                  className={cn(
-                    "cursor-pointer",
-                    selectedIds.includes(iface.id) && "bg-[#fff8e1]"
-                  )}
-                >
-                  <td className="text-center">
-                    <div className="flex items-center gap-1">
-                      <span className={cn(
-                        "w-2.5 h-2.5 rounded-full",
-                        iface.status === 'up' ? 'bg-[#4caf50]' : 'bg-[#ccc]'
-                      )} />
-                    </div>
-                  </td>
-                  <td>
-                    <span className={cn(
-                      "inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-bold",
-                      iface.status === 'up' 
-                        ? 'bg-[#4caf50] text-white' 
-                        : 'bg-[#ccc] text-[#666]'
-                    )}>
-                      {iface.status === 'up' ? '⬆' : '⬇'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="font-medium text-[11px]">{iface.name}</span>
-                  </td>
-                  <td className="text-[11px] text-[#999]">--</td>
-                  <td className="font-mono text-[11px]">
-                    {iface.ipAddress ? `${iface.ipAddress} ${iface.subnet}` : '0.0.0.0 0.0.0.0'}
-                  </td>
-                  <td className="text-[11px]">
-                    <span className="inline-flex items-center gap-1">
-                      <Network size={12} className="text-[#999]" />
-                      Physical Interface
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-0.5">
-                      {iface.access.ping && <AccessBadge label="PING" active={true} />}
-                      {iface.access.https && <AccessBadge label="HTTPS" active={true} />}
-                      {iface.access.ssh && <AccessBadge label="SSH" active={true} />}
-                      {iface.access.http && <AccessBadge label="HTTP" active={true} />}
-                      {iface.access.fmgAccess && <AccessBadge label="FMG-Access" active={true} />}
-                    </div>
-                  </td>
-                  <td className="text-right text-[11px] text-[#666]">{iface.refs}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Edit Interface Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-4 py-2 bg-gradient-to-r from-[hsl(142,70%,35%)] to-[hsl(142,60%,45%)] text-white">
+          <DialogHeader className="forti-modal-header">
             <DialogTitle className="text-sm font-semibold">
               {editingInterface ? 'Edit Interface' : 'Create Interface'}
             </DialogTitle>
           </DialogHeader>
           
-          <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
-            {/* Interface Name */}
+          <div className="forti-modal-body space-y-4">
             <div className="grid grid-cols-3 gap-3 items-center">
-              <Label className="text-xs text-right text-muted-foreground">Interface Name</Label>
+              <Label className="forti-label text-right">Interface Name</Label>
               <div className="col-span-2">
                 <Input 
                   value={newInterface.name}
-                  onChange={(e) => setNewInterface(prev => ({ ...prev, name: e.target.value }))}
-                  className="h-8 text-xs"
+                  onChange={(e) => setNewInterface({...newInterface, name: e.target.value})}
+                  className="forti-input w-full"
                   placeholder="port1"
                 />
               </div>
             </div>
 
-            {/* Alias */}
             <div className="grid grid-cols-3 gap-3 items-center">
-              <Label className="text-xs text-right text-muted-foreground">Alias</Label>
+              <Label className="forti-label text-right">Role</Label>
               <div className="col-span-2">
-                <Input className="h-8 text-xs" placeholder="WAN Interface" />
+                <Select value={newInterface.role} onValueChange={(v) => setNewInterface({...newInterface, role: v as any})}>
+                  <SelectTrigger className="forti-select w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-[#ccc]">
+                    <SelectItem value="WAN">WAN</SelectItem>
+                    <SelectItem value="LAN">LAN</SelectItem>
+                    <SelectItem value="DMZ">DMZ</SelectItem>
+                    <SelectItem value="Undefined">Undefined</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {/* Link Status */}
             <div className="grid grid-cols-3 gap-3 items-center">
-              <Label className="text-xs text-right text-muted-foreground">Link Status</Label>
-              <div className="col-span-2 flex items-center gap-2">
-                <span className={cn(
-                  "inline-flex items-center gap-1.5 text-xs",
-                  newInterface.status === 'up' ? 'text-green-600' : 'text-gray-500'
-                )}>
-                  {newInterface.status === 'up' ? (
-                    <CheckCircle2 size={14} />
-                  ) : (
-                    <XCircle size={14} />
-                  )}
-                  {newInterface.status === 'up' ? 'Up' : 'Down'}
-                </span>
+              <Label className="forti-label text-right">Addressing Mode</Label>
+              <div className="col-span-2">
+                <Select value={newInterface.addressingMode} onValueChange={(v) => setNewInterface({...newInterface, addressingMode: v as any})}>
+                  <SelectTrigger className="forti-select w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-[#ccc]">
+                    <SelectItem value="Manual">Manual</SelectItem>
+                    <SelectItem value="DHCP">DHCP</SelectItem>
+                    <SelectItem value="PPPoE">PPPoE</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {/* Type */}
             <div className="grid grid-cols-3 gap-3 items-center">
-              <Label className="text-xs text-right text-muted-foreground">Type</Label>
-              <div className="col-span-2 text-xs text-foreground">Physical Interface</div>
-            </div>
-
-            <div className="border-t border-border pt-4">
-              {/* Role */}
-              <div className="grid grid-cols-3 gap-3 items-center mb-4">
-                <Label className="text-xs text-right text-muted-foreground">Role</Label>
-                <div className="col-span-2">
-                  <Select 
-                    value={newInterface.role} 
-                    onValueChange={(v: 'WAN' | 'LAN' | 'DMZ' | 'Undefined') => setNewInterface(prev => ({ ...prev, role: v }))}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="WAN">WAN</SelectItem>
-                      <SelectItem value="LAN">LAN</SelectItem>
-                      <SelectItem value="DMZ">DMZ</SelectItem>
-                      <SelectItem value="Undefined">Undefined</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Administrative Access */}
-              <div className="grid grid-cols-3 gap-3 items-start mb-4">
-                <Label className="text-xs text-right text-muted-foreground pt-1">Administrative Access</Label>
-                <div className="col-span-2 flex flex-wrap gap-3">
-                  <label className="flex items-center gap-1.5 text-xs">
-                    <Checkbox defaultChecked /> HTTPS
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs">
-                    <Checkbox defaultChecked /> SSH
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs">
-                    <Checkbox defaultChecked /> PING
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs">
-                    <Checkbox /> HTTP
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs">
-                    <Checkbox /> TELNET
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs">
-                    <Checkbox /> SNMP
-                  </label>
-                </div>
+              <Label className="forti-label text-right">IP Address</Label>
+              <div className="col-span-2">
+                <Input 
+                  value={newInterface.ipAddress}
+                  onChange={(e) => setNewInterface({...newInterface, ipAddress: e.target.value})}
+                  className="forti-input w-full"
+                  placeholder="192.168.1.1"
+                />
               </div>
             </div>
 
-            <div className="border-t border-border pt-4">
-              <div className="font-medium text-xs mb-3 flex items-center gap-2">
-                <ChevronDown size={12} />
-                Address
+            <div className="grid grid-cols-3 gap-3 items-center">
+              <Label className="forti-label text-right">Subnet Mask</Label>
+              <div className="col-span-2">
+                <Input 
+                  value={newInterface.subnet}
+                  onChange={(e) => setNewInterface({...newInterface, subnet: e.target.value})}
+                  className="forti-input w-full"
+                  placeholder="255.255.255.0"
+                />
               </div>
-
-              {/* Addressing Mode */}
-              <div className="grid grid-cols-3 gap-3 items-center mb-4">
-                <Label className="text-xs text-right text-muted-foreground">Addressing mode</Label>
-                <div className="col-span-2">
-                  <Tabs 
-                    value={newInterface.addressingMode} 
-                    onValueChange={(v) => setNewInterface(prev => ({ ...prev, addressingMode: v as 'Manual' | 'DHCP' | 'PPPoE' }))}
-                  >
-                    <TabsList className="h-8">
-                      <TabsTrigger value="Manual" className="text-xs h-7 px-3">Manual</TabsTrigger>
-                      <TabsTrigger value="DHCP" className="text-xs h-7 px-3">DHCP</TabsTrigger>
-                      <TabsTrigger value="PPPoE" className="text-xs h-7 px-3">PPPoE</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-              </div>
-
-              {newInterface.addressingMode === 'Manual' && (
-                <>
-                  <div className="grid grid-cols-3 gap-3 items-center mb-4">
-                    <Label className="text-xs text-right text-muted-foreground">IP/Netmask</Label>
-                    <div className="col-span-2 flex items-center gap-2">
-                      <Input 
-                        value={newInterface.ipAddress}
-                        onChange={(e) => setNewInterface(prev => ({ ...prev, ipAddress: e.target.value }))}
-                        className="h-8 text-xs flex-1" 
-                        placeholder="192.168.1.1"
-                      />
-                      <span className="text-xs">/</span>
-                      <Input 
-                        value={newInterface.subnet}
-                        onChange={(e) => setNewInterface(prev => ({ ...prev, subnet: e.target.value }))}
-                        className="h-8 text-xs flex-1" 
-                        placeholder="255.255.255.0"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 items-center mb-4">
-                    <Label className="text-xs text-right text-muted-foreground">Gateway</Label>
-                    <div className="col-span-2">
-                      <Input 
-                        value={newInterface.gateway}
-                        onChange={(e) => setNewInterface(prev => ({ ...prev, gateway: e.target.value }))}
-                        className="h-8 text-xs" 
-                        placeholder="192.168.1.254"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {newInterface.addressingMode === 'DHCP' && (
-                <>
-                  <div className="grid grid-cols-3 gap-3 items-center mb-4">
-                    <Label className="text-xs text-right text-muted-foreground">Status</Label>
-                    <div className="col-span-2 flex items-center gap-2">
-                      <CheckCircle2 size={14} className="text-green-600" />
-                      <span className="text-xs text-green-600">Connected</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 items-center mb-4">
-                    <Label className="text-xs text-right text-muted-foreground">Obtained IP/Netmask</Label>
-                    <div className="col-span-2 flex items-center gap-2">
-                      <span className="text-xs font-mono">192.168.1.10 / 255.255.255.0</span>
-                      <Button variant="ghost" size="sm" className="h-6 text-xs text-primary">Renew</Button>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
-          <div className="flex justify-center gap-2 px-4 py-3 bg-[#f5f5f5] border-t border-[#ddd]">
-            <Button 
-              onClick={handleSaveInterface}
-              className="forti-btn forti-btn-primary"
-            >
-              OK
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setEditModalOpen(false)}
-              className="forti-btn forti-btn-secondary"
-            >
+          <div className="forti-modal-footer">
+            <button onClick={() => setEditModalOpen(false)} className="forti-btn forti-btn-secondary">
               Cancel
-            </Button>
+            </button>
+            <button onClick={handleSaveInterface} className="forti-btn forti-btn-primary">
+              OK
+            </button>
           </div>
         </DialogContent>
       </Dialog>
