@@ -22,6 +22,7 @@ import IDSSettings from "./pages/IDSSettings";
 import Routing from "./pages/Routing";
 import Reports from "./pages/Reports";
 import SystemSettings from "./pages/SystemSettings";
+import TrafficAnalysis from "./pages/TrafficAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,7 +54,7 @@ const App = () => (
           <Route path="/vpn/openvpn" element={<VPN />} />
           <Route path="/vpn/wireguard" element={<VPN />} />
           <Route path="/monitoring/logs" element={<SystemLogs />} />
-          <Route path="/monitoring/traffic" element={<SystemMonitoring />} />
+          <Route path="/monitoring/traffic" element={<TrafficAnalysis />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/system/general" element={<SystemSettings />} />
           <Route path="/system/backup" element={<ConfigBackup />} />
