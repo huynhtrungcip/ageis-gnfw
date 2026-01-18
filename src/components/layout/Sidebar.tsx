@@ -92,8 +92,9 @@ const navigation: NavSection[] = [
       { label: 'Administrators', path: '/system/admins' },
       { label: 'Admin Profiles', path: '/system/admins' },
       { label: 'Settings', path: '/system/general' },
+      { label: 'High Availability', path: '/system/ha', starred: true },
+      { label: 'Certificates', path: '/system/certificates' },
       { label: 'Firmware', path: '/system/firmware' },
-      { label: 'Certificates', path: '/security/ssl' },
     ],
   },
   {
@@ -162,6 +163,7 @@ const navigation: NavSection[] = [
     icon: BarChart3,
     defaultOpen: false,
     items: [
+      { label: 'Log Viewer', path: '/logs', starred: true },
       { label: 'Forward Traffic', path: '/monitoring/traffic' },
       { label: 'Local Traffic', path: '/monitoring/traffic' },
       { label: 'System Events', path: '/monitoring/logs' },

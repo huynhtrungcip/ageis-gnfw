@@ -33,6 +33,7 @@ import FeatureVisibility from "./pages/FeatureVisibility";
 import ApplicationControl from "./pages/ApplicationControl";
 import HighAvailability from "./pages/HighAvailability";
 import CertificateManagement from "./pages/CertificateManagement";
+import LogReport from "./pages/LogReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => (
           <Route path="/monitor/ipsec" element={<VPN />} />
           <Route path="/monitor/routing" element={<Routing />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/logs" element={<LogReport />} />
           <Route path="/system/general" element={<SystemSettings />} />
           <Route path="/system/backup" element={<ConfigBackup />} />
           <Route path="/system/users" element={<UserManagement />} />
