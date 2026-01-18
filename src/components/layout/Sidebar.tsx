@@ -88,7 +88,7 @@ const navigation: NavSection[] = [
     icon: Settings,
     defaultOpen: false,
     items: [
-      { label: 'Feature Visibility', path: '/system/general' },
+      { label: 'Feature Visibility', path: '/system/feature-visibility' },
       { label: 'Administrators', path: '/system/admins' },
       { label: 'Admin Profiles', path: '/system/admins' },
       { label: 'Settings', path: '/system/general' },

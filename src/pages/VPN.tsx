@@ -2,7 +2,21 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockVPNTunnels } from '@/data/mockData';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil } from 'lucide-react';
+import { 
+  Plus, 
+  Pencil, 
+  Trash2, 
+  Search, 
+  ChevronDown, 
+  RefreshCw,
+  Play,
+  Square,
+  Shield,
+  Key,
+  Globe,
+  Users,
+  Download
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -10,6 +24,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface VPNTunnel {
   id: string;
@@ -32,13 +53,41 @@ interface VPNTunnel {
   uptime: number;
   bytesIn: number;
   bytesOut: number;
+  phase1: string;
+  phase2: string;
 }
 
+interface SSLVPNUser {
+  id: string;
+  username: string;
+  group: string;
+  status: 'online' | 'offline';
+  sourceIp: string;
+  assignedIp: string;
+  loginTime: Date | null;
+  bytesIn: number;
+  bytesOut: number;
+}
+
+const mockSSLUsers: SSLVPNUser[] = [
+  { id: 'ssl-1', username: 'john.doe', group: 'Remote-Workers', status: 'online', sourceIp: '103.45.67.89', assignedIp: '10.212.134.5', loginTime: new Date(Date.now() - 3600000), bytesIn: 125000000, bytesOut: 45000000 },
+  { id: 'ssl-2', username: 'jane.smith', group: 'Remote-Workers', status: 'online', sourceIp: '42.118.92.45', assignedIp: '10.212.134.6', loginTime: new Date(Date.now() - 7200000), bytesIn: 89000000, bytesOut: 23000000 },
+  { id: 'ssl-3', username: 'bob.wilson', group: 'IT-Admin', status: 'online', sourceIp: '183.91.12.78', assignedIp: '10.212.134.7', loginTime: new Date(Date.now() - 1800000), bytesIn: 234000000, bytesOut: 156000000 },
+  { id: 'ssl-4', username: 'alice.jones', group: 'Remote-Workers', status: 'offline', sourceIp: '', assignedIp: '', loginTime: null, bytesIn: 0, bytesOut: 0 },
+  { id: 'ssl-5', username: 'charlie.brown', group: 'Contractors', status: 'offline', sourceIp: '', assignedIp: '', loginTime: null, bytesIn: 0, bytesOut: 0 },
+];
+
 const VPN = () => {
-  const [tunnels, setTunnels] = useState<VPNTunnel[]>(mockVPNTunnels);
-  const [activeTab, setActiveTab] = useState<'ipsec' | 'openvpn' | 'wireguard'>('ipsec');
+  const [tunnels, setTunnels] = useState<VPNTunnel[]>(mockVPNTunnels.map(t => ({
+    ...t,
+    phase1: 'aes256-sha256-modp2048',
+    phase2: 'aes256-sha256',
+  })));
+  const [sslUsers] = useState<SSLVPNUser[]>(mockSSLUsers);
+  const [activeTab, setActiveTab] = useState('ipsec');
+  const [search, setSearch] = useState('');
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingTunnel, setEditingTunnel] = useState<VPNTunnel | null>(null);
   const [newTunnel, setNewTunnel] = useState({
     name: '',
@@ -63,7 +112,26 @@ const VPN = () => {
     return `${hours}h ${mins}m`;
   };
 
-  const filteredTunnels = tunnels.filter(t => t.type === activeTab);
+  const formatLoginTime = (date: Date | null) => {
+    if (!date) return '--';
+    const diff = Date.now() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(mins / 60);
+    if (hours > 0) return `${hours}h ${mins % 60}m ago`;
+    return `${mins}m ago`;
+  };
+
+  const filteredTunnels = tunnels.filter(t => {
+    if (activeTab === 'ipsec') return t.type === 'ipsec';
+    if (activeTab === 'ssl') return false;
+    return true;
+  }).filter(t => 
+    search === '' || t.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredSSLUsers = sslUsers.filter(u =>
+    search === '' || u.username.toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleConnect = (tunnelId: string) => {
     setTunnels(prev => prev.map(t => {
@@ -102,232 +170,374 @@ const VPN = () => {
       uptime: 0,
       bytesIn: 0,
       bytesOut: 0,
+      phase1: 'aes256-sha256-modp2048',
+      phase2: 'aes256-sha256',
     };
     setTunnels(prev => [...prev, tunnel]);
     setModalOpen(false);
     setNewTunnel({ name: '', type: 'ipsec', remoteGateway: '', localNetwork: '', remoteNetwork: '' });
-    toast.success('VPN tunnel added successfully');
+    toast.success('VPN tunnel created');
   };
 
-  const handleEditTunnel = () => {
-    if (!editingTunnel) return;
-    setTunnels(prev => prev.map(t => 
-      t.id === editingTunnel.id ? {
-        ...t,
-        name: newTunnel.name,
-        remoteGateway: newTunnel.remoteGateway,
-        localNetwork: newTunnel.localNetwork,
-        remoteNetwork: newTunnel.remoteNetwork,
-      } : t
-    ));
-    setEditModalOpen(false);
-    setEditingTunnel(null);
-    toast.success('VPN tunnel updated successfully');
+  const handleDelete = (id: string) => {
+    setTunnels(prev => prev.filter(t => t.id !== id));
+    setSelectedRows(prev => prev.filter(r => r !== id));
+    toast.success('VPN tunnel deleted');
   };
 
-  const openEditModal = (tunnel: VPNTunnel) => {
-    setEditingTunnel(tunnel);
-    setNewTunnel({
-      name: tunnel.name,
-      type: tunnel.type,
-      remoteGateway: tunnel.remoteGateway,
-      localNetwork: tunnel.localNetwork,
-      remoteNetwork: tunnel.remoteNetwork,
-    });
-    setEditModalOpen(true);
+  const toggleRowSelection = (id: string) => {
+    setSelectedRows(prev => 
+      prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
+    );
+  };
+
+  const stats = {
+    ipsecTotal: tunnels.filter(t => t.type === 'ipsec').length,
+    ipsecUp: tunnels.filter(t => t.type === 'ipsec' && t.status === 'connected').length,
+    sslTotal: sslUsers.length,
+    sslOnline: sslUsers.filter(u => u.status === 'online').length,
   };
 
   return (
     <Shell>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">VPN</h1>
-            <p className="text-sm text-muted-foreground">Virtual Private Network tunnels</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setModalOpen(true)} className="btn btn-primary text-xs flex items-center gap-1.5">
-              <Plus size={14} />
-              Add VPN Tunnel
+      <div className="space-y-4">
+        {/* Toolbar */}
+        <div className="forti-toolbar">
+          <div className="forti-toolbar-left">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="forti-action-btn forti-action-btn-primary">
+                  <Plus size={14} />
+                  Create New
+                  <ChevronDown size={12} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-white border shadow-lg z-50">
+                <DropdownMenuItem onClick={() => { setNewTunnel({ ...newTunnel, type: 'ipsec' }); setModalOpen(true); }} className="cursor-pointer">
+                  <Shield size={14} className="mr-2" />
+                  IPsec Tunnel
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Key size={14} className="mr-2" />
+                  SSL-VPN Portal
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Users size={14} className="mr-2" />
+                  SSL-VPN User
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {selectedRows.length > 0 && (
+              <>
+                <button 
+                  onClick={() => selectedRows.forEach(id => handleConnect(id))}
+                  className="forti-action-btn"
+                >
+                  <Play size={14} />
+                  Bring Up
+                </button>
+                <button 
+                  onClick={() => selectedRows.forEach(id => handleDelete(id))}
+                  className="forti-action-btn"
+                >
+                  <Trash2 size={14} />
+                  Delete
+                </button>
+              </>
+            )}
+
+            <button className="forti-action-btn">
+              <RefreshCw size={14} />
+              Refresh
             </button>
           </div>
-        </div>
 
-        {/* VPN Stats */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="stat-card">
-            <div className="text-xs text-muted-foreground mb-1">Total Tunnels</div>
-            <div className="text-2xl font-bold">{tunnels.length}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-xs text-muted-foreground mb-1">Connected</div>
-            <div className="text-2xl font-bold text-status-healthy">{tunnels.filter(t => t.status === 'connected').length}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-xs text-muted-foreground mb-1">Total In</div>
-            <div className="text-2xl font-bold text-green-500">{formatBytes(tunnels.reduce((acc, t) => acc + t.bytesIn, 0))}</div>
-          </div>
-          <div className="stat-card">
-            <div className="text-xs text-muted-foreground mb-1">Total Out</div>
-            <div className="text-2xl font-bold text-blue-500">{formatBytes(tunnels.reduce((acc, t) => acc + t.bytesOut, 0))}</div>
-          </div>
-        </div>
-
-        {/* VPN Type Tabs */}
-        <div className="flex items-center gap-1 p-1 bg-card rounded-lg border border-border w-fit">
-          {[
-            { id: 'ipsec', label: 'IPsec', count: tunnels.filter(t => t.type === 'ipsec').length },
-            { id: 'openvpn', label: 'OpenVPN', count: tunnels.filter(t => t.type === 'openvpn').length },
-            { id: 'wireguard', label: 'WireGuard', count: tunnels.filter(t => t.type === 'wireguard').length },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'ipsec' | 'openvpn' | 'wireguard')}
-              className={cn(
-                "px-4 py-2 text-xs font-medium rounded transition-colors flex items-center gap-2",
-                activeTab === tab.id 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-              )}
-            >
-              {tab.label}
-              <span className={cn(
-                "px-1.5 py-0.5 rounded text-[10px]",
-                activeTab === tab.id ? "bg-primary-foreground/20" : "bg-muted"
-              )}>
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Tunnels List */}
-        <div className="space-y-4">
-          {filteredTunnels.map((tunnel) => (
-            <div key={tunnel.id} className="section">
-              <div className="section-header">
-                <div className="flex items-center gap-3">
-                  <span className={cn(
-                    "status-dot-lg",
-                    tunnel.status === 'connected' ? 'status-healthy' :
-                    tunnel.status === 'connecting' ? 'status-medium' : 'status-inactive'
-                  )} />
-                  <div>
-                    <div className="font-medium">{tunnel.name}</div>
-                    <div className="text-xs text-muted-foreground">{tunnel.type.toUpperCase()}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={cn(
-                    "text-xs px-2 py-1 rounded",
-                    tunnel.status === 'connected' ? 'bg-status-healthy/20 text-status-healthy' :
-                    tunnel.status === 'connecting' ? 'bg-status-medium/20 text-status-medium' :
-                    'bg-muted text-muted-foreground'
-                  )}>
-                    {tunnel.status.toUpperCase()}
-                  </span>
-                  <button 
-                    onClick={() => handleConnect(tunnel.id)}
-                    className="btn btn-outline text-xs"
-                  >
-                    {tunnel.status === 'connected' ? 'Disconnect' : tunnel.status === 'connecting' ? 'Connecting...' : 'Connect'}
-                  </button>
-                  <button 
-                    onClick={() => openEditModal(tunnel)}
-                    className="btn btn-ghost text-xs flex items-center gap-1"
-                  >
-                    <Pencil size={12} />
-                    Edit
-                  </button>
-                </div>
-              </div>
-              <div className="section-body">
-                <div className="grid grid-cols-5 gap-6">
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Remote Gateway</div>
-                    <div className="font-mono text-sm">{tunnel.remoteGateway}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Local Network</div>
-                    <div className="font-mono text-sm">{tunnel.localNetwork}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Remote Network</div>
-                    <div className="font-mono text-sm">{tunnel.remoteNetwork}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Uptime</div>
-                    <div className="text-sm">{formatUptime(tunnel.uptime)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Traffic</div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-green-500">↓ {formatBytes(tunnel.bytesIn)}</span>
-                      <span className="text-blue-500">↑ {formatBytes(tunnel.bytesOut)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="forti-toolbar-right">
+            <div className="forti-search">
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
-          ))}
+          </div>
+        </div>
 
-          {filteredTunnels.length === 0 && (
+        {/* Stats Strip */}
+        <div className="summary-strip">
+          <div className="summary-item">
+            <Shield size={16} className="text-primary" />
+            <span className="summary-count">{stats.ipsecTotal}</span>
+            <span className="summary-label">IPsec Tunnels</span>
+          </div>
+          <div className="h-6 w-px bg-border" />
+          <div className="summary-item">
+            <span className="status-dot-lg status-healthy" />
+            <span className="summary-count text-status-healthy">{stats.ipsecUp}</span>
+            <span className="summary-label">Up</span>
+          </div>
+          <div className="h-6 w-px bg-border" />
+          <div className="summary-item">
+            <Key size={16} className="text-blue-600" />
+            <span className="summary-count">{stats.sslTotal}</span>
+            <span className="summary-label">SSL-VPN Users</span>
+          </div>
+          <div className="h-6 w-px bg-border" />
+          <div className="summary-item">
+            <Users size={16} className="text-green-600" />
+            <span className="summary-count text-green-600">{stats.sslOnline}</span>
+            <span className="summary-label">Online</span>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="bg-muted/50">
+            <TabsTrigger value="ipsec" className="gap-1.5">
+              <Shield size={14} />
+              IPsec Tunnels
+            </TabsTrigger>
+            <TabsTrigger value="ssl" className="gap-1.5">
+              <Key size={14} />
+              SSL-VPN
+            </TabsTrigger>
+            <TabsTrigger value="monitor" className="gap-1.5">
+              <Globe size={14} />
+              VPN Monitor
+            </TabsTrigger>
+          </TabsList>
+
+          {/* IPsec Tab */}
+          <TabsContent value="ipsec" className="mt-4">
             <div className="section">
-              <div className="section-body flex items-center justify-center py-12">
-                <div className="text-center text-muted-foreground">
-                  <div className="text-lg mb-2">No {activeTab.toUpperCase()} tunnels configured</div>
-                  <button 
-                    onClick={() => {
-                      setNewTunnel(prev => ({ ...prev, type: activeTab }));
-                      setModalOpen(true);
-                    }}
-                    className="btn btn-primary text-xs"
-                  >
-                    Add {activeTab.toUpperCase()} Tunnel
-                  </button>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th className="w-10">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                    </th>
+                    <th className="w-16">Status</th>
+                    <th>Name</th>
+                    <th>Remote Gateway</th>
+                    <th>Phase 1</th>
+                    <th>Phase 2</th>
+                    <th className="w-24">Uptime</th>
+                    <th className="w-32">Traffic</th>
+                    <th className="w-24">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTunnels.map((tunnel) => (
+                    <tr 
+                      key={tunnel.id}
+                      className={cn(
+                        selectedRows.includes(tunnel.id) && "data-table-row-selected"
+                      )}
+                    >
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedRows.includes(tunnel.id)}
+                          onChange={() => toggleRowSelection(tunnel.id)}
+                          className="rounded border-gray-300"
+                        />
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "status-dot-lg",
+                            tunnel.status === 'connected' ? 'status-healthy' :
+                            tunnel.status === 'connecting' ? 'status-medium' : 'status-inactive'
+                          )} />
+                        </div>
+                      </td>
+                      <td className="font-medium">{tunnel.name}</td>
+                      <td className="font-mono text-sm text-muted-foreground">{tunnel.remoteGateway}</td>
+                      <td className="text-xs text-muted-foreground">{tunnel.phase1}</td>
+                      <td className="text-xs text-muted-foreground">{tunnel.phase2}</td>
+                      <td className="text-sm">{formatUptime(tunnel.uptime)}</td>
+                      <td>
+                        <div className="text-xs">
+                          <span className="text-green-600">↓{formatBytes(tunnel.bytesIn)}</span>
+                          <span className="text-muted-foreground mx-1">/</span>
+                          <span className="text-blue-600">↑{formatBytes(tunnel.bytesOut)}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleConnect(tunnel.id)}
+                            className={cn(
+                              "p-1.5 rounded transition-colors",
+                              tunnel.status === 'connected' 
+                                ? "hover:bg-red-100 text-red-600" 
+                                : "hover:bg-green-100 text-green-600"
+                            )}
+                            title={tunnel.status === 'connected' ? 'Bring Down' : 'Bring Up'}
+                          >
+                            {tunnel.status === 'connected' ? <Square size={14} /> : <Play size={14} />}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(tunnel.id)}
+                            className="p-1.5 rounded hover:bg-red-100 text-red-600 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {filteredTunnels.length === 0 && (
+                <div className="p-12 text-center">
+                  <Shield size={32} className="mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-sm text-muted-foreground">No IPsec tunnels configured</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* SSL-VPN Tab */}
+          <TabsContent value="ssl" className="mt-4">
+            <div className="section">
+              <div className="section-header">
+                <span>SSL-VPN Users</span>
+                <button className="forti-action-btn text-xs">
+                  <Download size={12} />
+                  Export
+                </button>
+              </div>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th className="w-16">Status</th>
+                    <th>Username</th>
+                    <th>Group</th>
+                    <th>Source IP</th>
+                    <th>Assigned IP</th>
+                    <th>Login Time</th>
+                    <th>Traffic</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSSLUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td>
+                        <span className={cn(
+                          "forti-tag",
+                          user.status === 'online' 
+                            ? "bg-green-100 text-green-700" 
+                            : "bg-gray-100 text-gray-500"
+                        )}>
+                          {user.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="font-medium">{user.username}</td>
+                      <td className="text-muted-foreground">{user.group}</td>
+                      <td className="font-mono text-sm text-muted-foreground">
+                        {user.sourceIp || '--'}
+                      </td>
+                      <td className="font-mono text-sm text-muted-foreground">
+                        {user.assignedIp || '--'}
+                      </td>
+                      <td className="text-sm text-muted-foreground">
+                        {formatLoginTime(user.loginTime)}
+                      </td>
+                      <td>
+                        {user.status === 'online' ? (
+                          <div className="text-xs">
+                            <span className="text-green-600">↓{formatBytes(user.bytesIn)}</span>
+                            <span className="text-muted-foreground mx-1">/</span>
+                            <span className="text-blue-600">↑{formatBytes(user.bytesOut)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">--</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+
+          {/* Monitor Tab */}
+          <TabsContent value="monitor" className="mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="section">
+                <div className="section-header">
+                  <span>IPsec Status</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  {tunnels.filter(t => t.type === 'ipsec').map(tunnel => (
+                    <div key={tunnel.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className={cn(
+                          "status-dot-lg",
+                          tunnel.status === 'connected' ? 'status-healthy' : 'status-inactive'
+                        )} />
+                        <div>
+                          <div className="font-medium text-sm">{tunnel.name}</div>
+                          <div className="text-xs text-muted-foreground">{tunnel.remoteGateway}</div>
+                        </div>
+                      </div>
+                      <div className="text-right text-xs">
+                        <div className={cn(
+                          tunnel.status === 'connected' ? "text-green-600" : "text-muted-foreground"
+                        )}>
+                          {tunnel.status.toUpperCase()}
+                        </div>
+                        <div className="text-muted-foreground">{formatUptime(tunnel.uptime)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="section">
+                <div className="section-header">
+                  <span>SSL-VPN Sessions</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  {sslUsers.filter(u => u.status === 'online').map(user => (
+                    <div key={user.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Users size={14} className="text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-sm">{user.username}</div>
+                          <div className="text-xs text-muted-foreground">{user.group}</div>
+                        </div>
+                      </div>
+                      <div className="text-right text-xs">
+                        <div className="text-muted-foreground">{user.assignedIp}</div>
+                        <div className="text-muted-foreground">{formatLoginTime(user.loginTime)}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {sslUsers.filter(u => u.status === 'online').length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No active SSL-VPN sessions
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
 
-        {/* Quick Setup Guide */}
-        <div className="section">
-          <div className="section-header">
-            <h3 className="text-sm font-medium">Quick Setup Guide</h3>
-          </div>
-          <div className="section-body">
-            <div className="grid grid-cols-3 gap-4 text-xs">
-              <div className="p-4 bg-secondary/50 rounded">
-                <div className="font-medium mb-2">IPsec Site-to-Site</div>
-                <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                  <li>Add Phase 1 (IKE)</li>
-                  <li>Configure encryption</li>
-                  <li>Add Phase 2 (ESP)</li>
-                  <li>Define networks</li>
-                </ol>
-              </div>
-              <div className="p-4 bg-secondary/50 rounded">
-                <div className="font-medium mb-2">OpenVPN Remote Access</div>
-                <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                  <li>Generate certificates</li>
-                  <li>Create server config</li>
-                  <li>Export client profiles</li>
-                  <li>Distribute to users</li>
-                </ol>
-              </div>
-              <div className="p-4 bg-secondary/50 rounded">
-                <div className="font-medium mb-2">WireGuard</div>
-                <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                  <li>Generate keypairs</li>
-                  <li>Add peers</li>
-                  <li>Configure allowed IPs</li>
-                  <li>Share QR codes</li>
-                </ol>
-              </div>
-            </div>
-          </div>
+        {/* Footer */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{filteredTunnels.length} tunnels</span>
+          {selectedRows.length > 0 && (
+            <span>{selectedRows.length} selected</span>
+          )}
         </div>
       </div>
 
@@ -335,7 +545,10 @@ const VPN = () => {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add VPN Tunnel</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield size={18} />
+              New IPsec Tunnel
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -347,91 +560,37 @@ const VPN = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>Type</Label>
-              <Select 
-                value={newTunnel.type} 
-                onValueChange={(v: 'ipsec' | 'openvpn' | 'wireguard') => setNewTunnel(prev => ({ ...prev, type: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ipsec">IPsec</SelectItem>
-                  <SelectItem value="openvpn">OpenVPN</SelectItem>
-                  <SelectItem value="wireguard">WireGuard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label>Remote Gateway</Label>
               <Input 
-                placeholder="vpn.example.com"
+                placeholder="vpn.example.com or IP address"
                 value={newTunnel.remoteGateway}
                 onChange={(e) => setNewTunnel(prev => ({ ...prev, remoteGateway: e.target.value }))}
+                className="font-mono"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Local Network</Label>
-              <Input 
-                placeholder="192.168.1.0/24"
-                value={newTunnel.localNetwork}
-                onChange={(e) => setNewTunnel(prev => ({ ...prev, localNetwork: e.target.value }))}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Local Subnet</Label>
+                <Input 
+                  placeholder="192.168.1.0/24"
+                  value={newTunnel.localNetwork}
+                  onChange={(e) => setNewTunnel(prev => ({ ...prev, localNetwork: e.target.value }))}
+                  className="font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Remote Subnet</Label>
+                <Input 
+                  placeholder="10.0.0.0/24"
+                  value={newTunnel.remoteNetwork}
+                  onChange={(e) => setNewTunnel(prev => ({ ...prev, remoteNetwork: e.target.value }))}
+                  className="font-mono"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Remote Network</Label>
-              <Input 
-                placeholder="10.0.0.0/24"
-                value={newTunnel.remoteNetwork}
-                onChange={(e) => setNewTunnel(prev => ({ ...prev, remoteNetwork: e.target.value }))}
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddTunnel}>Add Tunnel</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Tunnel Modal */}
-      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit VPN Tunnel</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input 
-                value={newTunnel.name}
-                onChange={(e) => setNewTunnel(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Remote Gateway</Label>
-              <Input 
-                value={newTunnel.remoteGateway}
-                onChange={(e) => setNewTunnel(prev => ({ ...prev, remoteGateway: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Local Network</Label>
-              <Input 
-                value={newTunnel.localNetwork}
-                onChange={(e) => setNewTunnel(prev => ({ ...prev, localNetwork: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Remote Network</Label>
-              <Input 
-                value={newTunnel.remoteNetwork}
-                onChange={(e) => setNewTunnel(prev => ({ ...prev, remoteNetwork: e.target.value }))}
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setEditModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleEditTunnel}>Save Changes</Button>
+              <Button onClick={handleAddTunnel} className="bg-[#4caf50] hover:bg-[#43a047]">OK</Button>
             </div>
           </div>
         </DialogContent>
