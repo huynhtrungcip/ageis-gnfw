@@ -38,7 +38,22 @@ const ThreatMonitor = () => {
             <h1 className="text-lg font-bold">Threat Monitor</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Real-time threat detection and analysis</p>
           </div>
-          <button className="btn btn-outline flex items-center gap-2">
+          <button 
+            onClick={() => {
+              const csv = ['Severity,Signature,Category,Source,Destination,Action,Time']
+                .concat(filteredThreats.map(t => 
+                  `${t.severity},${t.signature},${t.category},${t.sourceIp}:${t.sourcePort},${t.destinationIp}:${t.destinationPort},${t.action},${t.timestamp.toISOString()}`
+                )).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `threats-${new Date().toISOString().split('T')[0]}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="btn btn-outline flex items-center gap-2"
+          >
             <Download size={14} />
             <span>Export Log</span>
           </button>

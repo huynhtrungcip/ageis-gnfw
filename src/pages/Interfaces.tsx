@@ -3,10 +3,39 @@ import { Shell } from '@/components/layout/Shell';
 import { mockInterfaces } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { Plus, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const Interfaces = () => {
+  const [interfaces, setInterfaces] = useState(mockInterfaces);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = mockInterfaces.find(i => i.id === selectedId);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [newInterface, setNewInterface] = useState({
+    name: '',
+    type: 'ethernet',
+    ipAddress: '',
+    subnet: '255.255.255.0',
+    mtu: '1500',
+  });
+  
+  const selected = interfaces.find(i => i.id === selectedId);
 
   const fmtBytes = (b: number) => {
     if (b >= 1073741824) return (b / 1073741824).toFixed(1) + ' GB';
@@ -14,9 +43,78 @@ const Interfaces = () => {
     return (b / 1024).toFixed(0) + ' KB';
   };
 
-  // Summary counts
-  const upCount = mockInterfaces.filter(i => i.status === 'up').length;
-  const downCount = mockInterfaces.filter(i => i.status === 'down').length;
+  const upCount = interfaces.filter(i => i.status === 'up').length;
+  const downCount = interfaces.filter(i => i.status === 'down').length;
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setInterfaces(prev => prev.map(iface => ({
+        ...iface,
+        rxBytes: iface.rxBytes + Math.floor(Math.random() * 1000000),
+        txBytes: iface.txBytes + Math.floor(Math.random() * 500000),
+        rxPackets: iface.rxPackets + Math.floor(Math.random() * 1000),
+        txPackets: iface.txPackets + Math.floor(Math.random() * 500),
+      })));
+      setIsRefreshing(false);
+      toast.success('Interface statistics refreshed');
+    }, 1000);
+  };
+
+  const handleAddInterface = () => {
+    if (!newInterface.name || !newInterface.ipAddress) {
+      toast.error('Name and IP Address are required');
+      return;
+    }
+    const iface = {
+      id: `iface-${Date.now()}`,
+      name: newInterface.name,
+      type: newInterface.type as 'ethernet' | 'vlan' | 'bridge' | 'loopback',
+      status: 'up' as const,
+      ipAddress: newInterface.ipAddress,
+      subnet: newInterface.subnet,
+      mac: `00:${Math.random().toString(16).slice(2, 4)}:${Math.random().toString(16).slice(2, 4)}:${Math.random().toString(16).slice(2, 4)}:${Math.random().toString(16).slice(2, 4)}:${Math.random().toString(16).slice(2, 4)}`.toUpperCase(),
+      speed: '1 Gbps',
+      duplex: 'full' as const,
+      mtu: parseInt(newInterface.mtu),
+      rxBytes: 0,
+      txBytes: 0,
+      rxPackets: 0,
+      txPackets: 0,
+    };
+    setInterfaces(prev => [...prev, iface]);
+    setModalOpen(false);
+    setNewInterface({ name: '', type: 'ethernet', ipAddress: '', subnet: '255.255.255.0', mtu: '1500' });
+    toast.success('Interface added successfully');
+  };
+
+  const handleEditInterface = () => {
+    if (!selected) return;
+    setInterfaces(prev => prev.map(i => 
+      i.id === selected.id ? { 
+        ...i, 
+        name: newInterface.name,
+        type: newInterface.type as 'ethernet' | 'vlan' | 'bridge' | 'loopback',
+        ipAddress: newInterface.ipAddress,
+        subnet: newInterface.subnet,
+        mtu: parseInt(newInterface.mtu) 
+      } : i
+    ));
+    setEditModalOpen(false);
+    toast.success('Interface updated successfully');
+  };
+
+  const openEditModal = () => {
+    if (!selected) return;
+    setNewInterface({
+      name: selected.name,
+      type: selected.type,
+      ipAddress: selected.ipAddress,
+      subnet: selected.subnet,
+      mtu: selected.mtu.toString(),
+    });
+    setEditModalOpen(true);
+  };
 
   return (
     <Shell>
@@ -28,11 +126,18 @@ const Interfaces = () => {
             <p className="text-sm text-muted-foreground mt-0.5">Physical and virtual interface configuration</p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="btn btn-ghost flex items-center gap-2">
-              <RefreshCw size={14} />
-              Refresh
+            <button 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="btn btn-ghost flex items-center gap-2"
+            >
+              <RefreshCw size={14} className={cn(isRefreshing && "animate-spin")} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
-            <button className="btn btn-primary flex items-center gap-2">
+            <button 
+              onClick={() => setModalOpen(true)}
+              className="btn btn-primary flex items-center gap-2"
+            >
               <Plus size={14} />
               Add Interface
             </button>
@@ -53,7 +158,7 @@ const Interfaces = () => {
             <span className="summary-label">Down</span>
           </div>
           <div className="flex-1" />
-          <span className="text-sm text-muted-foreground">{mockInterfaces.length} interfaces configured</span>
+          <span className="text-sm text-muted-foreground">{interfaces.length} interfaces configured</span>
         </div>
 
         <div className="grid grid-cols-12 gap-4">
@@ -64,7 +169,7 @@ const Interfaces = () => {
                 <span>Configured Interfaces</span>
               </div>
               <div className="divide-y divide-border/40">
-                {mockInterfaces.map((iface) => (
+                {interfaces.map((iface) => (
                   <div
                     key={iface.id}
                     onClick={() => setSelectedId(iface.id)}
@@ -105,7 +210,7 @@ const Interfaces = () => {
                 <div className="section">
                   <div className="section-header">
                     <span>Configuration</span>
-                    <button className="btn btn-ghost text-xs">Edit</button>
+                    <button onClick={openEditModal} className="btn btn-ghost text-xs">Edit</button>
                   </div>
                   <div className="section-body">
                     <div className="info-grid grid-cols-2">
@@ -205,6 +310,132 @@ const Interfaces = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Interface Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Interface</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input 
+                placeholder="eth2"
+                value={newInterface.name}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select 
+                value={newInterface.type} 
+                onValueChange={(v) => setNewInterface(prev => ({ ...prev, type: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ethernet">Ethernet</SelectItem>
+                  <SelectItem value="vlan">VLAN</SelectItem>
+                  <SelectItem value="bridge">Bridge</SelectItem>
+                  <SelectItem value="loopback">Loopback</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>IP Address</Label>
+              <Input 
+                placeholder="192.168.1.1"
+                value={newInterface.ipAddress}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, ipAddress: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Subnet Mask</Label>
+              <Input 
+                placeholder="255.255.255.0"
+                value={newInterface.subnet}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, subnet: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>MTU</Label>
+              <Input 
+                type="number"
+                placeholder="1500"
+                value={newInterface.mtu}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, mtu: e.target.value }))}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleAddInterface}>Add Interface</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Interface Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Interface</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input 
+                value={newInterface.name}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select 
+                value={newInterface.type} 
+                onValueChange={(v) => setNewInterface(prev => ({ ...prev, type: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ethernet">Ethernet</SelectItem>
+                  <SelectItem value="vlan">VLAN</SelectItem>
+                  <SelectItem value="bridge">Bridge</SelectItem>
+                  <SelectItem value="loopback">Loopback</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>IP Address</Label>
+              <Input 
+                value={newInterface.ipAddress}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, ipAddress: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Subnet Mask</Label>
+              <Input 
+                value={newInterface.subnet}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, subnet: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>MTU</Label>
+              <Input 
+                type="number"
+                value={newInterface.mtu}
+                onChange={(e) => setNewInterface(prev => ({ ...prev, mtu: e.target.value }))}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setEditModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditInterface}>Save Changes</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Shell>
   );
 };

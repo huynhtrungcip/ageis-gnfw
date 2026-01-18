@@ -5,15 +5,23 @@ import {
   AlertTriangle, 
   Clock, 
   CheckCircle2, 
-  Search, 
-  ChevronRight,
+  Search,
   User,
   Shield,
   Globe,
   Server
 } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
-// Incident types
 interface TimelineEvent {
   id: string;
   timestamp: Date;
@@ -39,8 +47,7 @@ interface Incident {
   timeline: TimelineEvent[];
 }
 
-// Mock incidents data
-const mockIncidents: Incident[] = [
+const initialIncidents: Incident[] = [
   {
     id: 'INC-001',
     title: 'SSH Brute Force Attack from External IP',
@@ -134,14 +141,16 @@ const mockIncidents: Incident[] = [
 ];
 
 const Incidents = () => {
+  const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [newNote, setNewNote] = useState('');
 
   const statuses = ['all', 'open', 'investigating', 'resolved'];
 
-  // Filter incidents
-  const filteredIncidents = mockIncidents.filter(inc => {
+  const filteredIncidents = incidents.filter(inc => {
     const matchesStatus = selectedStatus === 'all' || inc.status === selectedStatus;
     const matchesSearch = searchQuery === '' || 
       inc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -149,13 +158,12 @@ const Incidents = () => {
     return matchesStatus && matchesSearch;
   });
 
-  const selectedIncident = mockIncidents.find(i => i.id === selectedId);
+  const selectedIncident = incidents.find(i => i.id === selectedId);
 
-  // Summary counts
   const counts = {
-    open: mockIncidents.filter(i => i.status === 'open').length,
-    investigating: mockIncidents.filter(i => i.status === 'investigating').length,
-    resolved: mockIncidents.filter(i => i.status === 'resolved').length,
+    open: incidents.filter(i => i.status === 'open').length,
+    investigating: incidents.filter(i => i.status === 'investigating').length,
+    resolved: incidents.filter(i => i.status === 'resolved').length,
   };
 
   const formatTime = (date: Date) => {
@@ -185,6 +193,83 @@ const Incidents = () => {
       case 'resolved': return <CheckCircle2 size={12} />;
       default: return <Clock size={12} />;
     }
+  };
+
+  const handleStartInvestigation = () => {
+    if (!selectedIncident) return;
+    setIncidents(prev => prev.map(inc => {
+      if (inc.id === selectedIncident.id) {
+        const newEvent: TimelineEvent = {
+          id: `t-${Date.now()}`,
+          timestamp: new Date(),
+          type: 'updated',
+          title: 'Investigation Started',
+          description: 'Status changed from Open to Investigating',
+          user: 'admin',
+        };
+        return {
+          ...inc,
+          status: 'investigating' as const,
+          updatedAt: new Date(),
+          timeline: [...inc.timeline, newEvent],
+        };
+      }
+      return inc;
+    }));
+    toast.success('Investigation started');
+  };
+
+  const handleMarkResolved = () => {
+    if (!selectedIncident) return;
+    setIncidents(prev => prev.map(inc => {
+      if (inc.id === selectedIncident.id) {
+        const newEvent: TimelineEvent = {
+          id: `t-${Date.now()}`,
+          timestamp: new Date(),
+          type: 'resolved',
+          title: 'Incident Resolved',
+          description: 'Incident marked as resolved',
+          user: 'admin',
+        };
+        return {
+          ...inc,
+          status: 'resolved' as const,
+          updatedAt: new Date(),
+          resolvedAt: new Date(),
+          timeline: [...inc.timeline, newEvent],
+        };
+      }
+      return inc;
+    }));
+    toast.success('Incident marked as resolved');
+  };
+
+  const handleAddNote = () => {
+    if (!selectedIncident || !newNote.trim()) {
+      toast.error('Please enter a note');
+      return;
+    }
+    setIncidents(prev => prev.map(inc => {
+      if (inc.id === selectedIncident.id) {
+        const newEvent: TimelineEvent = {
+          id: `t-${Date.now()}`,
+          timestamp: new Date(),
+          type: 'note',
+          title: 'Note Added',
+          description: newNote,
+          user: 'admin',
+        };
+        return {
+          ...inc,
+          updatedAt: new Date(),
+          timeline: [...inc.timeline, newEvent],
+        };
+      }
+      return inc;
+    }));
+    setNoteModalOpen(false);
+    setNewNote('');
+    toast.success('Note added to incident');
   };
 
   return (
@@ -218,7 +303,7 @@ const Incidents = () => {
             <span className="summary-label">Resolved</span>
           </div>
           <div className="flex-1" />
-          <span className="text-sm text-muted-foreground">{mockIncidents.length} total incidents</span>
+          <span className="text-sm text-muted-foreground">{incidents.length} total incidents</span>
         </div>
 
         {/* Filters */}
@@ -333,14 +418,14 @@ const Incidents = () => {
                         {selectedIncident.status !== 'resolved' && (
                           <>
                             {selectedIncident.status === 'open' && (
-                              <button className="btn btn-primary text-xs">Start Investigation</button>
+                              <button onClick={handleStartInvestigation} className="btn btn-primary text-xs">Start Investigation</button>
                             )}
                             {selectedIncident.status === 'investigating' && (
-                              <button className="btn btn-primary text-xs">Mark Resolved</button>
+                              <button onClick={handleMarkResolved} className="btn btn-primary text-xs">Mark Resolved</button>
                             )}
                           </>
                         )}
-                        <button className="btn btn-outline text-xs">Add Note</button>
+                        <button onClick={() => setNoteModalOpen(true)} className="btn btn-outline text-xs">Add Note</button>
                       </div>
                     </div>
                     <h2 className="text-base font-semibold mb-3">{selectedIncident.title}</h2>
@@ -369,14 +454,14 @@ const Incidents = () => {
                   <div className="section-header">Details</div>
                   <div className="section-body">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3 p-3 bg-background-elevated rounded-sm">
+                      <div className="flex items-center gap-3 p-3 bg-background rounded-sm border border-border/50">
                         <Globe size={16} className="text-muted-foreground" />
                         <div>
                           <div className="info-label">Source</div>
                           <div className="mono text-sm">{selectedIncident.source}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-background-elevated rounded-sm">
+                      <div className="flex items-center gap-3 p-3 bg-background rounded-sm border border-border/50">
                         <Server size={16} className="text-muted-foreground" />
                         <div>
                           <div className="info-label">Destination</div>
@@ -393,10 +478,12 @@ const Incidents = () => {
                         <div className="info-label">Last Updated</div>
                         <div className="text-sm">{selectedIncident.updatedAt.toLocaleString()}</div>
                       </div>
-                      <div className="info-item">
-                        <div className="info-label">Related Threats</div>
-                        <div className="text-sm font-medium">{selectedIncident.relatedThreats}</div>
-                      </div>
+                      {selectedIncident.resolvedAt && (
+                        <div className="info-item">
+                          <div className="info-label">Resolved</div>
+                          <div className="text-sm">{selectedIncident.resolvedAt.toLocaleString()}</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -405,16 +492,12 @@ const Incidents = () => {
                 <div className="section">
                   <div className="section-header">Timeline</div>
                   <div className="section-body">
-                    <div className="relative">
-                      {/* Timeline line */}
-                      <div className="absolute left-3 top-2 bottom-2 w-px bg-border" />
-                      
-                      <div className="space-y-4">
-                        {selectedIncident.timeline.map((event, idx) => (
-                          <div key={event.id} className="relative pl-8">
-                            {/* Timeline dot */}
+                    <div className="space-y-4">
+                      {selectedIncident.timeline.slice().reverse().map((event, idx) => (
+                        <div key={event.id} className="flex gap-3">
+                          <div className="flex flex-col items-center">
                             <div className={cn(
-                              "absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center",
+                              "w-6 h-6 rounded-full flex items-center justify-center",
                               event.type === 'created' ? 'bg-status-critical/20 text-status-critical' :
                               event.type === 'resolved' ? 'bg-status-healthy/20 text-status-healthy' :
                               event.type === 'action' ? 'bg-primary/20 text-primary' :
@@ -422,32 +505,29 @@ const Incidents = () => {
                             )}>
                               {getTimelineIcon(event.type)}
                             </div>
-                            
-                            <div className="pb-4">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-sm">{event.title}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatTime(event.timestamp)}
-                                </span>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{event.description}</p>
-                              {event.user && (
-                                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                  <User size={10} />
-                                  <span>{event.user}</span>
-                                </div>
-                              )}
-                            </div>
+                            {idx < selectedIncident.timeline.length - 1 && (
+                              <div className="w-px h-full bg-border mt-1" />
+                            )}
                           </div>
-                        ))}
-                      </div>
+                          <div className="flex-1 pb-4">
+                            <div className="flex items-center justify-between">
+                              <div className="font-medium text-sm">{event.title}</div>
+                              <div className="text-xs text-muted-foreground">{formatTime(event.timestamp)}</div>
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">{event.description}</div>
+                            {event.user && (
+                              <div className="text-xs text-muted-foreground mt-1">by {event.user}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="section">
-                <div className="section-body py-20 text-center">
+                <div className="section-body py-16 text-center">
                   <AlertTriangle size={32} className="mx-auto text-muted-foreground/50 mb-3" />
                   <div className="text-muted-foreground">Select an incident to view details</div>
                 </div>
@@ -456,6 +536,30 @@ const Incidents = () => {
           </div>
         </div>
       </div>
+
+      {/* Add Note Modal */}
+      <Dialog open={noteModalOpen} onOpenChange={setNoteModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Note</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Note</Label>
+              <Textarea 
+                placeholder="Enter your investigation notes..."
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                className="min-h-[120px]"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setNoteModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleAddNote}>Add Note</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Shell>
   );
 };
