@@ -10,8 +10,16 @@ import {
   ChevronDown,
   Server,
   Hash,
-  Network
+  Network,
+  X
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface ServiceObject {
   id: string;
@@ -25,7 +33,7 @@ interface ServiceObject {
   isSystem: boolean;
 }
 
-const mockServices: ServiceObject[] = [
+const initialServices: ServiceObject[] = [
   { id: '1', name: 'HTTP', category: 'Web Access', protocol: 'TCP', destPorts: '80', sourcePorts: '1-65535', comment: 'Hypertext Transfer Protocol', references: 12, isSystem: true },
   { id: '2', name: 'HTTPS', category: 'Web Access', protocol: 'TCP', destPorts: '443', sourcePorts: '1-65535', comment: 'HTTP Secure', references: 15, isSystem: true },
   { id: '3', name: 'SSH', category: 'Remote Access', protocol: 'TCP', destPorts: '22', sourcePorts: '1-65535', comment: 'Secure Shell', references: 8, isSystem: true },
@@ -41,16 +49,33 @@ const mockServices: ServiceObject[] = [
 ];
 
 const Services = () => {
-  const [services] = useState<ServiceObject[]>(mockServices);
+  const [services, setServices] = useState<ServiceObject[]>(initialServices);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<ServiceObject | null>(null);
+
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formCategory, setFormCategory] = useState('Custom');
+  const [formProtocol, setFormProtocol] = useState<ServiceObject['protocol']>('TCP');
+  const [formDestPorts, setFormDestPorts] = useState('');
+  const [formComment, setFormComment] = useState('');
 
   const handleSelect = (id: string) => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredServices.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredServices.map(s => s.id));
+    }
   };
 
   const categories = ['all', ...Array.from(new Set(services.map(s => s.category)))];
@@ -73,6 +98,95 @@ const Services = () => {
     }
   };
 
+  const openCreateModal = (type: 'service' | 'group') => {
+    setEditingItem(null);
+    setFormName('');
+    setFormCategory('Custom');
+    setFormProtocol('TCP');
+    setFormDestPorts('');
+    setFormComment('');
+    setModalOpen(true);
+    setShowCreateMenu(false);
+  };
+
+  const openEditModal = () => {
+    if (selectedIds.length !== 1) return;
+    const item = services.find(s => s.id === selectedIds[0]);
+    if (item) {
+      if (item.isSystem) {
+        toast.error('System services cannot be edited');
+        return;
+      }
+      setEditingItem(item);
+      setFormName(item.name);
+      setFormCategory(item.category);
+      setFormProtocol(item.protocol);
+      setFormDestPorts(item.destPorts);
+      setFormComment(item.comment);
+      setModalOpen(true);
+    }
+  };
+
+  const handleSave = () => {
+    if (!formName.trim() || !formDestPorts.trim()) {
+      toast.error('Name and Destination Port are required');
+      return;
+    }
+
+    if (editingItem) {
+      setServices(prev => prev.map(s => 
+        s.id === editingItem.id 
+          ? { ...s, name: formName, category: formCategory, protocol: formProtocol, destPorts: formDestPorts, comment: formComment }
+          : s
+      ));
+      toast.success(`Updated "${formName}" successfully`);
+    } else {
+      const newItem: ServiceObject = {
+        id: Date.now().toString(),
+        name: formName,
+        category: formCategory,
+        protocol: formProtocol,
+        destPorts: formDestPorts,
+        sourcePorts: '1-65535',
+        comment: formComment,
+        references: 0,
+        isSystem: false
+      };
+      setServices(prev => [...prev, newItem]);
+      toast.success(`Created "${formName}" successfully`);
+    }
+    setModalOpen(false);
+    setSelectedIds([]);
+  };
+
+  const handleDelete = () => {
+    if (selectedIds.length === 0) return;
+    
+    const hasSystem = services.some(s => selectedIds.includes(s.id) && s.isSystem);
+    if (hasSystem) {
+      toast.error('System services cannot be deleted');
+      return;
+    }
+
+    const hasReferences = services.some(s => selectedIds.includes(s.id) && s.references > 0);
+    if (hasReferences) {
+      toast.error('Cannot delete services that are referenced by policies');
+      return;
+    }
+
+    setServices(prev => prev.filter(s => !selectedIds.includes(s.id)));
+    toast.success(`Deleted ${selectedIds.length} item(s) successfully`);
+    setSelectedIds([]);
+  };
+
+  const handleRefresh = () => {
+    setServices([...initialServices]);
+    setSelectedIds([]);
+    setSearchQuery('');
+    setActiveCategory('all');
+    toast.success('Data refreshed');
+  };
+
   return (
     <Shell>
       <div className="space-y-0 animate-slide-in">
@@ -89,27 +203,41 @@ const Services = () => {
             </button>
             {showCreateMenu && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('service')}
+                >
                   <Server className="w-3 h-3" />
                   Service
                 </button>
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('group')}
+                >
                   <Network className="w-3 h-3" />
                   Service Group
                 </button>
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length !== 1}
+            onClick={openEditModal}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length === 0}
+            onClick={handleDelete}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
@@ -123,6 +251,11 @@ const Services = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-[#999] hover:text-[#666]">
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -156,7 +289,12 @@ const Services = () => {
             <thead>
               <tr>
                 <th className="w-8">
-                  <input type="checkbox" className="forti-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    className="forti-checkbox"
+                    checked={selectedIds.length === filteredServices.length && filteredServices.length > 0}
+                    onChange={handleSelectAll}
+                  />
                 </th>
                 <th>Name</th>
                 <th>Category</th>
@@ -168,7 +306,14 @@ const Services = () => {
             </thead>
             <tbody>
               {filteredServices.map((service) => (
-                <tr key={service.id} className={cn(selectedIds.includes(service.id) && "selected")}>
+                <tr 
+                  key={service.id} 
+                  className={cn(selectedIds.includes(service.id) && "selected")}
+                  onDoubleClick={() => {
+                    setSelectedIds([service.id]);
+                    setTimeout(openEditModal, 0);
+                  }}
+                >
                   <td>
                     <input 
                       type="checkbox" 
@@ -206,13 +351,107 @@ const Services = () => {
                   </td>
                 </tr>
               ))}
+              {filteredServices.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center text-[11px] text-[#999] py-8">
+                    {searchQuery ? 'No matching services found' : 'No services configured'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           <div className="text-[11px] text-[#666] mt-2 px-1">
             {filteredServices.length} services
+            {selectedIds.length > 0 && ` (${selectedIds.length} selected)`}
           </div>
         </div>
       </div>
+
+      {/* Create/Edit Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              {editingItem ? 'Edit Service' : 'New Service'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Name</label>
+              <input
+                type="text"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+                placeholder="e.g., My-Service"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Category</label>
+              <select
+                value={formCategory}
+                onChange={(e) => setFormCategory(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              >
+                <option value="Custom">Custom</option>
+                <option value="Web Access">Web Access</option>
+                <option value="Remote Access">Remote Access</option>
+                <option value="File Access">File Access</option>
+                <option value="Email">Email</option>
+                <option value="Network Services">Network Services</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Protocol</label>
+              <select
+                value={formProtocol}
+                onChange={(e) => setFormProtocol(e.target.value as ServiceObject['protocol'])}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              >
+                <option value="TCP">TCP</option>
+                <option value="UDP">UDP</option>
+                <option value="TCP/UDP">TCP/UDP</option>
+                <option value="ICMP">ICMP</option>
+                <option value="IP">IP</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Dest. Port</label>
+              <input
+                type="text"
+                value={formDestPorts}
+                onChange={(e) => setFormDestPorts(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background font-mono"
+                placeholder="e.g., 8080 or 8080-8090"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Comment</label>
+              <input
+                type="text"
+                value={formComment}
+                onChange={(e) => setFormComment(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+                placeholder="Optional description"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="px-3 py-1.5 text-xs border border-border rounded hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
+            >
+              {editingItem ? 'Save' : 'Create'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Shell>
   );
 };

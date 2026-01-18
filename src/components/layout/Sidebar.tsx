@@ -292,10 +292,24 @@ export function Sidebar() {
                 )}
               </button>
 
-              {isExpanded && section.items.length > 0 && (
-                <ul className="bg-[#16232f]">
-                  {section.items.map((item) => (
-                    <li key={item.path + item.label}>
+              {section.items.length > 0 && (
+                <ul 
+                  className={cn(
+                    "bg-[#16232f] overflow-hidden transition-all duration-300 ease-out",
+                    isExpanded 
+                      ? "max-h-[500px] opacity-100" 
+                      : "max-h-0 opacity-0"
+                  )}
+                >
+                  {section.items.map((item, index) => (
+                    <li 
+                      key={item.path + item.label}
+                      className={cn(
+                        "transition-all duration-200",
+                        isExpanded ? "translate-x-0 opacity-100" : "-translate-x-2 opacity-0"
+                      )}
+                      style={{ transitionDelay: isExpanded ? `${index * 30}ms` : '0ms' }}
+                    >
                       <Link
                         to={item.path}
                         className={cn(

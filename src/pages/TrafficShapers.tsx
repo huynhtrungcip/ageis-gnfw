@@ -9,8 +9,16 @@ import {
   RefreshCw,
   Search,
   ChevronDown,
-  Gauge
+  Gauge,
+  X
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface TrafficShaper {
   id: string;
@@ -26,7 +34,7 @@ interface TrafficShaper {
   currentUsage: number;
 }
 
-const mockShapers: TrafficShaper[] = [
+const initialShapers: TrafficShaper[] = [
   {
     id: '1',
     name: 'high-priority',
@@ -108,10 +116,20 @@ const mockShapers: TrafficShaper[] = [
 ];
 
 const TrafficShapers = () => {
-  const [shapers, setShapers] = useState<TrafficShaper[]>(mockShapers);
+  const [shapers, setShapers] = useState<TrafficShaper[]>(initialShapers);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<TrafficShaper | null>(null);
+
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formType, setFormType] = useState<TrafficShaper['type']>('shared');
+  const [formGuaranteed, setFormGuaranteed] = useState(100);
+  const [formMaximum, setFormMaximum] = useState(500);
+  const [formBurst, setFormBurst] = useState(600);
+  const [formPriority, setFormPriority] = useState<TrafficShaper['priority']>('medium');
 
   const toggleShaper = (id: string) => {
     setShapers(prev => prev.map(shaper => 
@@ -125,6 +143,14 @@ const TrafficShapers = () => {
     );
   };
 
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredShapers.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredShapers.map(s => s.id));
+    }
+  };
+
   const filteredShapers = shapers.filter(shaper => 
     searchQuery === '' ||
     shaper.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -135,6 +161,81 @@ const TrafficShapers = () => {
       return `${(kbps / 1000).toFixed(0)} Mbps`;
     }
     return `${kbps} Kbps`;
+  };
+
+  const openCreateModal = (type: TrafficShaper['type']) => {
+    setEditingItem(null);
+    setFormName('');
+    setFormType(type);
+    setFormGuaranteed(100);
+    setFormMaximum(500);
+    setFormBurst(600);
+    setFormPriority('medium');
+    setModalOpen(true);
+    setShowCreateMenu(false);
+  };
+
+  const openEditModal = () => {
+    if (selectedIds.length !== 1) return;
+    const item = shapers.find(s => s.id === selectedIds[0]);
+    if (item) {
+      setEditingItem(item);
+      setFormName(item.name);
+      setFormType(item.type);
+      setFormGuaranteed(item.guaranteedBandwidth);
+      setFormMaximum(item.maximumBandwidth);
+      setFormBurst(item.burstBandwidth);
+      setFormPriority(item.priority);
+      setModalOpen(true);
+    }
+  };
+
+  const handleSave = () => {
+    if (!formName.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+
+    if (editingItem) {
+      setShapers(prev => prev.map(s => 
+        s.id === editingItem.id 
+          ? { ...s, name: formName, type: formType, guaranteedBandwidth: formGuaranteed, maximumBandwidth: formMaximum, burstBandwidth: formBurst, priority: formPriority }
+          : s
+      ));
+      toast.success(`Updated "${formName}" successfully`);
+    } else {
+      const newItem: TrafficShaper = {
+        id: Date.now().toString(),
+        name: formName,
+        type: formType,
+        guaranteedBandwidth: formGuaranteed,
+        maximumBandwidth: formMaximum,
+        burstBandwidth: formBurst,
+        priority: formPriority,
+        perPolicy: true,
+        diffservForward: false,
+        enabled: true,
+        currentUsage: 0
+      };
+      setShapers(prev => [...prev, newItem]);
+      toast.success(`Created "${formName}" successfully`);
+    }
+    setModalOpen(false);
+    setSelectedIds([]);
+  };
+
+  const handleDelete = () => {
+    if (selectedIds.length === 0) return;
+    setShapers(prev => prev.filter(s => !selectedIds.includes(s.id)));
+    toast.success(`Deleted ${selectedIds.length} shaper(s) successfully`);
+    setSelectedIds([]);
+  };
+
+  const handleRefresh = () => {
+    setShapers([...initialShapers]);
+    setSelectedIds([]);
+    setSearchQuery('');
+    toast.success('Data refreshed');
   };
 
   return (
@@ -153,27 +254,41 @@ const TrafficShapers = () => {
             </button>
             {showCreateMenu && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('shared')}
+                >
                   <Gauge className="w-3 h-3" />
                   Shared Shaper
                 </button>
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('per-ip')}
+                >
                   <Gauge className="w-3 h-3" />
                   Per-IP Shaper
                 </button>
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length !== 1}
+            onClick={openEditModal}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length === 0}
+            onClick={handleDelete}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
@@ -187,6 +302,11 @@ const TrafficShapers = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-[#999] hover:text-[#666]">
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -196,7 +316,12 @@ const TrafficShapers = () => {
             <thead>
               <tr>
                 <th className="w-8">
-                  <input type="checkbox" className="forti-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    className="forti-checkbox"
+                    checked={selectedIds.length === filteredShapers.length && filteredShapers.length > 0}
+                    onChange={handleSelectAll}
+                  />
                 </th>
                 <th className="w-16">Status</th>
                 <th>Name</th>
@@ -210,7 +335,14 @@ const TrafficShapers = () => {
             </thead>
             <tbody>
               {filteredShapers.map((shaper) => (
-                <tr key={shaper.id} className={cn(!shaper.enabled && "opacity-60", selectedIds.includes(shaper.id) && "selected")}>
+                <tr 
+                  key={shaper.id} 
+                  className={cn(!shaper.enabled && "opacity-60", selectedIds.includes(shaper.id) && "selected")}
+                  onDoubleClick={() => {
+                    setSelectedIds([shaper.id]);
+                    setTimeout(openEditModal, 0);
+                  }}
+                >
                   <td>
                     <input 
                       type="checkbox" 
@@ -271,13 +403,108 @@ const TrafficShapers = () => {
                   </td>
                 </tr>
               ))}
+              {filteredShapers.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="text-center text-[11px] text-[#999] py-8">
+                    {searchQuery ? 'No matching shapers found' : 'No traffic shapers configured'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           <div className="text-[11px] text-[#666] mt-2 px-1">
             {filteredShapers.length} traffic shapers
+            {selectedIds.length > 0 && ` (${selectedIds.length} selected)`}
           </div>
         </div>
       </div>
+
+      {/* Create/Edit Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              {editingItem ? 'Edit Traffic Shaper' : 'New Traffic Shaper'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Name</label>
+              <input
+                type="text"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+                placeholder="e.g., my-shaper"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Type</label>
+              <select
+                value={formType}
+                onChange={(e) => setFormType(e.target.value as TrafficShaper['type'])}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              >
+                <option value="shared">Shared</option>
+                <option value="per-ip">Per-IP</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Guaranteed (Kbps)</label>
+              <input
+                type="number"
+                value={formGuaranteed}
+                onChange={(e) => setFormGuaranteed(parseInt(e.target.value) || 0)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Maximum (Kbps)</label>
+              <input
+                type="number"
+                value={formMaximum}
+                onChange={(e) => setFormMaximum(parseInt(e.target.value) || 0)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Burst (Kbps)</label>
+              <input
+                type="number"
+                value={formBurst}
+                onChange={(e) => setFormBurst(parseInt(e.target.value) || 0)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Priority</label>
+              <select
+                value={formPriority}
+                onChange={(e) => setFormPriority(e.target.value as TrafficShaper['priority'])}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              >
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="px-3 py-1.5 text-xs border border-border rounded hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
+            >
+              {editingItem ? 'Save' : 'Create'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Shell>
   );
 };
