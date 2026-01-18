@@ -11,7 +11,9 @@ import {
   ChevronDown,
   Database,
   Layers,
-  X
+  X,
+  Download,
+  Upload
 } from 'lucide-react';
 import {
   Dialog,
@@ -19,7 +21,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { exportToJSON, exportToCSV, importFromJSON, createFileInput } from '@/lib/exportImport';
 
 interface IPPool {
   id: string;
@@ -97,6 +116,7 @@ const IPPools = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<IPPool | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -211,18 +231,18 @@ const IPPools = () => {
     setSelectedIds([]);
   };
 
-  const handleDelete = () => {
-    if (selectedIds.length === 0) return;
-    
+  const handleDeleteConfirm = () => {
     const hasUsed = pools.some(p => selectedIds.includes(p.id) && p.usedIPs > 0);
     if (hasUsed) {
       toast.error('Cannot delete pools that have IPs in use');
+      setDeleteDialogOpen(false);
       return;
     }
 
     setPools(prev => prev.filter(p => !selectedIds.includes(p.id)));
     toast.success(`Deleted ${selectedIds.length} pool(s) successfully`);
     setSelectedIds([]);
+    setDeleteDialogOpen(false);
   };
 
   const handleRefresh = () => {
@@ -230,6 +250,45 @@ const IPPools = () => {
     setSelectedIds([]);
     setSearchQuery('');
     toast.success('Data refreshed');
+  };
+
+  const handleExportJSON = () => {
+    exportToJSON(pools, 'ip-pools-config.json');
+    toast.success(`Exported ${pools.length} IP pools to JSON`);
+  };
+
+  const handleExportCSV = () => {
+    const csvData = pools.map(p => ({
+      name: p.name,
+      type: p.type,
+      startIP: p.startIP,
+      endIP: p.endIP,
+      interface: p.associatedInterface,
+      arpReply: p.arpReply,
+      enabled: p.enabled,
+      usedIPs: p.usedIPs,
+      totalIPs: p.totalIPs,
+    }));
+    exportToCSV(csvData, 'ip-pools-config.csv');
+    toast.success(`Exported ${pools.length} IP pools to CSV`);
+  };
+
+  const handleImport = () => {
+    createFileInput('.json', (file) => {
+      importFromJSON<IPPool>(
+        file,
+        (data) => {
+          const newPools = data.map(p => ({
+            ...p,
+            id: `pool-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            usedIPs: 0,
+          }));
+          setPools(prev => [...prev, ...newPools]);
+          toast.success(`Imported ${newPools.length} IP pools`);
+        },
+        (error) => toast.error(error)
+      );
+    });
   };
 
   return (
@@ -283,7 +342,7 @@ const IPPools = () => {
           <button 
             className="forti-toolbar-btn" 
             disabled={selectedIds.length === 0}
-            onClick={handleDelete}
+            onClick={() => setDeleteDialogOpen(true)}
           >
             <Trash2 className="w-3 h-3" />
             Delete
@@ -294,6 +353,27 @@ const IPPools = () => {
             Refresh
           </button>
           <div className="flex-1" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="forti-toolbar-btn">
+                <Download className="w-3 h-3" />
+                Export
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
+              <DropdownMenuItem onClick={handleExportJSON} className="cursor-pointer text-[11px]">
+                Export as JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer text-[11px]">
+                Export as CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button className="forti-toolbar-btn" onClick={handleImport}>
+            <Upload className="w-3 h-3" />
+            Import
+          </button>
           <div className="forti-search">
             <Search className="w-3 h-3 text-[#999]" />
             <input 
@@ -520,6 +600,25 @@ const IPPools = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete IP Pool(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} IP pool(s)? This action cannot be undone.
+              Pools with IPs in use cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };

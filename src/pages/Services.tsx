@@ -11,7 +11,9 @@ import {
   Server,
   Hash,
   Network,
-  X
+  X,
+  Download,
+  Upload
 } from 'lucide-react';
 import {
   Dialog,
@@ -19,7 +21,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { exportToJSON, exportToCSV, importFromJSON, createFileInput } from '@/lib/exportImport';
 
 interface ServiceObject {
   id: string;
@@ -56,6 +75,7 @@ const Services = () => {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ServiceObject | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -159,24 +179,25 @@ const Services = () => {
     setSelectedIds([]);
   };
 
-  const handleDelete = () => {
-    if (selectedIds.length === 0) return;
-    
+  const handleDeleteConfirm = () => {
     const hasSystem = services.some(s => selectedIds.includes(s.id) && s.isSystem);
     if (hasSystem) {
       toast.error('System services cannot be deleted');
+      setDeleteDialogOpen(false);
       return;
     }
 
     const hasReferences = services.some(s => selectedIds.includes(s.id) && s.references > 0);
     if (hasReferences) {
       toast.error('Cannot delete services that are referenced by policies');
+      setDeleteDialogOpen(false);
       return;
     }
 
     setServices(prev => prev.filter(s => !selectedIds.includes(s.id)));
     toast.success(`Deleted ${selectedIds.length} item(s) successfully`);
     setSelectedIds([]);
+    setDeleteDialogOpen(false);
   };
 
   const handleRefresh = () => {
@@ -185,6 +206,45 @@ const Services = () => {
     setSearchQuery('');
     setActiveCategory('all');
     toast.success('Data refreshed');
+  };
+
+  const handleExportJSON = () => {
+    exportToJSON(services, 'services-config.json');
+    toast.success(`Exported ${services.length} services to JSON`);
+  };
+
+  const handleExportCSV = () => {
+    const csvData = services.map(s => ({
+      name: s.name,
+      category: s.category,
+      protocol: s.protocol,
+      destPorts: s.destPorts,
+      sourcePorts: s.sourcePorts,
+      comment: s.comment,
+      references: s.references,
+      isSystem: s.isSystem,
+    }));
+    exportToCSV(csvData, 'services-config.csv');
+    toast.success(`Exported ${services.length} services to CSV`);
+  };
+
+  const handleImport = () => {
+    createFileInput('.json', (file) => {
+      importFromJSON<ServiceObject>(
+        file,
+        (data) => {
+          const newServices = data.map(s => ({
+            ...s,
+            id: `svc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            references: 0,
+            isSystem: false,
+          }));
+          setServices(prev => [...prev, ...newServices]);
+          toast.success(`Imported ${newServices.length} services`);
+        },
+        (error) => toast.error(error)
+      );
+    });
   };
 
   return (
@@ -231,7 +291,7 @@ const Services = () => {
           <button 
             className="forti-toolbar-btn" 
             disabled={selectedIds.length === 0}
-            onClick={handleDelete}
+            onClick={() => setDeleteDialogOpen(true)}
           >
             <Trash2 className="w-3 h-3" />
             Delete
@@ -242,6 +302,27 @@ const Services = () => {
             Refresh
           </button>
           <div className="flex-1" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="forti-toolbar-btn">
+                <Download className="w-3 h-3" />
+                Export
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
+              <DropdownMenuItem onClick={handleExportJSON} className="cursor-pointer text-[11px]">
+                Export as JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer text-[11px]">
+                Export as CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button className="forti-toolbar-btn" onClick={handleImport}>
+            <Upload className="w-3 h-3" />
+            Import
+          </button>
           <div className="forti-search">
             <Search className="w-3 h-3 text-[#999]" />
             <input 
@@ -452,6 +533,25 @@ const Services = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Service(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} service(s)? This action cannot be undone.
+              System services and services referenced by policies cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };
