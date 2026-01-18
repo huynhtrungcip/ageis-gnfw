@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { mockSystemStatus } from '@/data/mockData';
 import { 
   Bell, 
@@ -8,11 +8,10 @@ import {
   LogOut, 
   Settings, 
   Key,
-  Moon,
-  Sun,
-  Cpu,
-  HardDrive,
-  Thermometer
+  Search,
+  HelpCircle,
+  Menu,
+  AlertTriangle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export function Header() {
+  const location = useLocation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [alerts, setAlerts] = useState([
     { id: 1, type: 'critical', message: 'SSH Brute Force Attack Detected', time: '2m ago' },
@@ -37,13 +37,6 @@ export function Header() {
     return () => clearInterval(timer);
   }, []);
 
-  const formatUptime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return `${days}d ${hours}h ${mins}m`;
-  };
-
   const handleLogout = () => {
     toast.success('Logged out successfully');
   };
@@ -53,62 +46,76 @@ export function Header() {
     toast.success('Alert dismissed');
   };
 
-  const cpuUsage = mockSystemStatus.cpu.usage;
-  const memUsage = Math.round((mockSystemStatus.memory.used / mockSystemStatus.memory.total) * 100);
-  const cpuTemp = mockSystemStatus.cpu.temperature;
+  // Get page title from path
+  const getPageTitle = () => {
+    const pathMap: Record<string, string> = {
+      '/': 'Dashboard',
+      '/interfaces': 'Network > Interfaces',
+      '/routing': 'Network > Routing',
+      '/dhcp': 'Network > DHCP Server',
+      '/firewall/rules': 'Policy & Objects > Firewall Policy',
+      '/firewall/aliases': 'Policy & Objects > Addresses',
+      '/firewall/schedules': 'Policy & Objects > Schedules',
+      '/firewall/nat': 'Policy & Objects > NAT',
+      '/security/ids': 'Security Profiles > Threat Prevention',
+      '/threats': 'Security Profiles > Threat Monitor',
+      '/incidents': 'Security Profiles > Incidents',
+      '/vpn/ipsec': 'VPN > IPsec Tunnels',
+      '/system/users': 'User & Device > User Management',
+      '/monitoring/traffic': 'Log & Report > Traffic Analysis',
+      '/monitoring/logs': 'Log & Report > System Logs',
+      '/reports': 'Log & Report > Reports',
+      '/system/backup': 'System > Config Backup',
+      '/system/general': 'System > Settings',
+    };
+    return pathMap[location.pathname] || 'Dashboard';
+  };
 
   return (
-    <header className="h-12 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4">
-      {/* System Status */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="status-dot-lg status-healthy" />
-          <span className="text-sm font-semibold text-foreground">{mockSystemStatus.hostname}</span>
-        </div>
-        <div className="h-5 w-px bg-border" />
-        <div className="flex items-center gap-4 text-[11px]">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="text-foreground font-medium">Uptime:</span>
-            <span>{formatUptime(mockSystemStatus.uptime)}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Cpu size={12} className={cn(cpuUsage > 80 ? "text-status-critical" : "text-muted-foreground")} />
-            <span className={cn(cpuUsage > 80 ? "text-status-critical" : "text-muted-foreground")}>
-              {cpuUsage}%
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <HardDrive size={12} className={cn(memUsage > 80 ? "text-status-critical" : "text-muted-foreground")} />
-            <span className={cn(memUsage > 80 ? "text-status-critical" : "text-muted-foreground")}>
-              {memUsage}%
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Thermometer size={12} className={cn(cpuTemp > 70 ? "text-status-high" : "text-muted-foreground")} />
-            <span className={cn(cpuTemp > 70 ? "text-status-high" : "text-muted-foreground")}>
-              {cpuTemp}°C
-            </span>
-          </div>
+    <header className="h-10 bg-[hsl(220,20%,22%)] border-b border-[hsl(220,18%,18%)] flex items-center justify-between px-4">
+      {/* Left: Navigation breadcrumb */}
+      <div className="flex items-center gap-3">
+        <Menu size={16} className="text-gray-400 cursor-pointer hover:text-white" />
+        <div className="text-white text-sm font-medium">{getPageTitle()}</div>
+      </div>
+
+      {/* Center: Search */}
+      <div className="flex-1 max-w-md mx-8">
+        <div className="flex items-center gap-2 px-3 py-1 bg-[hsl(220,18%,28%)] rounded border border-[hsl(220,15%,35%)]">
+          <Search size={14} className="text-gray-400" />
+          <input 
+            type="text" 
+            placeholder="Search..." 
+            className="bg-transparent text-sm text-white placeholder-gray-500 outline-none flex-1"
+          />
         </div>
       </div>
 
-      {/* Right Side */}
-      <div className="flex items-center gap-3">
+      {/* Right: Actions */}
+      <div className="flex items-center gap-2">
+        {/* Help */}
+        <button className="p-1.5 text-gray-400 hover:text-white transition-colors">
+          <HelpCircle size={16} />
+        </button>
+
         {/* Alerts Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors">
+            <button className="relative p-1.5 text-gray-400 hover:text-white transition-colors">
               <Bell size={16} />
               {alerts.length > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-status-critical rounded-full animate-pulse" />
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full" />
               )}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
-            <div className="px-3 py-2 border-b border-border">
+            <div className="px-3 py-2 border-b border-border bg-muted">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">Alerts</span>
-                <span className="text-xs text-muted-foreground">{alerts.length} unread</span>
+                <span className="text-sm font-semibold flex items-center gap-2">
+                  <AlertTriangle size={14} className="text-orange-500" />
+                  Alerts
+                </span>
+                <span className="text-xs text-muted-foreground">{alerts.length} new</span>
               </div>
             </div>
             {alerts.length === 0 ? (
@@ -120,15 +127,15 @@ export function Header() {
                 {alerts.map((alert) => (
                   <div 
                     key={alert.id}
-                    className="px-3 py-2 hover:bg-muted/50 border-b border-border/50 last:border-b-0"
+                    className="px-3 py-2 hover:bg-muted border-b border-border/50 last:border-b-0"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className={cn(
                             "w-2 h-2 rounded-full",
-                            alert.type === 'critical' ? "bg-status-critical" :
-                            alert.type === 'high' ? "bg-status-high" : "bg-status-medium"
+                            alert.type === 'critical' ? "bg-red-500" :
+                            alert.type === 'high' ? "bg-orange-500" : "bg-yellow-500"
                           )} />
                           <span className="text-xs font-medium">{alert.message}</span>
                         </div>
@@ -145,42 +152,36 @@ export function Header() {
                 ))}
               </div>
             )}
-            <div className="px-3 py-2 border-t border-border">
-              <Link to="/incidents" className="text-xs text-primary hover:underline">
-                View all incidents →
+            <div className="px-3 py-2 border-t border-border bg-muted">
+              <Link to="/incidents" className="text-xs text-[hsl(var(--forti-green))] hover:underline">
+                View all alerts →
               </Link>
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Time */}
-        <div className="text-[11px] text-muted-foreground font-mono px-2">
-          {currentTime.toLocaleDateString('vi-VN')} {currentTime.toLocaleTimeString('vi-VN')}
-        </div>
+        <div className="w-px h-5 bg-[hsl(220,15%,30%)]" />
 
         {/* User Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded transition-colors">
-              <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
-                <User size={14} className="text-primary" />
+            <button className="flex items-center gap-2 px-2 py-1 hover:bg-[hsl(220,18%,28%)] rounded transition-colors">
+              <div className="w-6 h-6 rounded-full bg-[hsl(var(--forti-green))] flex items-center justify-center">
+                <User size={12} className="text-white" />
               </div>
-              <div className="text-left hidden sm:block">
-                <div className="text-xs font-medium">admin</div>
-                <div className="text-[10px] text-muted-foreground">Administrator</div>
-              </div>
-              <ChevronDown size={12} className="text-muted-foreground" />
+              <span className="text-sm text-white">admin</span>
+              <ChevronDown size={12} className="text-gray-400" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <div className="px-3 py-2 border-b border-border">
-              <div className="text-sm font-medium">System Administrator</div>
-              <div className="text-xs text-muted-foreground">admin@aegis-ngfw.local</div>
+            <div className="px-3 py-2 border-b border-border bg-muted">
+              <div className="text-sm font-medium">Administrator</div>
+              <div className="text-xs text-muted-foreground">admin@fortigate.local</div>
             </div>
             <DropdownMenuItem asChild>
               <Link to="/system/users" className="flex items-center gap-2 cursor-pointer">
                 <User size={14} />
-                <span>User Management</span>
+                <span>Profile</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
@@ -190,7 +191,7 @@ export function Header() {
             <DropdownMenuItem asChild>
               <Link to="/system/general" className="flex items-center gap-2 cursor-pointer">
                 <Settings size={14} />
-                <span>System Settings</span>
+                <span>Settings</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
