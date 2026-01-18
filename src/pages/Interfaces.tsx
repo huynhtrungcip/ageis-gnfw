@@ -430,14 +430,14 @@ const Interfaces = () => {
                     {iface.status === 'up' ? '⬆' : '⬇'}
                   </span>
                 </td>
-                <td className="font-medium text-[#333]">{iface.name}</td>
-                <td className="text-[#999]">--</td>
-                <td className="mono text-[#666]">
+                <td className="font-medium text-[#111]">{iface.name}</td>
+                <td className="text-[#555]">--</td>
+                <td className="mono text-[#333]">
                   {iface.ipAddress ? `${iface.ipAddress} ${iface.subnet}` : '0.0.0.0 0.0.0.0'}
                 </td>
                 <td>
-                  <span className="inline-flex items-center gap-1 text-[#666]">
-                    <Network size={12} className="text-[#999]" />
+                  <span className="inline-flex items-center gap-1 text-[#333]">
+                    <Network size={12} className="text-[#666]" />
                     Physical Interface
                   </span>
                 </td>

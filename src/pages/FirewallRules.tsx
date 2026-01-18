@@ -97,26 +97,26 @@ function SortableRow({ rule, index, isSelected, onSelect, onEdit, onToggle, form
           size="sm"
         />
       </td>
-      <td className="w-10 text-center text-[11px] text-[#666]">{index + 1}</td>
-      <td className="text-[11px] font-medium" onDoubleClick={() => onEdit(rule)}>
+      <td className="w-10 text-center text-[11px] text-[#333]">{index + 1}</td>
+      <td className="text-[11px] font-medium text-[#111]" onDoubleClick={() => onEdit(rule)}>
         {rule.description || `Rule-${index + 1}`}
       </td>
-      <td className="text-[11px]">
+      <td className="text-[11px] text-[#333]">
         <span className="inline-flex items-center gap-1">
           <span className="w-3 h-3 bg-[#4caf50] rounded-sm" />
           {rule.source.value === '*' ? 'all' : rule.source.value}
         </span>
       </td>
-      <td className="text-[11px]">
+      <td className="text-[11px] text-[#333]">
         <span className="inline-flex items-center gap-1">
           <span className="w-3 h-3 bg-[#2196f3] rounded-sm" />
           {rule.destination.value === '*' ? 'all' : rule.destination.value}
         </span>
       </td>
-      <td className="text-[11px] text-[#666]">
+      <td className="text-[11px] text-[#333]">
         {rule.schedule || 'always'}
       </td>
-      <td className="text-[11px]">
+      <td className="text-[11px] text-[#333]">
         <span className="inline-flex items-center gap-1">
           <span className="w-3 h-3 bg-purple-400 rounded-sm text-white text-[8px] flex items-center justify-center">⚡</span>
           {rule.destination.port || 'ALL'}
