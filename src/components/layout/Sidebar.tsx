@@ -53,7 +53,8 @@ const navigation: NavSection[] = [
     icon: Layers,
     defaultOpen: false,
     items: [
-      { label: 'Physical Topology', path: '/topology' },
+      { label: 'Network Topology', path: '/topology', starred: true },
+      { label: 'Packet Flow', path: '/packet-flow' },
       { label: 'Fabric Connectors', path: '/connectors' },
     ],
   },

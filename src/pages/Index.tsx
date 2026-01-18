@@ -92,7 +92,26 @@ const Dashboard = () => {
   const memPct = Math.round((memory.used / memory.total) * 100);
   const diskPct = Math.round((disk.used / disk.total) * 100);
   
-  const [trafficData] = useState(generateTrafficData);
+  const [trafficData, setTrafficData] = useState(generateTrafficData);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!isAutoRefresh) return;
+    
+    const interval = setInterval(() => {
+      setTrafficData(generateTrafficData());
+      setLastRefresh(new Date());
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [isAutoRefresh]);
+
+  const handleManualRefresh = () => {
+    setTrafficData(generateTrafficData());
+    setLastRefresh(new Date());
+  };
 
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
@@ -110,6 +129,37 @@ const Dashboard = () => {
   return (
     <Shell>
       <div className="space-y-3">
+        {/* Refresh Status Bar */}
+        <div className="flex items-center justify-between bg-muted/30 border border-border rounded-lg px-3 py-2">
+          <div className="flex items-center gap-4 text-xs">
+            <span className="text-muted-foreground">
+              Last updated: <span className="font-medium text-foreground">{lastRefresh.toLocaleTimeString()}</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+                className={cn(
+                  "px-2 py-1 rounded text-[10px] font-medium transition-colors",
+                  isAutoRefresh 
+                    ? "bg-[#4caf50] text-white" 
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                Auto-refresh: {isAutoRefresh ? 'ON' : 'OFF'}
+              </button>
+              <span className="text-muted-foreground">(every 30s)</span>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 gap-2"
+            onClick={handleManualRefresh}
+          >
+            <RefreshCw className="h-3 w-3" />
+            Refresh Now
+          </Button>
+        </div>
         {/* Top Row - System Info + Licenses */}
         <div className="grid grid-cols-3 gap-3">
           {/* System Information */}

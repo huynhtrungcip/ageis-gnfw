@@ -37,6 +37,7 @@ import LogReport from "./pages/LogReport";
 import WiFiController from "./pages/WiFiController";
 import FirmwareManagement from "./pages/FirmwareManagement";
 import AdminProfiles from "./pages/AdminProfiles";
+import NetworkTopology from "./pages/NetworkTopology";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,7 +67,8 @@ const App = () => (
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/routing" element={<Routing />} />
           <Route path="/dns" element={<DNSServer />} />
-          <Route path="/topology" element={<PacketFlow />} />
+          <Route path="/topology" element={<NetworkTopology />} />
+          <Route path="/packet-flow" element={<PacketFlow />} />
           <Route path="/connectors" element={<Interfaces />} />
           <Route path="/ai-security" element={<AISecurity />} />
           <Route path="/insights/behavioral" element={<AISecurity />} />
