@@ -150,6 +150,40 @@
     @apply p-4 bg-white;
   }
 
+  /* FortiGate Widget Style */
+  .widget {
+    @apply bg-white border border-border rounded-sm overflow-hidden shadow-sm;
+  }
+
+  .widget-header {
+    @apply px-2 py-1.5 border-b border-border flex items-center justify-between text-[11px] font-semibold text-white;
+    background: linear-gradient(180deg, hsl(var(--forti-green)) 0%, hsl(var(--forti-green-dark)) 100%);
+  }
+
+  .widget-body {
+    @apply p-3 bg-white;
+  }
+
+  .widget-table {
+    @apply w-full text-[12px];
+  }
+
+  .widget-table td {
+    @apply py-1.5 border-b border-border/40;
+  }
+
+  .widget-table td:first-child {
+    @apply pr-4;
+  }
+
+  .widget-label {
+    @apply text-muted-foreground whitespace-nowrap;
+  }
+
+  .widget-value {
+    @apply text-foreground;
+  }
+
   /* Summary strip */
   .summary-strip {
     @apply flex items-center gap-4 px-3 py-2 bg-white border border-border rounded-sm shadow-sm;
