@@ -2,7 +2,7 @@ import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { mockInterfaces, mockSystemStatus, mockVPNTunnels } from '@/data/mockData';
-import { ChevronRight, Cpu, HardDrive, Thermometer, Clock, Shield, AlertTriangle, Network, Globe, Activity } from 'lucide-react';
+import { ChevronRight, Cpu, HardDrive, Thermometer, Shield, AlertTriangle, Network, Globe, Activity, ShieldCheck, Lock, Bug, Filter } from 'lucide-react';
 
 // Mock data
 const threats = [
@@ -12,10 +12,10 @@ const threats = [
 ];
 
 const licenses = [
-  { name: 'FortiCare', status: 'active', icon: '🛡️' },
-  { name: 'IPS', status: 'active', icon: '🔒' },
-  { name: 'AntiVirus', status: 'active', icon: '🦠' },
-  { name: 'Web Filter', status: 'active', icon: '🌐' },
+  { name: 'Support', status: 'active', icon: ShieldCheck },
+  { name: 'IPS', status: 'active', icon: Lock },
+  { name: 'AntiVirus', status: 'active', icon: Bug },
+  { name: 'Web Filter', status: 'active', icon: Filter },
 ];
 
 const Dashboard = () => {
@@ -83,15 +83,18 @@ const Dashboard = () => {
             </div>
             <div className="section-body">
               <div className="grid grid-cols-2 gap-3">
-                {licenses.map((lic) => (
-                  <div key={lic.name} className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
-                    <span className="text-lg">{lic.icon}</span>
-                    <div>
-                      <div className="text-xs font-medium">{lic.name}</div>
-                      <div className="text-[10px] text-green-600">Active</div>
+                {licenses.map((lic) => {
+                  const IconComponent = lic.icon;
+                  return (
+                    <div key={lic.name} className="flex items-center gap-2 p-2 bg-green-50 rounded border border-green-200">
+                      <IconComponent size={16} className="text-green-600" />
+                      <div>
+                        <div className="text-xs font-medium">{lic.name}</div>
+                        <div className="text-[10px] text-green-600">Active</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

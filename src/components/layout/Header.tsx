@@ -175,8 +175,8 @@ export function Header() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <div className="px-3 py-2 border-b border-border bg-muted">
-              <div className="text-sm font-medium">Administrator</div>
-              <div className="text-xs text-muted-foreground">admin@fortigate.local</div>
+            <div className="text-sm font-medium">Administrator</div>
+            <div className="text-xs text-muted-foreground">admin@aegis-ngfw.local</div>
             </div>
             <DropdownMenuItem asChild>
               <Link to="/system/users" className="flex items-center gap-2 cursor-pointer">
