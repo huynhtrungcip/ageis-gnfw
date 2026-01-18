@@ -31,6 +31,7 @@ import {
   LucideIcon
 } from 'lucide-react';
 import { useState } from 'react';
+import { AegisLogo } from './AegisLogo';
 
 interface NavItem {
   label: string;
@@ -157,7 +158,6 @@ export function Sidebar() {
   const [expandedSections, setExpandedSections] = useState<string[]>(
     navigation.filter(s => s.defaultOpen).map(s => s.title)
   );
-  const [searchQuery, setSearchQuery] = useState('');
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev => 
@@ -177,17 +177,9 @@ export function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[220px] bg-[#2c3e50] flex flex-col z-40">
-      {/* Logo Header - Dark top bar */}
-      <div className="h-11 flex items-center justify-between px-3 bg-[#1a252f] border-b border-[#1a252f]">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-[#4caf50] rounded flex items-center justify-center">
-            <Shield size={15} className="text-white" />
-          </div>
-          <div>
-            <div className="text-white font-bold text-[13px] leading-tight">Aegis NGFW</div>
-            <div className="text-[9px] text-gray-400 font-mono">AEGIS-FW-001</div>
-          </div>
-        </div>
+      {/* Logo Header - Modern Aegis Logo */}
+      <div className="h-14 flex items-center justify-between px-3 bg-[#1a252f] border-b border-[#1a252f]">
+        <AegisLogo size="sm" />
         <button className="text-gray-400 hover:text-white p-1">
           <Search size={14} />
         </button>

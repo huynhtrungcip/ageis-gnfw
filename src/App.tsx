@@ -19,6 +19,8 @@ import SystemMonitoring from "./pages/SystemMonitoring";
 import Schedules from "./pages/Schedules";
 import ConfigBackup from "./pages/ConfigBackup";
 import IDSSettings from "./pages/IDSSettings";
+import SecurityProfiles from "./pages/SecurityProfiles";
+import SDWAN from "./pages/SDWAN";
 import Routing from "./pages/Routing";
 import Reports from "./pages/Reports";
 import SystemSettings from "./pages/SystemSettings";
@@ -46,9 +48,10 @@ const App = () => (
           <Route path="/firewall/schedules" element={<Schedules />} />
           <Route path="/firewall/services" element={<Aliases />} />
           <Route path="/security/ids" element={<IDSSettings />} />
-          <Route path="/security/antivirus" element={<IDSSettings />} />
-          <Route path="/security/webfilter" element={<IDSSettings />} />
-          <Route path="/security/appcontrol" element={<IDSSettings />} />
+          <Route path="/security/antivirus" element={<SecurityProfiles />} />
+          <Route path="/security/webfilter" element={<SecurityProfiles />} />
+          <Route path="/security/appcontrol" element={<SecurityProfiles />} />
+          <Route path="/sdwan" element={<SDWAN />} />
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/routing" element={<Routing />} />
           <Route path="/dns" element={<Interfaces />} />
