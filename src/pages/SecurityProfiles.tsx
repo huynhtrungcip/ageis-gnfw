@@ -11,11 +11,32 @@ import {
   Layers,
   Edit,
   Trash2,
-  Copy
+  Copy,
+  Download,
+  Upload,
+  X
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FortiToggle } from '@/components/ui/forti-toggle';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { exportToJSON, importFromJSON, createFileInput } from '@/lib/exportImport';
 
 // AntiVirus Profiles
 interface AVProfile {
@@ -31,7 +52,7 @@ interface AVProfile {
   emulatorEnabled: boolean;
 }
 
-const mockAVProfiles: AVProfile[] = [
+const initialAVProfiles: AVProfile[] = [
   { id: 'av-1', name: 'default', comment: 'Default antivirus profile', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, action: 'block', emulatorEnabled: true },
   { id: 'av-2', name: 'high-security', comment: 'Maximum protection profile', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, action: 'quarantine', emulatorEnabled: true },
   { id: 'av-3', name: 'monitor-only', comment: 'Detection without blocking', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, action: 'monitor', emulatorEnabled: false },
@@ -48,7 +69,7 @@ interface WebFilterProfile {
   safeSearch: boolean;
 }
 
-const mockWebProfiles: WebFilterProfile[] = [
+const initialWebProfiles: WebFilterProfile[] = [
   { id: 'wf-1', name: 'default', comment: 'Default web filter', mode: 'proxy', action: 'block', urlFiltering: true, safeSearch: true },
   { id: 'wf-2', name: 'strict', comment: 'Strict filtering for schools', mode: 'proxy', action: 'block', urlFiltering: true, safeSearch: true },
 ];
@@ -65,7 +86,7 @@ interface IPSSignature {
   cve?: string;
 }
 
-const mockIPSSignatures: IPSSignature[] = [
+const initialIPSSignatures: IPSSignature[] = [
   { id: 'ips-1', sid: 44228, name: 'Apache.Log4j.Error.Log.Remote.Code.Execution', category: 'Application', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2021-44228' },
   { id: 'ips-2', sid: 51006, name: 'MS.SMBv3.Compression.Buffer.Overflow', category: 'Network', severity: 'critical', action: 'block', enabled: true, cve: 'CVE-2020-0796' },
   { id: 'ips-3', sid: 48247, name: 'HTTP.Request.Smuggling', category: 'Web', severity: 'high', action: 'block', enabled: true },
@@ -80,12 +101,38 @@ const ipsCategories = ['All', 'Application', 'Network', 'Web', 'DoS', 'Brute For
 
 const SecurityProfiles = () => {
   const [activeTab, setActiveTab] = useState('antivirus');
-  const [avProfiles] = useState<AVProfile[]>(mockAVProfiles);
-  const [webProfiles] = useState<WebFilterProfile[]>(mockWebProfiles);
-  const [ipsSignatures, setIpsSignatures] = useState<IPSSignature[]>(mockIPSSignatures);
+  const [avProfiles, setAvProfiles] = useState<AVProfile[]>(initialAVProfiles);
+  const [webProfiles, setWebProfiles] = useState<WebFilterProfile[]>(initialWebProfiles);
+  const [ipsSignatures, setIpsSignatures] = useState<IPSSignature[]>(initialIPSSignatures);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [severity, setSeverity] = useState('all');
+
+  // Modal states
+  const [avModalOpen, setAvModalOpen] = useState(false);
+  const [webModalOpen, setWebModalOpen] = useState(false);
+  const [editingAv, setEditingAv] = useState<AVProfile | null>(null);
+  const [editingWeb, setEditingWeb] = useState<WebFilterProfile | null>(null);
+
+  // Delete confirmation
+  const [deleteAvId, setDeleteAvId] = useState<string | null>(null);
+  const [deleteWebId, setDeleteWebId] = useState<string | null>(null);
+
+  // Form states
+  const [avForm, setAvForm] = useState<{
+    name: string; comment: string; httpScan: boolean; ftpScan: boolean; imapScan: boolean;
+    pop3Scan: boolean; smtpScan: boolean; action: 'block' | 'monitor' | 'quarantine'; emulatorEnabled: boolean;
+  }>({
+    name: '', comment: '', httpScan: true, ftpScan: true, imapScan: true,
+    pop3Scan: true, smtpScan: true, action: 'block', emulatorEnabled: true
+  });
+  const [webForm, setWebForm] = useState<{
+    name: string; comment: string; mode: 'proxy' | 'flow' | 'dns'; action: 'block' | 'warning' | 'monitor';
+    urlFiltering: boolean; safeSearch: boolean;
+  }>({
+    name: '', comment: '', mode: 'proxy', action: 'block',
+    urlFiltering: true, safeSearch: true
+  });
 
   const filteredIPS = ipsSignatures.filter(sig => {
     const matchesSearch = search === '' || 
@@ -97,11 +144,134 @@ const SecurityProfiles = () => {
     return matchesSearch && matchesCategory && matchesSeverity;
   });
 
+  // AV Profile handlers
+  const handleCreateAv = () => {
+    setEditingAv(null);
+    setAvForm({ name: '', comment: '', httpScan: true, ftpScan: true, imapScan: true, pop3Scan: true, smtpScan: true, action: 'block', emulatorEnabled: true });
+    setAvModalOpen(true);
+  };
+
+  const handleEditAv = (profile: AVProfile) => {
+    setEditingAv(profile);
+    setAvForm({ 
+      name: profile.name, comment: profile.comment, httpScan: profile.httpScan, ftpScan: profile.ftpScan,
+      imapScan: profile.imapScan, pop3Scan: profile.pop3Scan, smtpScan: profile.smtpScan,
+      action: profile.action, emulatorEnabled: profile.emulatorEnabled 
+    });
+    setAvModalOpen(true);
+  };
+
+  const handleSaveAv = () => {
+    if (!avForm.name) { toast.error('Name is required'); return; }
+    if (editingAv) {
+      setAvProfiles(prev => prev.map(p => p.id === editingAv.id ? { ...p, ...avForm } : p));
+      toast.success('AntiVirus profile updated');
+    } else {
+      setAvProfiles(prev => [...prev, { ...avForm, id: `av-${Date.now()}` }]);
+      toast.success('AntiVirus profile created');
+    }
+    setAvModalOpen(false);
+  };
+
+  const handleCloneAv = (profile: AVProfile) => {
+    const clone = { ...profile, id: `av-${Date.now()}`, name: `${profile.name}_copy` };
+    setAvProfiles(prev => [...prev, clone]);
+    toast.success('Profile cloned');
+  };
+
+  const handleDeleteAv = () => {
+    if (deleteAvId) {
+      setAvProfiles(prev => prev.filter(p => p.id !== deleteAvId));
+      toast.success('AntiVirus profile deleted');
+      setDeleteAvId(null);
+    }
+  };
+
+  // Web Profile handlers
+  const handleCreateWeb = () => {
+    setEditingWeb(null);
+    setWebForm({ name: '', comment: '', mode: 'proxy', action: 'block', urlFiltering: true, safeSearch: true });
+    setWebModalOpen(true);
+  };
+
+  const handleEditWeb = (profile: WebFilterProfile) => {
+    setEditingWeb(profile);
+    setWebForm({ 
+      name: profile.name, comment: profile.comment, mode: profile.mode, 
+      action: profile.action, urlFiltering: profile.urlFiltering, safeSearch: profile.safeSearch 
+    });
+    setWebModalOpen(true);
+  };
+
+  const handleSaveWeb = () => {
+    if (!webForm.name) { toast.error('Name is required'); return; }
+    if (editingWeb) {
+      setWebProfiles(prev => prev.map(p => p.id === editingWeb.id ? { ...p, ...webForm } : p));
+      toast.success('Web Filter profile updated');
+    } else {
+      setWebProfiles(prev => [...prev, { ...webForm, id: `wf-${Date.now()}` }]);
+      toast.success('Web Filter profile created');
+    }
+    setWebModalOpen(false);
+  };
+
+  const handleCloneWeb = (profile: WebFilterProfile) => {
+    const clone = { ...profile, id: `wf-${Date.now()}`, name: `${profile.name}_copy` };
+    setWebProfiles(prev => [...prev, clone]);
+    toast.success('Profile cloned');
+  };
+
+  const handleDeleteWeb = () => {
+    if (deleteWebId) {
+      setWebProfiles(prev => prev.filter(p => p.id !== deleteWebId));
+      toast.success('Web Filter profile deleted');
+      setDeleteWebId(null);
+    }
+  };
+
+  // IPS handlers
   const handleToggleIPS = (id: string) => {
-    setIpsSignatures(prev => prev.map(s =>
-      s.id === id ? { ...s, enabled: !s.enabled } : s
-    ));
+    setIpsSignatures(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
     toast.success('Signature status updated');
+  };
+
+  // Export/Import
+  const handleExport = () => {
+    if (activeTab === 'antivirus') {
+      exportToJSON(avProfiles, `antivirus-profiles-${new Date().toISOString().split('T')[0]}.json`);
+      toast.success(`Exported ${avProfiles.length} AV profiles`);
+    } else if (activeTab === 'webfilter') {
+      exportToJSON(webProfiles, `webfilter-profiles-${new Date().toISOString().split('T')[0]}.json`);
+      toast.success(`Exported ${webProfiles.length} Web Filter profiles`);
+    } else {
+      exportToJSON(ipsSignatures, `ips-signatures-${new Date().toISOString().split('T')[0]}.json`);
+      toast.success(`Exported ${ipsSignatures.length} IPS signatures`);
+    }
+  };
+
+  const handleImport = () => {
+    createFileInput('.json', (file) => {
+      if (activeTab === 'antivirus') {
+        importFromJSON<AVProfile>(file, (data) => {
+          setAvProfiles(prev => [...prev, ...data.map(p => ({ ...p, id: `av-${Date.now()}-${Math.random()}` }))]);
+          toast.success(`Imported ${data.length} AV profiles`);
+        }, (err) => toast.error(err));
+      } else if (activeTab === 'webfilter') {
+        importFromJSON<WebFilterProfile>(file, (data) => {
+          setWebProfiles(prev => [...prev, ...data.map(p => ({ ...p, id: `wf-${Date.now()}-${Math.random()}` }))]);
+          toast.success(`Imported ${data.length} Web Filter profiles`);
+        }, (err) => toast.error(err));
+      } else {
+        importFromJSON<IPSSignature>(file, (data) => {
+          setIpsSignatures(prev => [...prev, ...data.map(s => ({ ...s, id: `ips-${Date.now()}-${Math.random()}` }))]);
+          toast.success(`Imported ${data.length} IPS signatures`);
+        }, (err) => toast.error(err));
+      }
+    });
+  };
+
+  const handleRefresh = () => {
+    toast.success('Definitions updated');
   };
 
   // Stats
@@ -127,26 +297,47 @@ const SecurityProfiles = () => {
 
         {/* Toolbar */}
         <div className="forti-toolbar">
-          <button className="forti-toolbar-btn primary">
+          <button className="forti-toolbar-btn primary" onClick={() => {
+            if (activeTab === 'antivirus') handleCreateAv();
+            else if (activeTab === 'webfilter') handleCreateWeb();
+            else toast.info('IPS signatures are managed automatically');
+          }}>
             <Plus size={12} />
             <span>Create New</span>
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => {
+            if (activeTab === 'antivirus' && avProfiles.length > 0) handleEditAv(avProfiles[0]);
+            else if (activeTab === 'webfilter' && webProfiles.length > 0) handleEditWeb(webProfiles[0]);
+          }}>
             <Edit size={12} />
             <span>Edit</span>
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => {
+            if (activeTab === 'antivirus' && avProfiles.length > 0) handleCloneAv(avProfiles[0]);
+            else if (activeTab === 'webfilter' && webProfiles.length > 0) handleCloneWeb(webProfiles[0]);
+          }}>
             <Copy size={12} />
             <span>Clone</span>
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => {
+            if (activeTab === 'antivirus' && avProfiles.length > 0) setDeleteAvId(avProfiles[0].id);
+            else if (activeTab === 'webfilter' && webProfiles.length > 0) setDeleteWebId(webProfiles[0].id);
+          }}>
             <Trash2 size={12} />
             <span>Delete</span>
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw size={12} />
             <span>Update Definitions</span>
+          </button>
+          <button className="forti-toolbar-btn" onClick={handleExport}>
+            <Download size={12} />
+            <span>Export</span>
+          </button>
+          <button className="forti-toolbar-btn" onClick={handleImport}>
+            <Upload size={12} />
+            <span>Import</span>
           </button>
           <div className="flex-1" />
           <div className="forti-search">
@@ -187,29 +378,14 @@ const SecurityProfiles = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="bg-[#f0f0f0] border-x border-b border-[#ddd]">
             <TabsList className="bg-transparent h-auto p-0 rounded-none">
-              <TabsTrigger 
-                value="antivirus" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
-              >
+              <TabsTrigger value="antivirus" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]">
                 AntiVirus
               </TabsTrigger>
-              <TabsTrigger 
-                value="webfilter" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
-              >
+              <TabsTrigger value="webfilter" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]">
                 Web Filter
               </TabsTrigger>
-              <TabsTrigger 
-                value="ips" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
-              >
+              <TabsTrigger value="ips" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]">
                 IPS Signatures
-              </TabsTrigger>
-              <TabsTrigger 
-                value="appcontrol" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
-              >
-                Application Control
               </TabsTrigger>
             </TabsList>
           </div>
@@ -272,17 +448,21 @@ const SecurityProfiles = () => {
                       </span>
                     </td>
                     <td>
-                      <FortiToggle enabled={profile.emulatorEnabled} onChange={() => {}} size="sm" />
+                      <FortiToggle 
+                        enabled={profile.emulatorEnabled} 
+                        onToggle={() => setAvProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, emulatorEnabled: !p.emulatorEnabled } : p))} 
+                        size="sm" 
+                      />
                     </td>
                     <td>
                       <div className="flex items-center gap-1">
-                        <button className="p-1 hover:bg-[#f0f0f0]">
+                        <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleEditAv(profile)}>
                           <Edit size={12} className="text-[#666]" />
                         </button>
-                        <button className="p-1 hover:bg-[#f0f0f0]">
+                        <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleCloneAv(profile)}>
                           <Copy size={12} className="text-[#666]" />
                         </button>
-                        <button className="p-1 hover:bg-[#f0f0f0]">
+                        <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => setDeleteAvId(profile.id)}>
                           <Trash2 size={12} className="text-red-500" />
                         </button>
                       </div>
@@ -328,20 +508,28 @@ const SecurityProfiles = () => {
                       </span>
                     </td>
                     <td>
-                      <FortiToggle enabled={profile.urlFiltering} onChange={() => {}} size="sm" />
+                      <FortiToggle 
+                        enabled={profile.urlFiltering} 
+                        onToggle={() => setWebProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, urlFiltering: !p.urlFiltering } : p))} 
+                        size="sm" 
+                      />
                     </td>
                     <td>
-                      <FortiToggle enabled={profile.safeSearch} onChange={() => {}} size="sm" />
+                      <FortiToggle 
+                        enabled={profile.safeSearch} 
+                        onToggle={() => setWebProfiles(prev => prev.map(p => p.id === profile.id ? { ...p, safeSearch: !p.safeSearch } : p))} 
+                        size="sm" 
+                      />
                     </td>
                     <td>
                       <div className="flex items-center gap-1">
-                        <button className="p-1 hover:bg-[#f0f0f0]">
+                        <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleEditWeb(profile)}>
                           <Edit size={12} className="text-[#666]" />
                         </button>
-                        <button className="p-1 hover:bg-[#f0f0f0]">
+                        <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleCloneWeb(profile)}>
                           <Copy size={12} className="text-[#666]" />
                         </button>
-                        <button className="p-1 hover:bg-[#f0f0f0]">
+                        <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => setDeleteWebId(profile.id)}>
                           <Trash2 size={12} className="text-red-500" />
                         </button>
                       </div>
@@ -398,7 +586,7 @@ const SecurityProfiles = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th className="w-16">Status</th>
+                  <th className="w-16">Enabled</th>
                   <th className="w-20">SID</th>
                   <th>Signature Name</th>
                   <th>Category</th>
@@ -411,35 +599,31 @@ const SecurityProfiles = () => {
                 {filteredIPS.map((sig) => (
                   <tr key={sig.id} className={cn(!sig.enabled && "opacity-60")}>
                     <td>
-                      <FortiToggle 
-                        enabled={sig.enabled}
-                        onChange={() => handleToggleIPS(sig.id)}
-                        size="sm"
-                      />
+                      <FortiToggle enabled={sig.enabled} onToggle={() => handleToggleIPS(sig.id)} size="sm" />
                     </td>
-                    <td className="mono text-[#666]">{sig.sid}</td>
-                    <td className="font-medium text-[#333]">{sig.name}</td>
-                    <td className="text-[#666]">{sig.category}</td>
+                    <td className="mono text-[11px]">{sig.sid}</td>
+                    <td className="text-[11px] font-medium">{sig.name}</td>
+                    <td>
+                      <span className="forti-tag bg-blue-100 text-blue-700 border-blue-200">{sig.category}</span>
+                    </td>
                     <td>
                       <span className={cn(
                         "forti-tag",
-                        sig.severity === 'critical' ? 'bg-red-100 text-red-700 border-red-200' :
-                        sig.severity === 'high' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                        sig.severity === 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                        sig.severity === 'low' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                        'bg-gray-100 text-gray-500 border-gray-200'
+                        sig.severity === 'critical' ? "bg-red-100 text-red-700 border-red-200" :
+                        sig.severity === 'high' ? "bg-orange-100 text-orange-700 border-orange-200" :
+                        sig.severity === 'medium' ? "bg-yellow-100 text-yellow-700 border-yellow-200" :
+                        "bg-gray-100 text-gray-600 border-gray-200"
                       )}>
                         {sig.severity.toUpperCase()}
                       </span>
                     </td>
-                    <td className="mono text-[#666]">{sig.cve || '-'}</td>
+                    <td className="mono text-[10px] text-blue-600">{sig.cve || '-'}</td>
                     <td>
                       <span className={cn(
                         "forti-tag",
-                        sig.action === 'block' || sig.action === 'reset' ? 'bg-red-100 text-red-700 border-red-200' :
-                        sig.action === 'monitor' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                        sig.action === 'pass' ? 'bg-green-100 text-green-700 border-green-200' :
-                        'bg-gray-100 text-gray-500 border-gray-200'
+                        sig.action === 'block' ? "bg-red-100 text-red-700 border-red-200" :
+                        sig.action === 'monitor' ? "bg-blue-100 text-blue-700 border-blue-200" :
+                        "bg-gray-100 text-gray-600 border-gray-200"
                       )}>
                         {sig.action.toUpperCase()}
                       </span>
@@ -449,16 +633,129 @@ const SecurityProfiles = () => {
               </tbody>
             </table>
           </TabsContent>
-
-          {/* App Control Tab */}
-          <TabsContent value="appcontrol" className="mt-0 p-4 bg-white border-x border-b border-[#ddd]">
-            <div className="flex items-center justify-center py-8 text-[#999]">
-              <Layers size={24} className="mr-2" />
-              <span>Application Control profiles will be configured here</span>
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
+
+      {/* AV Profile Modal */}
+      <Dialog open={avModalOpen} onOpenChange={setAvModalOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>{editingAv ? 'Edit AntiVirus Profile' : 'Create AntiVirus Profile'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="forti-label">Name *</label>
+              <input className="forti-input w-full" value={avForm.name} onChange={(e) => setAvForm({ ...avForm, name: e.target.value })} placeholder="e.g., custom-av" />
+            </div>
+            <div>
+              <label className="forti-label">Comment</label>
+              <input className="forti-input w-full" value={avForm.comment} onChange={(e) => setAvForm({ ...avForm, comment: e.target.value })} placeholder="Description" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {(['httpScan', 'ftpScan', 'imapScan', 'pop3Scan', 'smtpScan'] as const).map(key => (
+                <label key={key} className="flex items-center gap-2 text-[11px]">
+                  <input type="checkbox" checked={avForm[key]} onChange={() => setAvForm({ ...avForm, [key]: !avForm[key] })} />
+                  {key.replace('Scan', '').toUpperCase()}
+                </label>
+              ))}
+            </div>
+            <div>
+              <label className="forti-label">Action</label>
+              <select className="forti-select w-full" value={avForm.action} onChange={(e) => setAvForm({ ...avForm, action: e.target.value as any })}>
+                <option value="block">Block</option>
+                <option value="monitor">Monitor</option>
+                <option value="quarantine">Quarantine</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={avForm.emulatorEnabled} onChange={() => setAvForm({ ...avForm, emulatorEnabled: !avForm.emulatorEnabled })} />
+              <span className="text-[11px]">Enable Emulator</span>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" size="sm" onClick={() => setAvModalOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleSaveAv}>Save</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Web Profile Modal */}
+      <Dialog open={webModalOpen} onOpenChange={setWebModalOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>{editingWeb ? 'Edit Web Filter Profile' : 'Create Web Filter Profile'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="forti-label">Name *</label>
+              <input className="forti-input w-full" value={webForm.name} onChange={(e) => setWebForm({ ...webForm, name: e.target.value })} placeholder="e.g., strict-filter" />
+            </div>
+            <div>
+              <label className="forti-label">Comment</label>
+              <input className="forti-input w-full" value={webForm.comment} onChange={(e) => setWebForm({ ...webForm, comment: e.target.value })} placeholder="Description" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="forti-label">Mode</label>
+                <select className="forti-select w-full" value={webForm.mode} onChange={(e) => setWebForm({ ...webForm, mode: e.target.value as any })}>
+                  <option value="proxy">Proxy</option>
+                  <option value="flow">Flow</option>
+                  <option value="dns">DNS</option>
+                </select>
+              </div>
+              <div>
+                <label className="forti-label">Action</label>
+                <select className="forti-select w-full" value={webForm.action} onChange={(e) => setWebForm({ ...webForm, action: e.target.value as any })}>
+                  <option value="block">Block</option>
+                  <option value="warning">Warning</option>
+                  <option value="monitor">Monitor</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-[11px]">
+                <input type="checkbox" checked={webForm.urlFiltering} onChange={() => setWebForm({ ...webForm, urlFiltering: !webForm.urlFiltering })} />
+                URL Filtering
+              </label>
+              <label className="flex items-center gap-2 text-[11px]">
+                <input type="checkbox" checked={webForm.safeSearch} onChange={() => setWebForm({ ...webForm, safeSearch: !webForm.safeSearch })} />
+                Safe Search
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" size="sm" onClick={() => setWebModalOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleSaveWeb}>Save</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmations */}
+      <AlertDialog open={!!deleteAvId} onOpenChange={() => setDeleteAvId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete AntiVirus Profile</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAv} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deleteWebId} onOpenChange={() => setDeleteWebId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Web Filter Profile</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure? This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteWeb} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };

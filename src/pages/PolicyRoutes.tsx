@@ -2,6 +2,7 @@ import { Shell } from '@/components/layout/Shell';
 import { Plus, Edit, Trash2, RefreshCw, Search, Route, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { FortiToggle } from '@/components/ui/forti-toggle';
+import { toast } from 'sonner';
 
 interface PolicyRoute {
   id: string;
@@ -53,15 +54,15 @@ const PolicyRoutes = () => {
         {/* Toolbar */}
         <div className="flex items-center justify-between bg-muted/30 border border-border rounded px-2 py-1.5">
           <div className="flex items-center gap-1">
-            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90">
+            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90" onClick={() => toast.success('Create policy route dialog opened')}>
               <Plus size={12} />
               Create New
             </button>
-            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/80">
+            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/80" onClick={() => toast.info('Select a route to edit')}>
               <Edit size={12} />
               Edit
             </button>
-            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-destructive/10 text-destructive rounded hover:bg-destructive/20">
+            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-destructive/10 text-destructive rounded hover:bg-destructive/20" onClick={() => toast.info('Select a route to delete')}>
               <Trash2 size={12} />
               Delete
             </button>
@@ -77,7 +78,7 @@ const PolicyRoutes = () => {
                 className="pl-7 pr-3 py-1 text-xs bg-background border border-border rounded w-48 focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
-            <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded">
+            <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded" onClick={() => toast.success('Policy routes refreshed')}>
               <RefreshCw size={14} />
             </button>
           </div>

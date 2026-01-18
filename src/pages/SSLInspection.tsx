@@ -343,11 +343,15 @@ const SSLInspection = () => {
             <p className="text-xs text-muted-foreground mt-0.5">Manage certificates and deep inspection profiles</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toast.success('Data refreshed')}>
               <RefreshCw size={14} />
               Refresh
             </Button>
-            <Button size="sm" className="gap-1.5 bg-[#4caf50] hover:bg-[#43a047]">
+            <Button size="sm" className="gap-1.5 bg-[#4caf50] hover:bg-[#43a047]" onClick={() => {
+              if (activeTab === 'profiles') openProfileModal();
+              else if (activeTab === 'certificates' || activeTab === 'ca') setShowCertModal(true);
+              else toast.info('Select profiles or certificates tab first');
+            }}>
               <Plus size={14} />
               Create New
             </Button>
