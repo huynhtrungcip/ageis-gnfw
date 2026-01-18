@@ -1,6 +1,7 @@
-import { Shell } from "@/components/layout/Shell";
-import { Button } from "@/components/ui/button";
-import { FortiToggle } from "@/components/ui/forti-toggle";
+import { useState } from 'react';
+import { Shell } from '@/components/layout/Shell';
+import { cn } from '@/lib/utils';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
   Edit2, 
@@ -10,8 +11,7 @@ import {
   ChevronDown,
   Database,
   Layers
-} from "lucide-react";
-import { useState } from "react";
+} from 'lucide-react';
 
 interface IPPool {
   id: string;
@@ -85,6 +85,8 @@ const mockPools: IPPool[] = [
 const IPPools = () => {
   const [pools, setPools] = useState<IPPool[]>(mockPools);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const togglePool = (id: string) => {
     setPools(prev => prev.map(pool => 
@@ -92,7 +94,14 @@ const IPPools = () => {
     ));
   };
 
+  const handleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   const filteredPools = pools.filter(pool => 
+    searchQuery === '' ||
     pool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     pool.startIP.includes(searchQuery) ||
     pool.endIP.includes(searchQuery)
@@ -103,157 +112,155 @@ const IPPools = () => {
       case 'overload': return 'Overload';
       case 'one-to-one': return 'One-to-One';
       case 'fixed-port-range': return 'Fixed Port Range';
-      case 'port-block-allocation': return 'Port Block Allocation';
+      case 'port-block-allocation': return 'Port Block';
     }
   };
-
-  const getTypeBadgeColor = (type: IPPool['type']) => {
-    switch (type) {
-      case 'overload': return 'bg-blue-500/20 text-blue-400';
-      case 'one-to-one': return 'bg-green-500/20 text-green-400';
-      case 'fixed-port-range': return 'bg-purple-500/20 text-purple-400';
-      case 'port-block-allocation': return 'bg-orange-500/20 text-orange-400';
-    }
-  };
-
-  const totalIPs = pools.reduce((a, p) => a + p.totalIPs, 0);
-  const usedIPs = pools.reduce((a, p) => a + p.usedIPs, 0);
 
   return (
     <Shell>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-semibold text-white">IP Pools</h1>
-            <span className="text-xs text-gray-400 px-2 py-0.5 bg-[#1e2d3d] rounded">
-              {pools.length} pools
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button size="sm" className="h-7 text-xs bg-[#4caf50] hover:bg-[#45a049] text-white">
-              <Plus size={12} className="mr-1" />
+      <div className="space-y-0 animate-slide-in">
+        {/* FortiGate Toolbar */}
+        <div className="forti-toolbar">
+          <div className="relative">
+            <button 
+              className="forti-toolbar-btn primary"
+              onClick={() => setShowCreateMenu(!showCreateMenu)}
+            >
+              <Plus className="w-3 h-3" />
               Create New
-              <ChevronDown size={10} className="ml-1" />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <Edit2 size={12} />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <Trash2 size={12} />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <RefreshCw size={12} />
-            </Button>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {showCreateMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                  <Database className="w-3 h-3" />
+                  Overload
+                </button>
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                  <Layers className="w-3 h-3" />
+                  One-to-One
+                </button>
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                  <Database className="w-3 h-3" />
+                  Fixed Port Range
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Search */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search IP Pools..."
+          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+            <Edit2 className="w-3 h-3" />
+            Edit
+          </button>
+          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn">
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+          <div className="flex-1" />
+          <div className="forti-search">
+            <Search className="w-3 h-3 text-[#999]" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              className="w-40"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-7 pl-7 pr-3 text-xs bg-[#1e2d3d] border border-[#2a3f54] rounded text-gray-300 placeholder-gray-500 focus:outline-none focus:border-[#4caf50]"
             />
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-4 gap-3">
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Total Pools</div>
-            <div className="text-xl font-bold text-white">{pools.length}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Active Pools</div>
-            <div className="text-xl font-bold text-green-400">{pools.filter(p => p.enabled).length}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Total IPs</div>
-            <div className="text-xl font-bold text-blue-400">{totalIPs}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">IP Usage</div>
-            <div className="text-xl font-bold text-purple-400">{Math.round((usedIPs / totalIPs) * 100)}%</div>
-          </div>
-        </div>
-
         {/* Table */}
-        <div className="bg-[#1e2d3d] rounded border border-[#2a3f54] overflow-hidden">
-          <table className="w-full text-xs">
+        <div className="p-4">
+          <table className="data-table">
             <thead>
-              <tr className="bg-[#16232f] text-gray-400 text-left">
-                <th className="px-3 py-2 font-medium w-10"></th>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Type</th>
-                <th className="px-3 py-2 font-medium">IP Range</th>
-                <th className="px-3 py-2 font-medium">Interface</th>
-                <th className="px-3 py-2 font-medium">ARP Reply</th>
-                <th className="px-3 py-2 font-medium">Usage</th>
-                <th className="px-3 py-2 font-medium">Status</th>
+              <tr>
+                <th className="w-8">
+                  <input type="checkbox" className="forti-checkbox" />
+                </th>
+                <th className="w-16">Status</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Start IP</th>
+                <th>End IP</th>
+                <th>Interface</th>
+                <th>ARP Reply</th>
+                <th>Usage</th>
               </tr>
             </thead>
             <tbody>
               {filteredPools.map((pool) => (
-                <tr 
-                  key={pool.id} 
-                  className="border-t border-[#2a3f54] hover:bg-[#2a3f54]/30 transition-colors"
-                >
-                  <td className="px-3 py-2">
-                    <input type="checkbox" className="rounded bg-[#16232f] border-[#2a3f54]" />
+                <tr key={pool.id} className={cn(!pool.enabled && "opacity-60", selectedIds.includes(pool.id) && "selected")}>
+                  <td>
+                    <input 
+                      type="checkbox" 
+                      className="forti-checkbox"
+                      checked={selectedIds.includes(pool.id)}
+                      onChange={() => handleSelect(pool.id)}
+                    />
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
+                    <FortiToggle 
+                      enabled={pool.enabled} 
+                      onToggle={() => togglePool(pool.id)}
+                      size="sm"
+                    />
+                  </td>
+                  <td>
                     <div className="flex items-center gap-2">
-                      <Database size={14} className="text-purple-400" />
+                      <Database className="w-3 h-3 text-purple-600" />
                       <div>
-                        <div className="text-white font-medium">{pool.name}</div>
-                        <div className="text-gray-500 text-[10px]">{pool.comments}</div>
+                        <div className="text-[11px] font-medium">{pool.name}</div>
+                        <div className="text-[10px] text-[#999]">{pool.comments}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] ${getTypeBadgeColor(pool.type)}`}>
+                  <td>
+                    <span className={cn(
+                      "text-[10px] px-1.5 py-0.5 border",
+                      pool.type === 'overload' && "bg-blue-100 text-blue-700 border-blue-200",
+                      pool.type === 'one-to-one' && "bg-green-100 text-green-700 border-green-200",
+                      pool.type === 'fixed-port-range' && "bg-purple-100 text-purple-700 border-purple-200",
+                      pool.type === 'port-block-allocation' && "bg-orange-100 text-orange-700 border-orange-200"
+                    )}>
                       {getTypeLabel(pool.type)}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
-                    <div className="text-white">{pool.startIP}</div>
-                    <div className="text-gray-500 text-[10px]">to {pool.endIP}</div>
+                  <td className="mono text-[11px]">{pool.startIP}</td>
+                  <td className="mono text-[11px]">{pool.endIP}</td>
+                  <td>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">
+                      {pool.associatedInterface}
+                    </span>
                   </td>
-                  <td className="px-3 py-2 text-gray-300">{pool.associatedInterface}</td>
-                  <td className="px-3 py-2">
+                  <td>
                     {pool.arpReply ? (
-                      <span className="text-green-400">Enable</span>
+                      <span className="text-[10px] text-green-600">Enable</span>
                     ) : (
-                      <span className="text-gray-500">Disable</span>
+                      <span className="text-[10px] text-[#999]">Disable</span>
                     )}
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-[#16232f] rounded-full overflow-hidden">
+                      <div className="w-16 h-1.5 bg-[#e0e0e0] rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-blue-500 rounded-full"
                           style={{ width: `${(pool.usedIPs / pool.totalIPs) * 100}%` }}
                         />
                       </div>
-                      <span className="text-gray-400 text-[10px]">{pool.usedIPs}/{pool.totalIPs}</span>
+                      <span className="text-[10px] text-[#666]">{pool.usedIPs}/{pool.totalIPs}</span>
                     </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <FortiToggle 
-                      enabled={pool.enabled} 
-                      onToggle={() => togglePool(pool.id)} 
-                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <div className="text-[11px] text-[#666] mt-2 px-1">
+            {filteredPools.length} IP pools
+          </div>
         </div>
       </div>
     </Shell>

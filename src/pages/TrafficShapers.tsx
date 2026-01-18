@@ -1,6 +1,7 @@
-import { Shell } from "@/components/layout/Shell";
-import { Button } from "@/components/ui/button";
-import { FortiToggle } from "@/components/ui/forti-toggle";
+import { useState } from 'react';
+import { Shell } from '@/components/layout/Shell';
+import { cn } from '@/lib/utils';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
   Edit2, 
@@ -8,10 +9,8 @@ import {
   RefreshCw,
   Search,
   ChevronDown,
-  Gauge,
-  ArrowUpDown
-} from "lucide-react";
-import { useState } from "react";
+  Gauge
+} from 'lucide-react';
 
 interface TrafficShaper {
   id: string;
@@ -111,6 +110,8 @@ const mockShapers: TrafficShaper[] = [
 const TrafficShapers = () => {
   const [shapers, setShapers] = useState<TrafficShaper[]>(mockShapers);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const toggleShaper = (id: string) => {
     setShapers(prev => prev.map(shaper => 
@@ -118,156 +119,163 @@ const TrafficShapers = () => {
     ));
   };
 
+  const handleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   const filteredShapers = shapers.filter(shaper => 
+    searchQuery === '' ||
     shaper.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getPriorityColor = (priority: TrafficShaper['priority']) => {
-    switch (priority) {
-      case 'high': return 'bg-red-500/20 text-red-400';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-400';
-      case 'low': return 'bg-blue-500/20 text-blue-400';
-    }
-  };
-
   const formatBandwidth = (kbps: number) => {
     if (kbps >= 1000) {
-      return `${(kbps / 1000).toFixed(1)} Mbps`;
+      return `${(kbps / 1000).toFixed(0)} Mbps`;
     }
     return `${kbps} Kbps`;
   };
 
   return (
     <Shell>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-semibold text-white">Traffic Shapers</h1>
-            <span className="text-xs text-gray-400 px-2 py-0.5 bg-[#1e2d3d] rounded">
-              {shapers.length} shapers
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button size="sm" className="h-7 text-xs bg-[#4caf50] hover:bg-[#45a049] text-white">
-              <Plus size={12} className="mr-1" />
+      <div className="space-y-0 animate-slide-in">
+        {/* FortiGate Toolbar */}
+        <div className="forti-toolbar">
+          <div className="relative">
+            <button 
+              className="forti-toolbar-btn primary"
+              onClick={() => setShowCreateMenu(!showCreateMenu)}
+            >
+              <Plus className="w-3 h-3" />
               Create New
-              <ChevronDown size={10} className="ml-1" />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <Edit2 size={12} />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <Trash2 size={12} />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <RefreshCw size={12} />
-            </Button>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {showCreateMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                  <Gauge className="w-3 h-3" />
+                  Shared Shaper
+                </button>
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                  <Gauge className="w-3 h-3" />
+                  Per-IP Shaper
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Search */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search Traffic Shapers..."
+          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+            <Edit2 className="w-3 h-3" />
+            Edit
+          </button>
+          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn">
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+          <div className="flex-1" />
+          <div className="forti-search">
+            <Search className="w-3 h-3 text-[#999]" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              className="w-40"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-7 pl-7 pr-3 text-xs bg-[#1e2d3d] border border-[#2a3f54] rounded text-gray-300 placeholder-gray-500 focus:outline-none focus:border-[#4caf50]"
             />
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-4 gap-3">
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Total Shapers</div>
-            <div className="text-xl font-bold text-white">{shapers.length}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Active</div>
-            <div className="text-xl font-bold text-green-400">{shapers.filter(s => s.enabled).length}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Shared</div>
-            <div className="text-xl font-bold text-blue-400">{shapers.filter(s => s.type === 'shared').length}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Per-IP</div>
-            <div className="text-xl font-bold text-purple-400">{shapers.filter(s => s.type === 'per-ip').length}</div>
-          </div>
-        </div>
-
         {/* Table */}
-        <div className="bg-[#1e2d3d] rounded border border-[#2a3f54] overflow-hidden">
-          <table className="w-full text-xs">
+        <div className="p-4">
+          <table className="data-table">
             <thead>
-              <tr className="bg-[#16232f] text-gray-400 text-left">
-                <th className="px-3 py-2 font-medium w-10"></th>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Type</th>
-                <th className="px-3 py-2 font-medium">Guaranteed</th>
-                <th className="px-3 py-2 font-medium">Maximum</th>
-                <th className="px-3 py-2 font-medium">Burst</th>
-                <th className="px-3 py-2 font-medium">Priority</th>
-                <th className="px-3 py-2 font-medium">Current Usage</th>
-                <th className="px-3 py-2 font-medium">Status</th>
+              <tr>
+                <th className="w-8">
+                  <input type="checkbox" className="forti-checkbox" />
+                </th>
+                <th className="w-16">Status</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Guaranteed</th>
+                <th>Maximum</th>
+                <th>Burst</th>
+                <th>Priority</th>
+                <th>Current Usage</th>
               </tr>
             </thead>
             <tbody>
               {filteredShapers.map((shaper) => (
-                <tr 
-                  key={shaper.id} 
-                  className="border-t border-[#2a3f54] hover:bg-[#2a3f54]/30 transition-colors"
-                >
-                  <td className="px-3 py-2">
-                    <input type="checkbox" className="rounded bg-[#16232f] border-[#2a3f54]" />
+                <tr key={shaper.id} className={cn(!shaper.enabled && "opacity-60", selectedIds.includes(shaper.id) && "selected")}>
+                  <td>
+                    <input 
+                      type="checkbox" 
+                      className="forti-checkbox"
+                      checked={selectedIds.includes(shaper.id)}
+                      onChange={() => handleSelect(shaper.id)}
+                    />
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
+                    <FortiToggle 
+                      enabled={shaper.enabled} 
+                      onToggle={() => toggleShaper(shaper.id)}
+                      size="sm"
+                    />
+                  </td>
+                  <td>
                     <div className="flex items-center gap-2">
-                      <Gauge size={14} className="text-orange-400" />
-                      <span className="text-white font-medium">{shaper.name}</span>
+                      <Gauge className="w-3 h-3 text-orange-600" />
+                      <span className="text-[11px] font-medium">{shaper.name}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] ${
-                      shaper.type === 'shared' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
-                    }`}>
+                  <td>
+                    <span className={cn(
+                      "text-[10px] px-1.5 py-0.5 border",
+                      shaper.type === 'shared' && "bg-blue-100 text-blue-700 border-blue-200",
+                      shaper.type === 'per-ip' && "bg-purple-100 text-purple-700 border-purple-200"
+                    )}>
                       {shaper.type === 'shared' ? 'Shared' : 'Per-IP'}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-gray-300">{formatBandwidth(shaper.guaranteedBandwidth)}</td>
-                  <td className="px-3 py-2 text-gray-300">{formatBandwidth(shaper.maximumBandwidth)}</td>
-                  <td className="px-3 py-2 text-gray-300">{formatBandwidth(shaper.burstBandwidth)}</td>
-                  <td className="px-3 py-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] ${getPriorityColor(shaper.priority)}`}>
+                  <td className="mono text-[11px]">{formatBandwidth(shaper.guaranteedBandwidth)}</td>
+                  <td className="mono text-[11px]">{formatBandwidth(shaper.maximumBandwidth)}</td>
+                  <td className="mono text-[11px]">{formatBandwidth(shaper.burstBandwidth)}</td>
+                  <td>
+                    <span className={cn(
+                      "text-[10px] px-1.5 py-0.5 border",
+                      shaper.priority === 'high' && "bg-red-100 text-red-700 border-red-200",
+                      shaper.priority === 'medium' && "bg-yellow-100 text-yellow-700 border-yellow-200",
+                      shaper.priority === 'low' && "bg-blue-100 text-blue-700 border-blue-200"
+                    )}>
                       {shaper.priority.charAt(0).toUpperCase() + shaper.priority.slice(1)}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-[#16232f] rounded-full overflow-hidden max-w-[60px]">
+                      <div className="w-16 h-1.5 bg-[#e0e0e0] rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-green-500 rounded-full"
-                          style={{ width: `${(shaper.currentUsage / shaper.maximumBandwidth) * 100}%` }}
+                          className={cn(
+                            "h-full rounded-full",
+                            shaper.currentUsage / shaper.maximumBandwidth > 0.8 ? "bg-red-500" :
+                            shaper.currentUsage / shaper.maximumBandwidth > 0.5 ? "bg-yellow-500" : "bg-green-500"
+                          )}
+                          style={{ width: `${Math.min((shaper.currentUsage / shaper.maximumBandwidth) * 100, 100)}%` }}
                         />
                       </div>
-                      <span className="text-gray-400 text-[10px]">{formatBandwidth(shaper.currentUsage)}</span>
+                      <span className="text-[10px] text-[#666]">{formatBandwidth(shaper.currentUsage)}</span>
                     </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <FortiToggle 
-                      enabled={shaper.enabled} 
-                      onToggle={() => toggleShaper(shaper.id)} 
-                    />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <div className="text-[11px] text-[#666] mt-2 px-1">
+            {filteredShapers.length} traffic shapers
+          </div>
         </div>
       </div>
     </Shell>
