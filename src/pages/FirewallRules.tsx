@@ -4,30 +4,21 @@ import { mockFirewallRules } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { 
   Plus, 
-  Pencil, 
-  Trash2, 
-  GripVertical, 
-  RefreshCw, 
   Search,
   Copy,
   Shield,
   ArrowUp,
   ArrowDown,
-  ToggleLeft,
-  Filter
+  GripVertical,
+  Check,
+  X,
+  Network,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { FirewallRuleModal } from '@/components/firewall/FirewallRuleModal';
 import type { FirewallRule } from '@/types/firewall';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   DndContext,
   closestCenter,
@@ -45,6 +36,15 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Checkbox } from '@/components/ui/checkbox';
+
+// Group rules by interface pair
+interface InterfacePair {
+  from: string;
+  to: string;
+  rules: FirewallRule[];
+  expanded: boolean;
+}
 
 interface SortableRowProps {
   rule: FirewallRule;
@@ -52,12 +52,11 @@ interface SortableRowProps {
   isSelected: boolean;
   onSelect: (id: string) => void;
   onEdit: (rule: FirewallRule) => void;
-  onDelete: (id: string) => void;
-  formatHits: (n: number) => string;
+  formatBytes: (n: number) => string;
   isDraggingDisabled: boolean;
 }
 
-function SortableRow({ rule, index, isSelected, onSelect, onEdit, onDelete, formatHits, isDraggingDisabled }: SortableRowProps) {
+function SortableRow({ rule, index, isSelected, onSelect, onEdit, formatBytes, isDraggingDisabled }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -81,91 +80,73 @@ function SortableRow({ rule, index, isSelected, onSelect, onEdit, onDelete, form
       className={cn(
         "cursor-pointer",
         !rule.enabled && "opacity-50",
-        isDragging && "bg-muted/50 shadow-lg",
-        isSelected && "selected"
+        isDragging && "bg-yellow-50",
+        isSelected && "bg-[#fff8e1]"
       )}
     >
-      <td>
-        <div className="flex items-center gap-1">
-          <input 
-            type="checkbox" 
-            checked={isSelected}
-            onChange={() => onSelect(rule.id)}
-            className="rounded"
-          />
-          {!isDraggingDisabled && (
-            <button
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-0.5 hover:bg-muted rounded transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <GripVertical size={12} className="text-muted-foreground/50" />
-            </button>
-          )}
-        </div>
+      <td className="w-8 text-center">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={() => onSelect(rule.id)}
+          onClick={(e) => e.stopPropagation()}
+        />
       </td>
-      <td className="text-muted-foreground font-mono text-xs">{index + 1}</td>
-      <td className="font-medium text-xs">
+      <td className="w-10 text-center text-[11px] text-[#666]">{index + 1}</td>
+      <td className="text-[11px] font-medium text-[#333]" onDoubleClick={() => onEdit(rule)}>
         {rule.description || `Rule-${index + 1}`}
       </td>
-      <td>
-        <span className={cn(
-          "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
-          rule.interface === 'WAN' ? 'bg-blue-100 text-blue-700' :
-          rule.interface === 'LAN' ? 'bg-green-100 text-green-700' :
-          'bg-purple-100 text-purple-700'
-        )}>
-          {rule.interface}
+      <td className="text-[11px]">
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 bg-[#4caf50] rounded-sm" />
+          {rule.source.value === '*' ? 'all' : rule.source.value}
         </span>
       </td>
-      <td>
-        <span className={cn(
-          "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
-          rule.interface === 'WAN' ? 'bg-blue-100 text-blue-700' :
-          rule.interface === 'LAN' ? 'bg-green-100 text-green-700' :
-          'bg-purple-100 text-purple-700'
-        )}>
-          {rule.interface === 'WAN' ? 'LAN' : 'WAN'}
+      <td className="text-[11px]">
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 bg-[#2196f3] rounded-sm" />
+          {rule.destination.value === '*' ? 'all' : rule.destination.value}
         </span>
       </td>
-      <td className="font-mono text-xs text-muted-foreground">
-        {rule.source.value === '*' ? 'all' : rule.source.value}
-      </td>
-      <td className="font-mono text-xs text-muted-foreground">
-        {rule.destination.value === '*' ? 'all' : rule.destination.value}
-      </td>
-      <td className="text-xs text-muted-foreground">
-        {rule.schedule || 'always'}
-      </td>
-      <td className="text-xs text-muted-foreground">
-        {rule.destination.port || 'ALL'}
-      </td>
-      <td>
-        <span className={cn(
-          "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium",
-          rule.action === 'pass' ? 'bg-green-100 text-green-700' : 
-          rule.action === 'block' ? 'bg-red-100 text-red-700' : 
-          'bg-yellow-100 text-yellow-700'
-        )}>
-          {rule.action === 'pass' ? 'ACCEPT' : rule.action.toUpperCase()}
+      <td className="text-[11px] text-[#666]">
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 bg-gray-300 rounded-sm text-[8px] flex items-center justify-center">📅</span>
+          {rule.schedule || 'always'}
         </span>
       </td>
-      <td>
+      <td className="text-[11px]">
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 bg-purple-400 rounded-sm text-white text-[8px] flex items-center justify-center">⚡</span>
+          {rule.destination.port || 'ALL'}
+        </span>
+      </td>
+      <td className="text-[11px]">
         <span className={cn(
-          "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
-          rule.enabled 
-            ? 'bg-green-100 text-green-700' 
-            : 'bg-gray-100 text-gray-500'
+          "inline-flex items-center gap-1",
+          rule.action === 'pass' ? 'text-[#4caf50]' : 'text-red-500'
+        )}>
+          {rule.action === 'pass' ? <Check size={12} /> : <X size={12} />}
+          {rule.action === 'pass' ? 'ACCEPT' : 'DENY'}
+        </span>
+      </td>
+      <td className="text-[11px]">
+        <span className={cn(
+          "inline-flex items-center gap-1",
+          rule.enabled ? 'text-[#4caf50]' : 'text-[#999]'
         )}>
           <span className={cn(
-            "w-1.5 h-1.5 rounded-full",
-            rule.enabled ? 'bg-green-500' : 'bg-gray-400'
+            "w-2 h-2 rounded-full",
+            rule.enabled ? 'bg-[#4caf50]' : 'bg-[#ccc]'
           )} />
           {rule.enabled ? 'Enabled' : 'Disabled'}
         </span>
       </td>
-      <td className="text-right font-mono text-xs text-muted-foreground">{formatHits(rule.hits)}</td>
+      <td className="text-[11px] text-[#666]">
+        <span className="inline-flex items-center gap-1">
+          <Shield size={10} />
+          UTM
+        </span>
+      </td>
+      <td className="text-[11px] text-right text-[#666]">{formatBytes(rule.hits * 1024)}</td>
     </tr>
   );
 }
@@ -173,51 +154,60 @@ function SortableRow({ rule, index, isSelected, onSelect, onEdit, onDelete, form
 const FirewallRules = () => {
   const [rules, setRules] = useState(mockFirewallRules);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [iface, setIface] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<FirewallRule | null>(null);
+  const [viewMode, setViewMode] = useState<'sequence' | 'interface'>('interface');
+  const [expandedPairs, setExpandedPairs] = useState<string[]>(['lan-wan1', 'vlan-kinhdoanh-vlan-kythuat']);
 
-  const interfaces = ['all', 'WAN', 'LAN', 'DMZ'];
-  const filtered = rules.filter(r => {
-    const matchesIface = iface === 'all' || r.interface === iface;
-    const matchesSearch = searchQuery === '' || 
-      r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.source.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.destination.value.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesIface && matchesSearch;
-  });
-  const isDraggingDisabled = iface !== 'all' || searchQuery !== '';
+  // Group rules by interface pairs for Interface Pair View
+  const getInterfacePairs = (): InterfacePair[] => {
+    const pairMap = new Map<string, FirewallRule[]>();
+    rules.forEach(rule => {
+      const from = rule.interface;
+      const to = rule.interface === 'WAN' ? 'LAN' : 'WAN';
+      const key = `${from.toLowerCase()}-${to.toLowerCase()}`;
+      if (!pairMap.has(key)) {
+        pairMap.set(key, []);
+      }
+      pairMap.get(key)!.push(rule);
+    });
+
+    // Create demo interface pairs like FortiGate
+    const demoPairs: InterfacePair[] = [
+      { from: 'lan', to: 'wan1', rules: rules.filter(r => r.interface === 'LAN').slice(0, 2), expanded: true },
+      { from: 'Vlan-Kinhdoanh', to: 'Vlan-Kythuat', rules: rules.filter(r => r.interface === 'LAN').slice(0, 1), expanded: true },
+      { from: 'Vlan-Kinhdoanh', to: 'Vlan-Office', rules: rules.filter(r => r.interface === 'DMZ').slice(0, 1), expanded: true },
+      { from: 'Vlan-Kinhdoanh', to: 'wan1', rules: [], expanded: false },
+      { from: 'Vlan-Kythuat', to: 'Vlan-Kinhdoanh', rules: rules.filter(r => r.interface === 'WAN').slice(0, 1), expanded: true },
+    ];
+
+    return demoPairs;
+  };
+
+  const interfacePairs = getInterfacePairs();
+  const isDraggingDisabled = searchQuery !== '';
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
+      activationConstraint: { distance: 8 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  const formatHits = (n: number) => {
-    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-    return n.toString();
+  const formatBytes = (bytes: number) => {
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+    if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return bytes + ' B';
   };
 
   const handleSelect = (id: string) => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedIds.length === filtered.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(filtered.map(r => r.id));
-    }
   };
 
   const handleAddRule = () => {
@@ -249,248 +239,218 @@ const FirewallRules = () => {
     }
   };
 
-  const handleDeleteRule = (ruleId: string) => {
-    setRules(prev => prev.filter(r => r.id !== ruleId));
-    setSelectedIds(prev => prev.filter(id => id !== ruleId));
-    toast.success('Rule deleted');
-  };
-
   const handleDeleteSelected = () => {
     setRules(prev => prev.filter(r => !selectedIds.includes(r.id)));
     toast.success(`${selectedIds.length} rules deleted`);
     setSelectedIds([]);
   };
 
-  const handleCloneSelected = () => {
-    const cloned = selectedIds.map(id => {
-      const rule = rules.find(r => r.id === id);
-      if (rule) {
-        return {
-          ...rule,
-          id: `rule-${Date.now()}-${Math.random()}`,
-          description: `${rule.description} (copy)`,
-          order: rules.length + 1,
-        };
-      }
-      return null;
-    }).filter(Boolean) as FirewallRule[];
-    
-    setRules(prev => [...prev, ...cloned]);
-    toast.success(`${cloned.length} rules cloned`);
-    setSelectedIds([]);
-  };
-
-  const handleMoveUp = () => {
-    if (selectedIds.length !== 1) return;
-    const idx = rules.findIndex(r => r.id === selectedIds[0]);
-    if (idx > 0) {
-      setRules(prev => arrayMove(prev, idx, idx - 1));
-      toast.success('Rule moved up');
-    }
-  };
-
-  const handleMoveDown = () => {
-    if (selectedIds.length !== 1) return;
-    const idx = rules.findIndex(r => r.id === selectedIds[0]);
-    if (idx < rules.length - 1) {
-      setRules(prev => arrayMove(prev, idx, idx + 1));
-      toast.success('Rule moved down');
-    }
-  };
-
-  const handleToggleSelected = () => {
-    setRules(prev => prev.map(r => 
-      selectedIds.includes(r.id) ? { ...r, enabled: !r.enabled } : r
-    ));
-    toast.success('Rules toggled');
-  };
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-
     if (over && active.id !== over.id) {
       setRules((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-        const newOrder = arrayMove(items, oldIndex, newIndex);
-        
-        const updatedOrder = newOrder.map((rule, idx) => ({
-          ...rule,
-          order: idx + 1,
-        }));
-        
         toast.success(`Rule moved to position ${newIndex + 1}`);
-        return updatedOrder;
+        return arrayMove(items, oldIndex, newIndex);
       });
     }
+  };
+
+  const togglePair = (pairKey: string) => {
+    setExpandedPairs(prev => 
+      prev.includes(pairKey) 
+        ? prev.filter(p => p !== pairKey)
+        : [...prev, pairKey]
+    );
   };
 
   const selectedRule = selectedIds.length === 1 ? rules.find(r => r.id === selectedIds[0]) : null;
 
   return (
     <Shell>
-      <div className="space-y-3">
-        {/* FortiGate-style Widget */}
-        <div className="widget">
-          <div className="widget-header">
-            <div className="flex items-center gap-2">
-              <Shield size={14} />
-              <span>IPv4 Policy</span>
-            </div>
-          </div>
+      <div className="space-y-0">
+        {/* FortiGate Toolbar */}
+        <div className="flex items-center gap-0.5 px-1 py-1 bg-[#f0f0f0] border border-[#ccc]">
+          <button onClick={handleAddRule} className="forti-toolbar-btn primary">
+            <Plus size={12} /> Create New
+          </button>
+          <button 
+            onClick={() => selectedRule && handleEditRule(selectedRule)}
+            className="forti-toolbar-btn"
+            disabled={selectedIds.length !== 1}
+          >
+            ✏️ Edit
+          </button>
+          <button 
+            onClick={handleDeleteSelected}
+            className="forti-toolbar-btn"
+            disabled={selectedIds.length === 0}
+          >
+            🗑️ Delete
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn">
+            <Search size={12} /> Policy Lookup
+          </button>
           
-          {/* FortiGate Toolbar */}
-          <div className="forti-toolbar">
-            <button onClick={handleAddRule} className="forti-toolbar-btn primary">
-              + Create New
-            </button>
-            <button 
-              onClick={() => selectedRule && handleEditRule(selectedRule)}
-              className="forti-toolbar-btn"
-              disabled={selectedIds.length !== 1}
-            >
-              ✏️ Edit
-            </button>
-            <button 
-              onClick={handleCloneSelected}
-              className="forti-toolbar-btn"
-              disabled={selectedIds.length === 0}
-            >
-              <Copy size={12} /> Clone
-            </button>
-            <button 
-              onClick={handleDeleteSelected}
-              className="forti-toolbar-btn"
-              disabled={selectedIds.length === 0}
-            >
-              🗑️ Delete
-            </button>
-            <div className="h-4 w-px bg-border mx-1" />
-            <button 
-              onClick={handleMoveUp}
-              className="forti-toolbar-btn"
-              disabled={selectedIds.length !== 1}
-            >
-              <ArrowUp size={12} />
-            </button>
-            <button 
-              onClick={handleMoveDown}
-              className="forti-toolbar-btn"
-              disabled={selectedIds.length !== 1}
-            >
-              <ArrowDown size={12} />
-            </button>
-            <button 
-              onClick={handleToggleSelected}
-              className="forti-toolbar-btn"
-              disabled={selectedIds.length === 0}
-            >
-              <ToggleLeft size={12} /> Toggle
-            </button>
-            <div className="flex-1" />
-            
-            {/* Filter */}
-            <div className="flex items-center gap-2">
-              <Select value={iface} onValueChange={setIface}>
-                <SelectTrigger className="h-7 w-28 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {interfaces.map((i) => (
-                    <SelectItem key={i} value={i}>
-                      {i === 'all' ? 'All' : i}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="forti-search">
-                <Search size={12} className="text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Search" 
-                  className="w-32"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
+          <div className="flex-1" />
           
-          {/* Policy Interface Selector Tabs */}
-          <div className="flex items-center gap-0 bg-muted border-b border-border">
-            <span className="px-3 py-1.5 text-xs text-muted-foreground">By Sequence</span>
-            <button className="px-3 py-1.5 text-xs bg-white border-x border-border font-medium">
-              By Sequence
-            </button>
-            <button className="px-3 py-1.5 text-xs text-muted-foreground hover:bg-white/50">
-              Interface Pair View
-            </button>
+          {/* Search */}
+          <div className="forti-search">
+            <input 
+              type="text" 
+              placeholder="Search" 
+              className="w-40"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Search size={12} className="text-[#999]" />
           </div>
 
-          {/* Rules Table */}
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
+          <div className="forti-toolbar-separator" />
+          
+          {/* View Toggle */}
+          <div className="forti-view-toggle">
+            <button 
+              className={cn("forti-view-btn", viewMode === 'interface' && "active")}
+              onClick={() => setViewMode('interface')}
+            >
+              Interface Pair View
+            </button>
+            <button 
+              className={cn("forti-view-btn", viewMode === 'sequence' && "active")}
+              onClick={() => setViewMode('sequence')}
+            >
+              By Sequence
+            </button>
+          </div>
+        </div>
+
+        {/* Policy Table */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="border border-[#ccc] border-t-0">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th className="w-14">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedIds.length === filtered.length && filtered.length > 0}
-                      onChange={handleSelectAll}
-                      className="rounded"
-                    />
-                  </th>
-                  <th className="w-12">Seq.#</th>
+                  <th className="w-8"></th>
+                  <th className="w-10">ID</th>
                   <th>Name</th>
-                  <th>From</th>
-                  <th>To</th>
                   <th>Source</th>
                   <th>Destination</th>
                   <th>Schedule</th>
                   <th>Service</th>
                   <th>Action</th>
-                  <th>Status</th>
+                  <th>NAT</th>
+                  <th>Security Profiles</th>
+                  <th>Log</th>
                   <th className="text-right">Bytes</th>
                 </tr>
               </thead>
               <tbody>
-                <SortableContext
-                  items={filtered.map(r => r.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {filtered.map((rule, idx) => (
-                    <SortableRow
-                      key={rule.id}
-                      rule={rule}
-                      index={idx}
-                      isSelected={selectedIds.includes(rule.id)}
-                      onSelect={handleSelect}
-                      onEdit={handleEditRule}
-                      onDelete={handleDeleteRule}
-                      formatHits={formatHits}
-                      isDraggingDisabled={isDraggingDisabled}
-                    />
-                  ))}
-                </SortableContext>
+                {viewMode === 'interface' ? (
+                  // Interface Pair View
+                  interfacePairs.map((pair, pairIdx) => {
+                    const pairKey = `${pair.from}-${pair.to}`;
+                    const isExpanded = expandedPairs.includes(pairKey);
+                    const ruleCount = pair.rules.length;
+                    
+                    return (
+                      <>
+                        {/* Interface Pair Header */}
+                        <tr 
+                          key={`pair-${pairIdx}`}
+                          className="group-header cursor-pointer"
+                          onClick={() => togglePair(pairKey)}
+                        >
+                          <td colSpan={12} className="py-1 px-2">
+                            <div className="flex items-center gap-2">
+                              <Checkbox className="border-white" />
+                              {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                              <span className="inline-flex items-center gap-1">
+                                <span className="w-3 h-3 bg-green-400 rounded-sm" />
+                                {pair.from}
+                              </span>
+                              <span>→</span>
+                              <span className="inline-flex items-center gap-1">
+                                <Network size={12} />
+                                {pair.to}
+                              </span>
+                              <span className="ml-2 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">
+                                {ruleCount}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                        
+                        {/* Rules in this pair */}
+                        {isExpanded && (
+                          <SortableContext
+                            items={pair.rules.map(r => r.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {pair.rules.map((rule, idx) => (
+                              <SortableRow
+                                key={rule.id}
+                                rule={rule}
+                                index={idx}
+                                isSelected={selectedIds.includes(rule.id)}
+                                onSelect={handleSelect}
+                                onEdit={handleEditRule}
+                                formatBytes={formatBytes}
+                                isDraggingDisabled={isDraggingDisabled}
+                              />
+                            ))}
+                          </SortableContext>
+                        )}
+                      </>
+                    );
+                  })
+                ) : (
+                  // Sequence View
+                  <SortableContext
+                    items={rules.filter(r => 
+                      searchQuery === '' || 
+                      r.description.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).map(r => r.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {rules
+                      .filter(r => searchQuery === '' || r.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map((rule, idx) => (
+                        <SortableRow
+                          key={rule.id}
+                          rule={rule}
+                          index={idx}
+                          isSelected={selectedIds.includes(rule.id)}
+                          onSelect={handleSelect}
+                          onEdit={handleEditRule}
+                          formatBytes={formatBytes}
+                          isDraggingDisabled={isDraggingDisabled}
+                        />
+                      ))}
+                  </SortableContext>
+                )}
+                
+                {/* Implicit Policy */}
+                <tr className="group-header">
+                  <td colSpan={12} className="py-1 px-2">
+                    <div className="flex items-center gap-2">
+                      <Checkbox className="border-white" />
+                      <ChevronRight size={12} />
+                      <span>Implicit</span>
+                      <span className="ml-2 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">1</span>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
-          </DndContext>
-          
-          {/* Footer */}
-          <div className="px-3 py-2 text-[11px] text-muted-foreground bg-muted border-t border-border flex items-center justify-between">
-            <span>{filtered.length} policies</span>
-            {isDraggingDisabled && searchQuery === '' && iface !== 'all' && (
-              <span className="text-amber-600">Drag reorder disabled when filtered</span>
-            )}
-            {selectedIds.length > 0 && (
-              <span>{selectedIds.length} selected</span>
-            )}
           </div>
-        </div>
+        </DndContext>
       </div>
 
       <FirewallRuleModal

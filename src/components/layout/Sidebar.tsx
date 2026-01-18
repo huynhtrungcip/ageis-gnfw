@@ -4,39 +4,31 @@ import {
   LayoutDashboard, 
   Shield, 
   Network, 
-  ScrollText, 
   Settings,
-  AlertTriangle,
   Globe,
   Router,
-  ArrowLeftRight,
   Lock,
   BarChart3,
-  FileWarning,
-  LineChart,
   Users,
   Database,
-  HardDrive,
   ChevronDown,
   ChevronRight,
   Server,
   Star,
   Search,
-  Zap,
   Layers,
   Monitor,
   ShieldAlert,
   FileText,
-  Bookmark,
+  Wifi,
   LucideIcon
 } from 'lucide-react';
 import { useState } from 'react';
-import { AegisLogo } from './AegisLogo';
 
 interface NavItem {
   label: string;
   path: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
   starred?: boolean;
 }
 
@@ -61,83 +53,34 @@ const navigation: NavSection[] = [
     icon: Layers,
     defaultOpen: false,
     items: [
-      { label: 'Physical Topology', path: '/topology', icon: Network },
-      { label: 'Fabric Connectors', path: '/connectors', icon: Zap },
+      { label: 'Physical Topology', path: '/topology' },
+      { label: 'Fabric Connectors', path: '/connectors' },
+    ],
+  },
+  {
+    title: 'FortiView',
+    icon: Monitor,
+    defaultOpen: false,
+    items: [
+      { label: 'Traffic', path: '/monitoring/traffic' },
+      { label: 'Threats', path: '/threats' },
     ],
   },
   {
     title: 'Network',
     icon: Network,
-    defaultOpen: true,
-    items: [
-      { label: 'Interfaces', path: '/interfaces', icon: Server, starred: true },
-      { label: 'DNS', path: '/dns', icon: Globe },
-      { label: 'SD-WAN', path: '/sdwan', icon: Globe },
-      { label: 'Static Routes', path: '/routing', icon: Router },
-      { label: 'DHCP Server', path: '/dhcp', icon: Database },
-    ],
-  },
-  {
-    title: 'Policy & Objects',
-    icon: Shield,
-    defaultOpen: true,
-    items: [
-      { label: 'Firewall Policy', path: '/firewall/rules', icon: Shield, starred: true },
-      { label: 'Addresses', path: '/firewall/aliases', icon: Network },
-      { label: 'Services', path: '/firewall/services', icon: Server },
-      { label: 'Schedules', path: '/firewall/schedules', icon: Settings },
-      { label: 'Virtual IPs', path: '/firewall/nat', icon: ArrowLeftRight },
-    ],
-  },
-  {
-    title: 'Security Profiles',
-    icon: ShieldAlert,
     defaultOpen: false,
     items: [
-      { label: 'AntiVirus', path: '/security/antivirus', icon: Shield },
-      { label: 'Web Filter', path: '/security/webfilter', icon: Globe },
-      { label: 'IPS', path: '/security/ids', icon: Lock, starred: true },
-      { label: 'Application Control', path: '/security/appcontrol', icon: Layers },
-    ],
-  },
-  {
-    title: 'VPN',
-    icon: Globe,
-    defaultOpen: false,
-    items: [
-      { label: 'IPsec Tunnels', path: '/vpn/ipsec', icon: Globe },
-      { label: 'SSL-VPN', path: '/vpn/ssl', icon: Lock },
-    ],
-  },
-  {
-    title: 'User & Authentication',
-    icon: Users,
-    defaultOpen: false,
-    items: [
-      { label: 'User Definition', path: '/system/users', icon: Users },
-      { label: 'User Groups', path: '/users/groups', icon: Users },
-      { label: 'LDAP Servers', path: '/users/ldap', icon: Server },
-    ],
-  },
-  {
-    title: 'Log & Report',
-    icon: BarChart3,
-    defaultOpen: false,
-    items: [
-      { label: 'Forward Traffic', path: '/monitoring/traffic', icon: LineChart },
-      { label: 'System Events', path: '/monitoring/logs', icon: ScrollText },
-      { label: 'Security Events', path: '/threats', icon: AlertTriangle, starred: true },
-      { label: 'Reports', path: '/reports', icon: BarChart3 },
-    ],
-  },
-  {
-    title: 'Monitor',
-    icon: Monitor,
-    defaultOpen: false,
-    items: [
-      { label: 'Threat Monitor', path: '/incidents', icon: FileWarning },
-      { label: 'IPsec Monitor', path: '/monitor/ipsec', icon: Globe },
-      { label: 'Routing Monitor', path: '/monitor/routing', icon: Router },
+      { label: 'Interfaces', path: '/interfaces', starred: true },
+      { label: 'DNS', path: '/dns' },
+      { label: 'Packet Capture', path: '/monitoring/traffic' },
+      { label: 'SD-WAN', path: '/sdwan', starred: true },
+      { label: 'Static Routes', path: '/routing' },
+      { label: 'Policy Routes', path: '/routing' },
+      { label: 'RIP', path: '/routing' },
+      { label: 'OSPF', path: '/routing' },
+      { label: 'BGP', path: '/routing' },
+      { label: 'Multicast', path: '/routing' },
     ],
   },
   {
@@ -145,10 +88,95 @@ const navigation: NavSection[] = [
     icon: Settings,
     defaultOpen: false,
     items: [
-      { label: 'Administrators', path: '/system/admins', icon: Users },
-      { label: 'Firmware', path: '/system/firmware', icon: HardDrive },
-      { label: 'Configuration', path: '/system/backup', icon: FileText },
-      { label: 'Settings', path: '/system/general', icon: Settings },
+      { label: 'Feature Visibility', path: '/system/general' },
+      { label: 'Administrators', path: '/system/admins' },
+      { label: 'Admin Profiles', path: '/system/admins' },
+      { label: 'Settings', path: '/system/general' },
+      { label: 'Firmware', path: '/system/firmware' },
+      { label: 'Certificates', path: '/security/ssl' },
+    ],
+  },
+  {
+    title: 'Policy & Objects',
+    icon: Shield,
+    defaultOpen: true,
+    items: [
+      { label: 'IPv4 Policy', path: '/firewall/rules', starred: true },
+      { label: 'Addresses', path: '/firewall/aliases' },
+      { label: 'Wildcard FQDN Addresses', path: '/firewall/aliases' },
+      { label: 'Internet Service Database', path: '/firewall/aliases' },
+      { label: 'Services', path: '/firewall/services' },
+      { label: 'Schedules', path: '/firewall/schedules' },
+      { label: 'Virtual IPs', path: '/firewall/nat' },
+      { label: 'IP Pools', path: '/firewall/nat' },
+      { label: 'Traffic Shapers', path: '/firewall/nat' },
+      { label: 'Traffic Shaping Policy', path: '/firewall/nat' },
+    ],
+  },
+  {
+    title: 'Security Profiles',
+    icon: ShieldAlert,
+    defaultOpen: false,
+    items: [
+      { label: 'AntiVirus', path: '/security/antivirus' },
+      { label: 'Web Filter', path: '/security/webfilter' },
+      { label: 'DNS Filter', path: '/security/webfilter' },
+      { label: 'Application Control', path: '/security/appcontrol' },
+      { label: 'IPS', path: '/security/ids', starred: true },
+      { label: 'SSL Inspection', path: '/security/ssl' },
+    ],
+  },
+  {
+    title: 'VPN',
+    icon: Globe,
+    defaultOpen: false,
+    items: [
+      { label: 'IPsec Tunnels', path: '/vpn/ipsec' },
+      { label: 'IPsec Wizard', path: '/vpn/ipsec' },
+      { label: 'SSL-VPN Settings', path: '/vpn/ssl' },
+      { label: 'SSL-VPN Portals', path: '/vpn/ssl' },
+    ],
+  },
+  {
+    title: 'User & Device',
+    icon: Users,
+    defaultOpen: false,
+    items: [
+      { label: 'User Definition', path: '/system/users' },
+      { label: 'User Groups', path: '/users/groups' },
+      { label: 'LDAP Servers', path: '/users/ldap' },
+      { label: 'RADIUS Servers', path: '/users/ldap' },
+    ],
+  },
+  {
+    title: 'WiFi & Switch Controller',
+    icon: Wifi,
+    defaultOpen: false,
+    items: [
+      { label: 'Managed FortiAPs', path: '/interfaces' },
+      { label: 'Managed FortiSwitches', path: '/interfaces' },
+    ],
+  },
+  {
+    title: 'Log & Report',
+    icon: BarChart3,
+    defaultOpen: false,
+    items: [
+      { label: 'Forward Traffic', path: '/monitoring/traffic' },
+      { label: 'Local Traffic', path: '/monitoring/traffic' },
+      { label: 'System Events', path: '/monitoring/logs' },
+      { label: 'Report', path: '/reports' },
+    ],
+  },
+  {
+    title: 'Monitor',
+    icon: Monitor,
+    defaultOpen: false,
+    items: [
+      { label: 'DHCP Monitor', path: '/dhcp' },
+      { label: 'Routing Monitor', path: '/routing' },
+      { label: 'IPsec Monitor', path: '/vpn/ipsec' },
+      { label: 'SSL-VPN Monitor', path: '/vpn/ssl' },
     ],
   },
 ];
@@ -172,38 +200,19 @@ export function Sidebar() {
     section.directPath === location.pathname || 
     section.items.some(item => location.pathname === item.path);
 
-  // Get starred items for favorites bar
-  const starredItems = navigation.flatMap(s => s.items.filter(i => i.starred));
-
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[220px] bg-[#2c3e50] flex flex-col z-40">
-      {/* Logo Header - Modern Aegis Logo */}
-      <div className="h-14 flex items-center justify-between px-3 bg-[#1a252f] border-b border-[#1a252f]">
-        <AegisLogo size="sm" />
-        <button className="text-gray-400 hover:text-white p-1">
-          <Search size={14} />
-        </button>
-      </div>
-
-      {/* Favorites Bar */}
-      <div className="px-2 py-1.5 bg-[#34495e] border-b border-[#2c3e50] flex items-center gap-1">
-        <Bookmark size={11} className="text-yellow-500 mr-1" />
-        {starredItems.map((item) => {
-          const IconComponent = item.icon;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "p-1.5 rounded text-gray-300 hover:bg-[#4caf50] hover:text-white transition-colors",
-                isActive(item.path) && "bg-[#4caf50] text-white"
-              )}
-              title={item.label}
-            >
-              <IconComponent size={13} />
-            </Link>
-          );
-        })}
+    <aside className="fixed left-0 top-0 h-screen w-[200px] flex flex-col z-40" style={{ background: '#1e2d3d' }}>
+      {/* Logo Header */}
+      <div className="h-9 flex items-center gap-2 px-3" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 bg-[#4caf50] rounded flex items-center justify-center">
+            <Shield size={12} className="text-white" />
+          </div>
+          <span className="text-white text-xs font-bold">FortiGate</span>
+        </div>
+        <span className="text-[10px] text-gray-400 ml-1">100E</span>
+        <div className="flex-1" />
+        <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">FG100E</span>
       </div>
 
       {/* Navigation */}
@@ -220,13 +229,13 @@ export function Sidebar() {
                 key={section.title}
                 to={section.directPath}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 text-[12px] font-medium transition-colors mx-1 rounded",
+                  "flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors border-l-2",
                   isActive(section.directPath)
-                    ? "bg-[#4caf50] text-white"
-                    : "text-gray-300 hover:bg-[#34495e] hover:text-white"
+                    ? "bg-[#4caf50] text-white border-[#4caf50]"
+                    : "text-gray-300 hover:bg-[#2a3f54] hover:text-white border-transparent"
                 )}
               >
-                <SectionIcon size={14} className={isActive(section.directPath) ? "text-white" : "text-gray-400"} />
+                <SectionIcon size={14} />
                 <span>{section.title}</span>
               </Link>
             );
@@ -237,47 +246,43 @@ export function Sidebar() {
               <button
                 onClick={() => toggleSection(section.title)}
                 className={cn(
-                  "w-full flex items-center justify-between px-3 py-2 text-[12px] font-medium transition-colors",
+                  "w-full flex items-center justify-between px-3 py-1.5 text-[11px] transition-colors border-l-2",
                   hasActiveItem 
-                    ? "text-[#4caf50]" 
-                    : "text-gray-300 hover:text-white"
+                    ? "text-[#4caf50] border-[#4caf50]" 
+                    : "text-gray-300 hover:text-white border-transparent"
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <SectionIcon size={14} className={hasActiveItem ? "text-[#4caf50]" : "text-gray-400"} />
+                  <SectionIcon size={14} />
                   <span>{section.title}</span>
                 </div>
                 {isExpanded ? (
-                  <ChevronDown size={12} className="text-gray-500" />
+                  <ChevronDown size={10} className="text-gray-500" />
                 ) : (
-                  <ChevronRight size={12} className="text-gray-500" />
+                  <ChevronRight size={10} className="text-gray-500" />
                 )}
               </button>
 
               {isExpanded && section.items.length > 0 && (
-                <ul className="pb-1">
-                  {section.items.map((item) => {
-                    const ItemIcon = item.icon;
-                    return (
-                      <li key={item.path}>
-                        <Link
-                          to={item.path}
-                          className={cn(
-                            "flex items-center gap-2 pl-9 pr-3 py-1.5 text-[11px] transition-colors",
-                            isActive(item.path) 
-                              ? "bg-[#4caf50] text-white mx-1 rounded" 
-                              : "text-gray-400 hover:text-white hover:bg-[#34495e] mx-1 rounded"
-                          )}
-                        >
-                          <ItemIcon size={12} className={isActive(item.path) ? "text-white" : "text-gray-500"} />
-                          <span>{item.label}</span>
-                          {item.starred && (
-                            <Star size={9} className="ml-auto text-yellow-500 fill-yellow-500" />
-                          )}
-                        </Link>
-                      </li>
-                    );
-                  })}
+                <ul className="bg-[#16232f]">
+                  {section.items.map((item) => (
+                    <li key={item.path + item.label}>
+                      <Link
+                        to={item.path}
+                        className={cn(
+                          "flex items-center gap-2 pl-8 pr-3 py-1 text-[11px] transition-colors",
+                          isActive(item.path) 
+                            ? "bg-[#4caf50] text-white" 
+                            : "text-gray-400 hover:text-white hover:bg-[#1e2d3d]"
+                        )}
+                      >
+                        <span>{item.label}</span>
+                        {item.starred && (
+                          <Star size={9} className="ml-auto text-yellow-500 fill-yellow-500" />
+                        )}
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>
@@ -285,18 +290,15 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer Status */}
-      <div className="px-3 py-2 bg-[#1a252f] border-t border-[#1a252f]">
-        <div className="flex items-center justify-between text-[10px]">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#4caf50]" />
-            <span className="text-gray-400">System: Online</span>
-          </div>
-          <span className="text-gray-500">v1.0.0</span>
-        </div>
-        <div className="flex items-center justify-between text-[9px] text-gray-500 mt-1">
-          <span>Uptime: 45d 12h 30m</span>
-          <span>CPU: 23%</span>
+      {/* Footer Search */}
+      <div className="px-2 py-2 border-t border-[#16232f]">
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-[#16232f] rounded text-gray-400">
+          <Search size={12} />
+          <input 
+            type="text"
+            placeholder="Search"
+            className="bg-transparent text-[11px] outline-none flex-1 text-gray-300 placeholder-gray-500"
+          />
         </div>
       </div>
     </aside>
