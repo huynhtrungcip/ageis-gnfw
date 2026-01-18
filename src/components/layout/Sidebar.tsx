@@ -82,6 +82,7 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Logs', path: '/monitoring/logs', icon: <ScrollText size={12} />, muted: true },
       { label: 'Reports', path: '/reports', icon: <BarChart3 size={12} />, muted: true },
+      { label: 'Config Backup', path: '/system/backup', icon: <Settings size={12} />, muted: true },
       { label: 'Settings', path: '/system/general', icon: <Settings size={12} />, muted: true },
     ],
   },
