@@ -28,6 +28,8 @@ import SystemSettings from "./pages/SystemSettings";
 import TrafficAnalysis from "./pages/TrafficAnalysis";
 import UserManagement from "./pages/UserManagement";
 import PacketFlow from "./pages/PacketFlow";
+import FeatureVisibility from "./pages/FeatureVisibility";
+import ApplicationControl from "./pages/ApplicationControl";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,13 +53,12 @@ const App = () => (
           <Route path="/security/ids" element={<IDSSettings />} />
           <Route path="/security/antivirus" element={<SecurityProfiles />} />
           <Route path="/security/webfilter" element={<SecurityProfiles />} />
-          <Route path="/security/appcontrol" element={<SecurityProfiles />} />
+          <Route path="/security/appcontrol" element={<ApplicationControl />} />
           <Route path="/security/ssl" element={<SSLInspection />} />
           <Route path="/sdwan" element={<SDWAN />} />
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/routing" element={<Routing />} />
           <Route path="/dns" element={<Interfaces />} />
-          <Route path="/sdwan" element={<Routing />} />
           <Route path="/topology" element={<PacketFlow />} />
           <Route path="/connectors" element={<Interfaces />} />
           <Route path="/ai-security" element={<AISecurity />} />
@@ -81,6 +82,7 @@ const App = () => (
           <Route path="/system/users" element={<UserManagement />} />
           <Route path="/system/admins" element={<UserManagement />} />
           <Route path="/system/firmware" element={<SystemSettings />} />
+          <Route path="/system/feature-visibility" element={<FeatureVisibility />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
