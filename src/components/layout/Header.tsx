@@ -37,15 +37,15 @@ export function Header() {
 
   return (
     <header className="h-9 flex items-center justify-between px-3" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
-      {/* Left: Device Info */}
+      {/* Left: Page breadcrumb / Status */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 bg-[#4caf50] rounded flex items-center justify-center">
-            <Shield size={12} className="text-white" />
-          </div>
-          <span className="text-white text-xs font-semibold">Aegis NGFW</span>
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-[11px] text-gray-300">System Status: <span className="text-green-400 font-medium">Online</span></span>
         </div>
+        <div className="w-px h-4 bg-gray-600" />
         <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">AEGIS-PRIMARY</span>
+        <span className="text-[10px] text-gray-500">Uptime: 45d 12h 34m</span>
       </div>
 
       {/* Right: Actions */}
