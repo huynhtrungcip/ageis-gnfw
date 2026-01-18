@@ -208,13 +208,9 @@ export function Sidebar() {
       {/* Logo Header */}
       <div className="h-10 flex items-center gap-2 px-3 border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
         <div className="flex items-center gap-2">
-          {/* Professional Shield Logo */}
-          <div className="relative w-7 h-7">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg shadow-lg" />
-            <div className="absolute inset-0.5 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-md flex items-center justify-center">
-              <Shield size={16} className="text-white drop-shadow-md" strokeWidth={2.5} />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-emerald-600 shadow-sm" />
+          {/* Simple A Logo */}
+          <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center shadow-lg">
+            <span className="text-white text-base font-bold">A</span>
           </div>
           <div className="flex flex-col">
             <span className="text-white text-[13px] font-bold tracking-wide">AEGIS</span>
