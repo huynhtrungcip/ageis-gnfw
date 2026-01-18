@@ -214,19 +214,19 @@ const ApplicationControl = () => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="bg-white border shadow-lg z-50">
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem className="cursor-pointer" onClick={() => toast.success('Application Sensor created')}>
                   Application Sensor
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem className="cursor-pointer" onClick={() => toast.success('Application Filter created')}>
                   Application Filter
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem className="cursor-pointer" onClick={() => toast.success('Custom Application created')}>
                   Custom Application
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <button className="forti-action-btn">
+            <button className="forti-action-btn" onClick={() => toast.success('Signatures updated')}>
               <RefreshCw size={14} />
               Update Signatures
             </button>

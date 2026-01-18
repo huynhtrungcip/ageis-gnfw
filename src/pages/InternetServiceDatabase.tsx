@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
-import { Search, Globe, RefreshCw, Database, ChevronDown, ChevronRight, Star, Shield } from 'lucide-react';
+import { Search, Globe, RefreshCw, Database, ChevronDown, ChevronRight, Star, Shield, Download, Upload } from 'lucide-react';
+import { toast } from 'sonner';
+import { exportToJSON } from '@/lib/exportImport';
 
 interface InternetService {
   id: string;
@@ -115,9 +117,17 @@ const InternetServiceDatabase = () => {
       <div className="space-y-0 animate-slide-in">
         {/* FortiGate Toolbar */}
         <div className="forti-toolbar">
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => toast.success('Database refreshed with latest entries')}>
             <RefreshCw className="w-3 h-3" />
             Refresh Database
+          </button>
+          <button className="forti-toolbar-btn" onClick={() => {
+            const allServices = categories.flatMap(c => c.services);
+            exportToJSON(allServices, `internet-services-${new Date().toISOString().split('T')[0]}.json`);
+            toast.success(`Exported ${allServices.length} services`);
+          }}>
+            <Download className="w-3 h-3" />
+            Export
           </button>
           <div className="forti-toolbar-separator" />
           <div className="text-[11px] text-[#666]">

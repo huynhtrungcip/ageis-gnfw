@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, RefreshCw, Search, Network, ArrowRight } from 'luci
 import { useState } from 'react';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface StaticRoute {
   id: string;
@@ -54,15 +55,23 @@ const StaticRoutes = () => {
         {/* Toolbar */}
         <div className="flex items-center justify-between bg-muted/30 border border-border rounded px-2 py-1.5">
           <div className="flex items-center gap-1">
-            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90">
+            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90" onClick={() => toast.success('Create route dialog opened')}>
               <Plus size={12} />
               Create New
             </button>
-            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/80" disabled={selectedIds.length === 0}>
+            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/80" onClick={() => selectedIds.length > 0 ? toast.success('Edit route') : toast.error('Select a route first')}>
               <Edit size={12} />
               Edit
             </button>
-            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-destructive/10 text-destructive rounded hover:bg-destructive/20" disabled={selectedIds.length === 0}>
+            <button className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-destructive/10 text-destructive rounded hover:bg-destructive/20" onClick={() => {
+              if (selectedIds.length > 0) {
+                setRoutes(prev => prev.filter(r => !selectedIds.includes(r.id)));
+                setSelectedIds([]);
+                toast.success('Route deleted');
+              } else {
+                toast.error('Select a route first');
+              }
+            }}>
               <Trash2 size={12} />
               Delete
             </button>
@@ -78,7 +87,7 @@ const StaticRoutes = () => {
                 className="pl-7 pr-3 py-1 text-xs bg-background border border-border rounded w-48 focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
-            <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded">
+            <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded" onClick={() => toast.success('Routes refreshed')}>
               <RefreshCw size={14} />
             </button>
           </div>
