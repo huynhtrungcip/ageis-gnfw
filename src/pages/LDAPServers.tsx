@@ -15,6 +15,27 @@ import {
   XCircle,
   Activity
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface AuthServer {
   id: string;
@@ -108,6 +129,16 @@ const LDAPServers = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<'ldap' | 'radius'>('ldap');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingServer, setEditingServer] = useState<AuthServer | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    server: '',
+    port: 389,
+    baseDN: '',
+    type: 'ldap' as 'ldap' | 'radius',
+  });
 
   const toggleServer = (id: string) => {
     setServers(prev => prev.map(server => 
@@ -119,6 +150,94 @@ const LDAPServers = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredServers.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredServers.map(s => s.id));
+    }
+  };
+
+  const openCreateModal = (type: 'ldap' | 'radius') => {
+    setEditingServer(null);
+    setFormData({
+      name: '',
+      server: '',
+      port: type === 'ldap' ? 389 : 1812,
+      baseDN: '',
+      type,
+    });
+    setModalOpen(true);
+    setShowCreateMenu(false);
+  };
+
+  const openEditModal = () => {
+    if (selectedIds.length !== 1) return;
+    const server = servers.find(s => s.id === selectedIds[0]);
+    if (!server) return;
+    setEditingServer(server);
+    setFormData({
+      name: server.name,
+      server: server.server,
+      port: server.port,
+      baseDN: server.baseDN || '',
+      type: server.type,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.name.trim() || !formData.server.trim()) {
+      toast.error('Name and Server are required');
+      return;
+    }
+    if (editingServer) {
+      setServers(prev => prev.map(s =>
+        s.id === editingServer.id
+          ? { ...s, name: formData.name, server: formData.server, port: formData.port, baseDN: formData.baseDN }
+          : s
+      ));
+      toast.success('Server updated successfully');
+    } else {
+      const newServer: AuthServer = {
+        id: `server-${Date.now()}`,
+        name: formData.name,
+        type: formData.type,
+        server: formData.server,
+        port: formData.port,
+        baseDN: formData.type === 'ldap' ? formData.baseDN : undefined,
+        status: 'unknown',
+        enabled: true,
+        users: 0,
+        lastTest: 'Never',
+      };
+      setServers(prev => [...prev, newServer]);
+      toast.success('Server created successfully');
+    }
+    setModalOpen(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    setServers(prev => prev.filter(s => !selectedIds.includes(s.id)));
+    setSelectedIds([]);
+    setDeleteDialogOpen(false);
+    toast.success(`${selectedIds.length} server(s) deleted`);
+  };
+
+  const handleTest = () => {
+    toast.success('Testing connection...');
+    setTimeout(() => {
+      setServers(prev => prev.map(s => 
+        selectedIds.includes(s.id) ? { ...s, status: 'online', lastTest: 'Just now' } : s
+      ));
+      toast.success('Connection test successful');
+    }, 1500);
+  };
+
+  const handleRefresh = () => {
+    toast.success('Servers refreshed');
   };
 
   const filteredServers = servers.filter(server => {
@@ -161,31 +280,49 @@ const LDAPServers = () => {
             </button>
             {showCreateMenu && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('ldap')}
+                >
                   <Server className="w-3 h-3" />
                   LDAP Server
                 </button>
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('radius')}
+                >
                   <Shield className="w-3 h-3" />
                   RADIUS Server
                 </button>
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length !== 1}
+            onClick={openEditModal}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length === 0}
+            onClick={() => setDeleteDialogOpen(true)}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button 
+            className="forti-toolbar-btn"
+            disabled={selectedIds.length === 0}
+            onClick={handleTest}
+          >
             <Activity className="w-3 h-3" />
             Test
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
@@ -207,7 +344,7 @@ const LDAPServers = () => {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => { setActiveTab(tab.id as any); setSelectedIds([]); }}
               className={cn(
                 "flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium transition-colors border-b-2",
                 activeTab === tab.id 
@@ -233,7 +370,12 @@ const LDAPServers = () => {
             <thead>
               <tr>
                 <th className="w-8">
-                  <input type="checkbox" className="forti-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    className="forti-checkbox"
+                    checked={selectedIds.length === filteredServers.length && filteredServers.length > 0}
+                    onChange={handleSelectAll}
+                  />
                 </th>
                 <th className="w-16">Status</th>
                 <th>Name</th>
@@ -247,7 +389,11 @@ const LDAPServers = () => {
             </thead>
             <tbody>
               {filteredServers.map((server) => (
-                <tr key={server.id} className={cn(!server.enabled && "opacity-60", selectedIds.includes(server.id) && "selected")}>
+                <tr 
+                  key={server.id} 
+                  className={cn(!server.enabled && "opacity-60", selectedIds.includes(server.id) && "selected")}
+                  onDoubleClick={() => { setSelectedIds([server.id]); openEditModal(); }}
+                >
                   <td>
                     <input 
                       type="checkbox" 
@@ -292,6 +438,80 @@ const LDAPServers = () => {
           </div>
         </div>
       </div>
+
+      {/* Create/Edit Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {formData.type === 'ldap' ? <Server className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+              {editingServer ? `Edit ${formData.type.toUpperCase()} Server` : `Create ${formData.type.toUpperCase()} Server`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Server name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Server IP/Hostname</Label>
+                <Input
+                  value={formData.server}
+                  onChange={(e) => setFormData({ ...formData, server: e.target.value })}
+                  placeholder="192.168.1.10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Port</Label>
+                <Input
+                  type="number"
+                  value={formData.port}
+                  onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            {formData.type === 'ldap' && (
+              <div className="space-y-2">
+                <Label>Base DN</Label>
+                <Input
+                  value={formData.baseDN}
+                  onChange={(e) => setFormData({ ...formData, baseDN: e.target.value })}
+                  placeholder="DC=company,DC=local"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>
+              {editingServer ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Server(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} server(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };
