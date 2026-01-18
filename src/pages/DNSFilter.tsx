@@ -11,9 +11,30 @@ import {
   ChevronDown,
   Globe,
   Shield,
-  AlertTriangle,
   Ban
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 interface DNSFilterProfile {
   id: string;
@@ -80,7 +101,7 @@ const mockProfiles: DNSFilterProfile[] = [
     logAllDomains: true,
     enabled: true,
     blockedCategories: 32,
-    references: 1
+    references: 0
   },
 ];
 
@@ -89,6 +110,18 @@ const DNSFilter = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<DNSFilterProfile | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    comment: '',
+    domainFilter: true,
+    fortiGuardCategory: true,
+    safeSearch: true,
+    youtubeRestrict: false,
+    logAllDomains: true,
+  });
 
   const toggleProfile = (id: string) => {
     setProfiles(prev => prev.map(profile => 
@@ -100,6 +133,90 @@ const DNSFilter = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredProfiles.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredProfiles.map(p => p.id));
+    }
+  };
+
+  const openCreateModal = () => {
+    setEditingProfile(null);
+    setFormData({
+      name: '',
+      comment: '',
+      domainFilter: true,
+      fortiGuardCategory: true,
+      safeSearch: true,
+      youtubeRestrict: false,
+      logAllDomains: true,
+    });
+    setModalOpen(true);
+    setShowCreateMenu(false);
+  };
+
+  const openEditModal = () => {
+    if (selectedIds.length !== 1) return;
+    const profile = profiles.find(p => p.id === selectedIds[0]);
+    if (!profile) return;
+    setEditingProfile(profile);
+    setFormData({
+      name: profile.name,
+      comment: profile.comment,
+      domainFilter: profile.domainFilter,
+      fortiGuardCategory: profile.fortiGuardCategory,
+      safeSearch: profile.safeSearch,
+      youtubeRestrict: profile.youtubeRestrict,
+      logAllDomains: profile.logAllDomains,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+    if (editingProfile) {
+      setProfiles(prev => prev.map(p =>
+        p.id === editingProfile.id
+          ? { ...p, ...formData }
+          : p
+      ));
+      toast.success('Profile updated successfully');
+    } else {
+      const newProfile: DNSFilterProfile = {
+        id: `profile-${Date.now()}`,
+        ...formData,
+        enabled: true,
+        blockedCategories: formData.fortiGuardCategory ? 12 : 0,
+        references: 0,
+      };
+      setProfiles(prev => [...prev, newProfile]);
+      toast.success('Profile created successfully');
+    }
+    setModalOpen(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    const toDelete = profiles.filter(p => selectedIds.includes(p.id));
+    const hasReferences = toDelete.some(p => p.references > 0);
+    if (hasReferences) {
+      toast.error('Cannot delete profiles that are in use');
+      setDeleteDialogOpen(false);
+      return;
+    }
+    setProfiles(prev => prev.filter(p => !selectedIds.includes(p.id)));
+    setSelectedIds([]);
+    setDeleteDialogOpen(false);
+    toast.success(`${toDelete.length} profile(s) deleted`);
+  };
+
+  const handleRefresh = () => {
+    toast.success('Profiles refreshed');
   };
 
   const filteredProfiles = profiles.filter(profile => 
@@ -124,23 +241,34 @@ const DNSFilter = () => {
             </button>
             {showCreateMenu && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={openCreateModal}
+                >
                   <Globe className="w-3 h-3" />
                   DNS Filter Profile
                 </button>
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length !== 1}
+            onClick={openEditModal}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length === 0}
+            onClick={() => setDeleteDialogOpen(true)}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
@@ -163,7 +291,12 @@ const DNSFilter = () => {
             <thead>
               <tr>
                 <th className="w-8">
-                  <input type="checkbox" className="forti-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    className="forti-checkbox"
+                    checked={selectedIds.length === filteredProfiles.length && filteredProfiles.length > 0}
+                    onChange={handleSelectAll}
+                  />
                 </th>
                 <th className="w-16">Status</th>
                 <th>Name</th>
@@ -176,7 +309,11 @@ const DNSFilter = () => {
             </thead>
             <tbody>
               {filteredProfiles.map((profile) => (
-                <tr key={profile.id} className={cn(!profile.enabled && "opacity-60", selectedIds.includes(profile.id) && "selected")}>
+                <tr 
+                  key={profile.id} 
+                  className={cn(!profile.enabled && "opacity-60", selectedIds.includes(profile.id) && "selected")}
+                  onDoubleClick={() => { setSelectedIds([profile.id]); openEditModal(); }}
+                >
                   <td>
                     <input 
                       type="checkbox" 
@@ -252,6 +389,103 @@ const DNSFilter = () => {
           </div>
         </div>
       </div>
+
+      {/* Create/Edit Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              {editingProfile ? 'Edit DNS Filter Profile' : 'Create DNS Filter Profile'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Profile name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Comment</Label>
+              <Input
+                value={formData.comment}
+                onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+                placeholder="Optional description"
+              />
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="domainFilter"
+                  checked={formData.domainFilter}
+                  onCheckedChange={(checked) => setFormData({ ...formData, domainFilter: !!checked })}
+                />
+                <Label htmlFor="domainFilter" className="text-sm">Enable Domain Filter</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="fortiGuardCategory"
+                  checked={formData.fortiGuardCategory}
+                  onCheckedChange={(checked) => setFormData({ ...formData, fortiGuardCategory: !!checked })}
+                />
+                <Label htmlFor="fortiGuardCategory" className="text-sm">FortiGuard Category Filtering</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="safeSearch"
+                  checked={formData.safeSearch}
+                  onCheckedChange={(checked) => setFormData({ ...formData, safeSearch: !!checked })}
+                />
+                <Label htmlFor="safeSearch" className="text-sm">Enforce Safe Search</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="youtubeRestrict"
+                  checked={formData.youtubeRestrict}
+                  onCheckedChange={(checked) => setFormData({ ...formData, youtubeRestrict: !!checked })}
+                />
+                <Label htmlFor="youtubeRestrict" className="text-sm">YouTube Restricted Mode</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="logAllDomains"
+                  checked={formData.logAllDomains}
+                  onCheckedChange={(checked) => setFormData({ ...formData, logAllDomains: !!checked })}
+                />
+                <Label htmlFor="logAllDomains" className="text-sm">Log All DNS Queries</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>
+              {editingProfile ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Profile(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} profile(s)? This action cannot be undone.
+              Profiles that are referenced by firewall rules cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };

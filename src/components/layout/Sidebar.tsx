@@ -133,10 +133,10 @@ const navigation: NavSection[] = [
     icon: Globe,
     defaultOpen: false,
     items: [
-      { label: 'IPsec Tunnels', path: '/vpn/ipsec' },
-      { label: 'IPsec Wizard', path: '/vpn/ipsec' },
-      { label: 'SSL-VPN Settings', path: '/vpn/ssl' },
-      { label: 'SSL-VPN Portals', path: '/vpn/ssl' },
+      { label: 'IPsec Tunnels', path: '/vpn/ipsec-tunnels' },
+      { label: 'IPsec Wizard', path: '/vpn/ipsec-wizard' },
+      { label: 'SSL-VPN Settings', path: '/vpn/ssl-settings' },
+      { label: 'SSL-VPN Portals', path: '/vpn/ssl-portals' },
     ],
   },
   {
@@ -147,7 +147,7 @@ const navigation: NavSection[] = [
       { label: 'User Definition', path: '/system/users' },
       { label: 'User Groups', path: '/users/groups' },
       { label: 'LDAP Servers', path: '/users/ldap' },
-      { label: 'RADIUS Servers', path: '/users/ldap' },
+      { label: 'RADIUS Servers', path: '/users/radius' },
     ],
   },
   {
@@ -165,9 +165,9 @@ const navigation: NavSection[] = [
     defaultOpen: false,
     items: [
       { label: 'Log Viewer', path: '/logs', starred: true },
-      { label: 'Forward Traffic', path: '/monitoring/traffic' },
-      { label: 'Local Traffic', path: '/monitoring/traffic' },
-      { label: 'System Events', path: '/monitoring/logs' },
+      { label: 'Forward Traffic', path: '/logs/forward-traffic' },
+      { label: 'Local Traffic', path: '/logs/local-traffic' },
+      { label: 'System Events', path: '/logs/system-events' },
       { label: 'Report', path: '/reports' },
     ],
   },
@@ -176,10 +176,10 @@ const navigation: NavSection[] = [
     icon: Monitor,
     defaultOpen: false,
     items: [
-      { label: 'DHCP Monitor', path: '/dhcp' },
-      { label: 'Routing Monitor', path: '/routing' },
-      { label: 'IPsec Monitor', path: '/vpn/ipsec' },
-      { label: 'SSL-VPN Monitor', path: '/vpn/ssl' },
+      { label: 'DHCP Monitor', path: '/monitor/dhcp' },
+      { label: 'Routing Monitor', path: '/monitor/routing' },
+      { label: 'IPsec Monitor', path: '/monitor/ipsec' },
+      { label: 'SSL-VPN Monitor', path: '/monitor/ssl-vpn' },
     ],
   },
 ];

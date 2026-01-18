@@ -9,6 +9,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Form,
   FormControl,
   FormField,
@@ -144,6 +154,7 @@ const Aliases = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAlias, setEditingAlias] = useState<Alias | null>(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -193,15 +204,18 @@ const Aliases = () => {
     setModalOpen(true);
   };
 
-  const handleDelete = (aliasId: string) => {
-    const alias = aliases.find(a => a.id === aliasId);
-    if (alias && alias.usageCount > 0) {
-      toast.error(`Cannot delete: "${alias.name}" is used in ${alias.usageCount} rule(s)`);
+  const handleDeleteConfirm = () => {
+    const toDelete = aliases.filter(a => selectedRows.includes(a.id));
+    const hasReferences = toDelete.some(a => a.usageCount > 0);
+    if (hasReferences) {
+      toast.error('Cannot delete aliases that are in use by firewall rules');
+      setDeleteDialogOpen(false);
       return;
     }
-    setAliases(prev => prev.filter(a => a.id !== aliasId));
-    setSelectedRows(prev => prev.filter(id => id !== aliasId));
-    toast.success('Alias deleted');
+    setAliases(prev => prev.filter(a => !selectedRows.includes(a.id)));
+    setSelectedRows([]);
+    setDeleteDialogOpen(false);
+    toast.success(`${toDelete.length} alias(es) deleted`);
   };
 
   const onSubmit = (values: FormValues) => {
@@ -319,9 +333,7 @@ const Aliases = () => {
 
             <button 
               className="forti-action-btn"
-              onClick={() => {
-                selectedRows.forEach(id => handleDelete(id));
-              }}
+              onClick={() => setDeleteDialogOpen(true)}
               disabled={selectedRows.length === 0}
             >
               <Trash2 size={14} />
@@ -578,6 +590,25 @@ const Aliases = () => {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Alias(es)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedRows.length} alias(es)? This action cannot be undone.
+              Aliases that are referenced by firewall rules cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };

@@ -8,13 +8,33 @@ import {
   Trash2, 
   RefreshCw,
   Search,
-  ChevronDown,
   Lock,
   Users,
   Globe,
   Key,
-  Monitor
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 interface SSLVPNPortal {
   id: string;
@@ -101,6 +121,17 @@ const SSLVPNConfig = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'settings' | 'portals'>('portals');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingPortal, setEditingPortal] = useState<SSLVPNPortal | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    tunnelMode: true,
+    webMode: true,
+    forticlientDownload: true,
+    splitTunneling: false,
+    hostCheck: true,
+  });
 
   const togglePortal = (id: string) => {
     setPortals(prev => prev.map(portal => 
@@ -112,6 +143,86 @@ const SSLVPNConfig = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredPortals.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredPortals.map(p => p.id));
+    }
+  };
+
+  const openCreateModal = () => {
+    setEditingPortal(null);
+    setFormData({
+      name: '',
+      tunnelMode: true,
+      webMode: true,
+      forticlientDownload: true,
+      splitTunneling: false,
+      hostCheck: true,
+    });
+    setModalOpen(true);
+  };
+
+  const openEditModal = () => {
+    if (selectedIds.length !== 1) return;
+    const portal = portals.find(p => p.id === selectedIds[0]);
+    if (!portal) return;
+    setEditingPortal(portal);
+    setFormData({
+      name: portal.name,
+      tunnelMode: portal.tunnelMode,
+      webMode: portal.webMode,
+      forticlientDownload: portal.forticlientDownload,
+      splitTunneling: portal.splitTunneling,
+      hostCheck: portal.hostCheck,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+    if (editingPortal) {
+      setPortals(prev => prev.map(p =>
+        p.id === editingPortal.id
+          ? { ...p, ...formData }
+          : p
+      ));
+      toast.success('Portal updated successfully');
+    } else {
+      const newPortal: SSLVPNPortal = {
+        id: `portal-${Date.now()}`,
+        ...formData,
+        enabled: true,
+        users: 0,
+      };
+      setPortals(prev => [...prev, newPortal]);
+      toast.success('Portal created successfully');
+    }
+    setModalOpen(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    const toDelete = portals.filter(p => selectedIds.includes(p.id));
+    const hasUsers = toDelete.some(p => p.users > 0);
+    if (hasUsers) {
+      toast.error('Cannot delete portals with active users');
+      setDeleteDialogOpen(false);
+      return;
+    }
+    setPortals(prev => prev.filter(p => !selectedIds.includes(p.id)));
+    setSelectedIds([]);
+    setDeleteDialogOpen(false);
+    toast.success(`${toDelete.length} portal(s) deleted`);
+  };
+
+  const handleRefresh = () => {
+    toast.success('Portals refreshed');
   };
 
   const filteredPortals = portals.filter(portal => 
@@ -131,22 +242,30 @@ const SSLVPNConfig = () => {
         <div className="forti-toolbar">
           {activeTab === 'portals' && (
             <>
-              <button className="forti-toolbar-btn primary">
+              <button className="forti-toolbar-btn primary" onClick={openCreateModal}>
                 <Plus className="w-3 h-3" />
                 Create New
               </button>
-              <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+              <button 
+                className="forti-toolbar-btn" 
+                disabled={selectedIds.length !== 1}
+                onClick={openEditModal}
+              >
                 <Edit2 className="w-3 h-3" />
                 Edit
               </button>
-              <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+              <button 
+                className="forti-toolbar-btn" 
+                disabled={selectedIds.length === 0}
+                onClick={() => setDeleteDialogOpen(true)}
+              >
                 <Trash2 className="w-3 h-3" />
                 Delete
               </button>
               <div className="forti-toolbar-separator" />
             </>
           )}
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
@@ -261,7 +380,12 @@ const SSLVPNConfig = () => {
               <thead>
                 <tr>
                   <th className="w-8">
-                    <input type="checkbox" className="forti-checkbox" />
+                    <input 
+                      type="checkbox" 
+                      className="forti-checkbox"
+                      checked={selectedIds.length === filteredPortals.length && filteredPortals.length > 0}
+                      onChange={handleSelectAll}
+                    />
                   </th>
                   <th className="w-16">Status</th>
                   <th>Name</th>
@@ -274,7 +398,11 @@ const SSLVPNConfig = () => {
               </thead>
               <tbody>
                 {filteredPortals.map((portal) => (
-                  <tr key={portal.id} className={cn(!portal.enabled && "opacity-60", selectedIds.includes(portal.id) && "selected")}>
+                  <tr 
+                    key={portal.id} 
+                    className={cn(!portal.enabled && "opacity-60", selectedIds.includes(portal.id) && "selected")}
+                    onDoubleClick={() => { setSelectedIds([portal.id]); openEditModal(); }}
+                  >
                     <td>
                       <input 
                         type="checkbox" 
@@ -340,6 +468,95 @@ const SSLVPNConfig = () => {
           </div>
         )}
       </div>
+
+      {/* Create/Edit Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              {editingPortal ? 'Edit SSL-VPN Portal' : 'Create SSL-VPN Portal'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Portal name"
+              />
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="tunnelMode"
+                  checked={formData.tunnelMode}
+                  onCheckedChange={(checked) => setFormData({ ...formData, tunnelMode: !!checked })}
+                />
+                <Label htmlFor="tunnelMode" className="text-sm">Enable Tunnel Mode</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="webMode"
+                  checked={formData.webMode}
+                  onCheckedChange={(checked) => setFormData({ ...formData, webMode: !!checked })}
+                />
+                <Label htmlFor="webMode" className="text-sm">Enable Web Mode</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="forticlientDownload"
+                  checked={formData.forticlientDownload}
+                  onCheckedChange={(checked) => setFormData({ ...formData, forticlientDownload: !!checked })}
+                />
+                <Label htmlFor="forticlientDownload" className="text-sm">Allow FortiClient Download</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="splitTunneling"
+                  checked={formData.splitTunneling}
+                  onCheckedChange={(checked) => setFormData({ ...formData, splitTunneling: !!checked })}
+                />
+                <Label htmlFor="splitTunneling" className="text-sm">Enable Split Tunneling</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="hostCheck"
+                  checked={formData.hostCheck}
+                  onCheckedChange={(checked) => setFormData({ ...formData, hostCheck: !!checked })}
+                />
+                <Label htmlFor="hostCheck" className="text-sm">Enable Host Check</Label>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>
+              {editingPortal ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Portal(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} portal(s)? This action cannot be undone.
+              Portals with active users cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };
