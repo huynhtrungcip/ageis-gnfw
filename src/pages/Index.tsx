@@ -384,45 +384,166 @@ const Dashboard = () => {
           </Widget>
         </div>
 
-        {/* Fifth Row - VPN Status */}
-        <Widget title="IPsec VPN">
+        {/* Fifth Row - VPN Status + WiFi */}
+        <div className="grid grid-cols-3 gap-3">
+          {/* WiFi Status Widget */}
+          <Widget title="WiFi Controller Status">
+            <div className="space-y-3">
+              {/* AP Status */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded bg-[#4caf50]/20 flex items-center justify-center">
+                    <Wifi size={16} className="text-[#4caf50]" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[#666]">Access Points</div>
+                    <div className="text-sm font-bold">
+                      <span className="text-[#4caf50]">4</span>
+                      <span className="text-[#999]"> / 5</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] text-[#666]">Online</div>
+                  <div className="text-sm font-bold text-[#4caf50]">80%</div>
+                </div>
+              </div>
+
+              {/* Clients */}
+              <div className="flex items-center justify-between py-2 border-t border-[#eee]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
+                    <Network size={16} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[#666]">Connected Clients</div>
+                    <div className="text-sm font-bold text-blue-600">55</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[11px] text-[#666]">5GHz</div>
+                  <div className="text-sm font-bold text-blue-600">42</div>
+                </div>
+              </div>
+
+              {/* Bandwidth */}
+              <div className="flex items-center justify-between py-2 border-t border-[#eee]">
+                <div>
+                  <div className="text-[11px] text-[#666]">Total Bandwidth</div>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[11px]">
+                      <span className="text-[#4caf50]">↓</span> 675 Mbps
+                    </span>
+                    <span className="text-[11px]">
+                      <span className="text-blue-500">↑</span> 320 Mbps
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Link to="/wifi" className="mt-2 flex items-center gap-1 text-[11px] text-[#4caf50] hover:underline">
+              View WiFi Controller <ChevronRight size={12} />
+            </Link>
+          </Widget>
+
+          {/* VPN Status */}
+          <Widget title="IPsec VPN" className="col-span-2">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-[#666]">
+                  <th className="pb-1">Tunnel Name</th>
+                  <th className="pb-1">Type</th>
+                  <th className="pb-1">Remote Gateway</th>
+                  <th className="pb-1">Status</th>
+                  <th className="pb-1 text-right">Incoming</th>
+                  <th className="pb-1 text-right">Outgoing</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockVPNTunnels.slice(0, 3).map((vpn) => (
+                  <tr key={vpn.id} className="border-t border-[#eee]">
+                    <td className="py-1.5 font-medium">{vpn.name}</td>
+                    <td className="py-1.5">{vpn.type.toUpperCase()}</td>
+                    <td className="py-1.5 font-mono text-[#666]">{vpn.remoteGateway}</td>
+                    <td className="py-1.5">
+                      <span className={cn(
+                        "inline-flex items-center gap-1",
+                        vpn.status === 'connected' ? 'text-[#4caf50]' : 'text-[#999]'
+                      )}>
+                        <span className={cn(
+                          "w-2 h-2 rounded-full",
+                          vpn.status === 'connected' ? 'bg-[#4caf50]' : 'bg-[#ccc]'
+                        )} />
+                        {vpn.status === 'connected' ? 'Up' : 'Down'}
+                      </span>
+                    </td>
+                    <td className="py-1.5 text-right text-[#666]">{formatBytes(vpn.bytesIn)}</td>
+                    <td className="py-1.5 text-right text-[#666]">{formatBytes(vpn.bytesOut)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Widget>
+        </div>
+
+        {/* Sixth Row - SSID Status */}
+        <Widget title="Active SSIDs">
           <table className="w-full text-[11px]">
             <thead>
               <tr className="text-left text-[#666]">
-                <th className="pb-1">Tunnel Name</th>
-                <th className="pb-1">Type</th>
-                <th className="pb-1">Remote Gateway</th>
+                <th className="pb-1">SSID Name</th>
+                <th className="pb-1">Security</th>
+                <th className="pb-1">Band</th>
+                <th className="pb-1">VLAN</th>
+                <th className="pb-1 text-center">Clients</th>
+                <th className="pb-1 text-right">RX (Mbps)</th>
+                <th className="pb-1 text-right">TX (Mbps)</th>
                 <th className="pb-1">Status</th>
-                <th className="pb-1 text-right">Incoming</th>
-                <th className="pb-1 text-right">Outgoing</th>
-                <th className="pb-1 text-right">Uptime</th>
               </tr>
             </thead>
             <tbody>
-              {mockVPNTunnels.map((vpn) => (
-                <tr key={vpn.id} className="border-t border-[#eee]">
-                  <td className="py-1.5 font-medium">{vpn.name}</td>
-                  <td className="py-1.5">{vpn.type.toUpperCase()}</td>
-                  <td className="py-1.5 font-mono text-[#666]">{vpn.remoteGateway}</td>
-                  <td className="py-1.5">
-                    <span className={cn(
-                      "inline-flex items-center gap-1",
-                      vpn.status === 'connected' ? 'text-[#4caf50]' : 'text-[#999]'
-                    )}>
-                      <span className={cn(
-                        "w-2 h-2 rounded-full",
-                        vpn.status === 'connected' ? 'bg-[#4caf50]' : 'bg-[#ccc]'
-                      )} />
-                      {vpn.status === 'connected' ? 'Up' : 'Down'}
-                    </span>
-                  </td>
-                  <td className="py-1.5 text-right text-[#666]">{formatBytes(vpn.bytesIn)}</td>
-                  <td className="py-1.5 text-right text-[#666]">{formatBytes(vpn.bytesOut)}</td>
-                  <td className="py-1.5 text-right text-[#666]">
-                    {vpn.status === 'connected' ? `${Math.floor(vpn.uptime / 3600)}h ${Math.floor((vpn.uptime % 3600) / 60)}m` : '-'}
-                  </td>
-                </tr>
-              ))}
+              <tr className="border-t border-[#eee]">
+                <td className="py-1.5 font-medium">Corporate-WiFi</td>
+                <td className="py-1.5">
+                  <span className="forti-tag bg-blue-100 text-blue-700 border-blue-200">WPA2-ENT</span>
+                </td>
+                <td className="py-1.5">Dual</td>
+                <td className="py-1.5">10</td>
+                <td className="py-1.5 text-center font-medium">45</td>
+                <td className="py-1.5 text-right">1,250</td>
+                <td className="py-1.5 text-right">890</td>
+                <td className="py-1.5">
+                  <span className="forti-tag bg-green-100 text-green-700 border-green-200">ACTIVE</span>
+                </td>
+              </tr>
+              <tr className="border-t border-[#eee]">
+                <td className="py-1.5 font-medium">Guest-WiFi</td>
+                <td className="py-1.5">
+                  <span className="forti-tag bg-purple-100 text-purple-700 border-purple-200">WPA2-PSK</span>
+                </td>
+                <td className="py-1.5">Dual</td>
+                <td className="py-1.5">20</td>
+                <td className="py-1.5 text-center font-medium">12</td>
+                <td className="py-1.5 text-right">450</td>
+                <td className="py-1.5 text-right">120</td>
+                <td className="py-1.5">
+                  <span className="forti-tag bg-green-100 text-green-700 border-green-200">ACTIVE</span>
+                </td>
+              </tr>
+              <tr className="border-t border-[#eee]">
+                <td className="py-1.5 font-medium">IoT-Network</td>
+                <td className="py-1.5">
+                  <span className="forti-tag bg-purple-100 text-purple-700 border-purple-200">WPA2-PSK</span>
+                </td>
+                <td className="py-1.5">2.4GHz</td>
+                <td className="py-1.5">30</td>
+                <td className="py-1.5 text-center font-medium">8</td>
+                <td className="py-1.5 text-right">50</td>
+                <td className="py-1.5 text-right">30</td>
+                <td className="py-1.5">
+                  <span className="forti-tag bg-green-100 text-green-700 border-green-200">ACTIVE</span>
+                </td>
+              </tr>
             </tbody>
           </table>
         </Widget>
