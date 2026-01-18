@@ -19,6 +19,7 @@ import SystemLogs from "./pages/SystemLogs";
 import SystemMonitoring from "./pages/SystemMonitoring";
 import Schedules from "./pages/Schedules";
 import ConfigBackup from "./pages/ConfigBackup";
+import SystemBackup from "./pages/SystemBackup";
 import IDSSettings from "./pages/IDSSettings";
 import SecurityProfiles from "./pages/SecurityProfiles";
 import SSLInspection from "./pages/SSLInspection";
@@ -131,6 +132,7 @@ const App = () => (
           <Route path="/logs" element={<LogReport />} />
           <Route path="/system/general" element={<SystemSettings />} />
           <Route path="/system/backup" element={<ConfigBackup />} />
+          <Route path="/system/full-backup" element={<SystemBackup />} />
           <Route path="/system/users" element={<UserManagement />} />
           <Route path="/system/admins" element={<AdminProfiles />} />
           <Route path="/system/admin-profiles" element={<AdminProfiles />} />

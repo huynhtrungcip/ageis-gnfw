@@ -1,0 +1,612 @@
+import { useState, useRef } from 'react';
+import { Shell } from '@/components/layout/Shell';
+import { cn } from '@/lib/utils';
+import { 
+  Download, 
+  Upload, 
+  FileJson, 
+  Check, 
+  AlertTriangle,
+  Shield,
+  Network,
+  Clock,
+  ArrowRightLeft,
+  Package,
+  HardDrive,
+  Settings,
+  Users,
+  Globe,
+  Database,
+  Wifi,
+  Lock,
+  Server,
+  RefreshCw,
+  History
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { mockFirewallRules, mockNATRules } from '@/data/mockData';
+
+// Comprehensive mock data for full system backup
+const mockSystemConfig = {
+  system: {
+    hostname: 'NGFW-PRIMARY',
+    domain: 'corp.local',
+    timezone: 'Asia/Ho_Chi_Minh',
+    dns: ['8.8.8.8', '8.8.4.4'],
+    ntp: 'pool.ntp.org',
+  },
+  interfaces: [
+    { id: 'wan1', name: 'WAN', ip: '203.0.113.1/24', gateway: '203.0.113.254', status: 'up' },
+    { id: 'lan', name: 'LAN', ip: '192.168.1.1/24', vlan: 1, status: 'up' },
+    { id: 'dmz', name: 'DMZ', ip: '10.0.0.1/24', status: 'up' },
+  ],
+  firewallRules: mockFirewallRules.map(r => ({ ...r, created: r.created.toISOString(), lastHit: r.lastHit?.toISOString() })),
+  natRules: mockNATRules,
+  aliases: [
+    { id: 'alias-1', name: 'LAN_NETWORK', type: 'network', values: ['192.168.1.0/24'] },
+    { id: 'alias-2', name: 'WEB_SERVERS', type: 'host', values: ['192.168.1.10', '192.168.1.11'] },
+    { id: 'alias-3', name: 'TRUSTED_IPS', type: 'host', values: ['10.0.0.100', '10.0.0.101'] },
+  ],
+  services: [
+    { id: 'svc-1', name: 'HTTP', protocol: 'TCP', ports: '80' },
+    { id: 'svc-2', name: 'HTTPS', protocol: 'TCP', ports: '443' },
+    { id: 'svc-3', name: 'SSH', protocol: 'TCP', ports: '22' },
+  ],
+  schedules: [
+    { id: 'sched-1', name: 'business_hours', days: [1,2,3,4,5], startTime: '08:00', endTime: '18:00' },
+    { id: 'sched-2', name: 'weekends', days: [0,6], startTime: '00:00', endTime: '23:59' },
+  ],
+  ipPools: [
+    { id: 'pool-1', name: 'SNAT_Pool', type: 'overload', startIP: '203.0.113.10', endIP: '203.0.113.20' },
+  ],
+  vpn: {
+    ipsec: [
+      { id: 'vpn-1', name: 'Site-to-Site-HQ', remoteGateway: '198.51.100.1', status: 'up' },
+    ],
+    sslvpn: {
+      enabled: true,
+      port: 10443,
+      users: 50,
+    },
+  },
+  dns: {
+    enabled: true,
+    forwardZones: [
+      { name: 'Default', servers: ['8.8.8.8', '8.8.4.4'] },
+    ],
+    localRecords: [
+      { hostname: 'gateway', domain: 'local.lan', type: 'A', address: '192.168.1.1' },
+    ],
+  },
+  dhcp: {
+    enabled: true,
+    pools: [
+      { id: 'dhcp-1', interface: 'LAN', startIP: '192.168.1.100', endIP: '192.168.1.200', gateway: '192.168.1.1' },
+    ],
+  },
+  users: [
+    { id: 'user-1', username: 'admin', role: 'super_admin', status: 'active' },
+    { id: 'user-2', username: 'operator', role: 'read_only', status: 'active' },
+  ],
+  ldap: [
+    { id: 'ldap-1', name: 'Corp AD', server: 'ldap.corp.local', port: 389, baseDN: 'dc=corp,dc=local' },
+  ],
+  certificates: [
+    { id: 'cert-1', name: 'Fortinet_Factory', type: 'local', expiry: '2025-12-31' },
+  ],
+  securityProfiles: {
+    antivirus: { enabled: true, action: 'block' },
+    webFilter: { enabled: true, categories: ['malware', 'phishing'] },
+    appControl: { enabled: true },
+    ips: { enabled: true, action: 'block' },
+  },
+  routing: {
+    static: [
+      { id: 'route-1', destination: '10.10.0.0/16', gateway: '192.168.1.254', interface: 'LAN' },
+    ],
+    ospf: { enabled: false },
+    bgp: { enabled: false },
+  },
+  logging: {
+    syslog: { enabled: true, server: '192.168.1.50', port: 514 },
+    localLog: { enabled: true, disk: '50%' },
+  },
+};
+
+interface ExportConfig {
+  system: boolean;
+  interfaces: boolean;
+  firewallRules: boolean;
+  natRules: boolean;
+  aliases: boolean;
+  services: boolean;
+  schedules: boolean;
+  ipPools: boolean;
+  vpn: boolean;
+  dns: boolean;
+  dhcp: boolean;
+  users: boolean;
+  ldap: boolean;
+  certificates: boolean;
+  securityProfiles: boolean;
+  routing: boolean;
+  logging: boolean;
+}
+
+interface ImportPreview {
+  sections: Record<string, number>;
+  version: string;
+  exportDate: string;
+  hostname: string;
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+const configSections = [
+  { key: 'system', label: 'System Settings', icon: Settings, color: 'text-slate-400' },
+  { key: 'interfaces', label: 'Network Interfaces', icon: Network, color: 'text-blue-400' },
+  { key: 'firewallRules', label: 'Firewall Rules', icon: Shield, color: 'text-red-400' },
+  { key: 'natRules', label: 'NAT Rules', icon: ArrowRightLeft, color: 'text-emerald-400' },
+  { key: 'aliases', label: 'Aliases', icon: Database, color: 'text-amber-400' },
+  { key: 'services', label: 'Services', icon: Server, color: 'text-purple-400' },
+  { key: 'schedules', label: 'Schedules', icon: Clock, color: 'text-cyan-400' },
+  { key: 'ipPools', label: 'IP Pools', icon: HardDrive, color: 'text-orange-400' },
+  { key: 'vpn', label: 'VPN Configuration', icon: Lock, color: 'text-green-400' },
+  { key: 'dns', label: 'DNS Server', icon: Globe, color: 'text-indigo-400' },
+  { key: 'dhcp', label: 'DHCP Server', icon: Wifi, color: 'text-teal-400' },
+  { key: 'users', label: 'User Accounts', icon: Users, color: 'text-pink-400' },
+  { key: 'ldap', label: 'LDAP Servers', icon: Users, color: 'text-violet-400' },
+  { key: 'certificates', label: 'Certificates', icon: Lock, color: 'text-yellow-400' },
+  { key: 'securityProfiles', label: 'Security Profiles', icon: Shield, color: 'text-rose-400' },
+  { key: 'routing', label: 'Routing', icon: ArrowRightLeft, color: 'text-lime-400' },
+  { key: 'logging', label: 'Logging', icon: History, color: 'text-gray-400' },
+];
+
+const recentBackups = [
+  { date: '2024-01-15 10:30', size: '2.4 MB', type: 'Full', status: 'success' },
+  { date: '2024-01-14 18:00', size: '2.3 MB', type: 'Full', status: 'success' },
+  { date: '2024-01-13 08:00', size: '1.8 MB', type: 'Partial', status: 'success' },
+  { date: '2024-01-12 14:30', size: '2.2 MB', type: 'Full', status: 'success' },
+];
+
+const SystemBackup = () => {
+  const [exportConfig, setExportConfig] = useState<ExportConfig>({
+    system: true, interfaces: true, firewallRules: true, natRules: true,
+    aliases: true, services: true, schedules: true, ipPools: true,
+    vpn: true, dns: true, dhcp: true, users: true, ldap: true,
+    certificates: true, securityProfiles: true, routing: true, logging: true,
+  });
+  const [importing, setImporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importData, setImportData] = useState<any>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState('');
+  const [confirmRestore, setConfirmRestore] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedCount = Object.values(exportConfig).filter(Boolean).length;
+  const allSelected = selectedCount === configSections.length;
+
+  const toggleAll = () => {
+    const newValue = !allSelected;
+    const newConfig = { ...exportConfig };
+    configSections.forEach(s => { newConfig[s.key as keyof ExportConfig] = newValue; });
+    setExportConfig(newConfig);
+  };
+
+  const generateExportData = () => {
+    const data: any = {
+      version: '2.0',
+      exportDate: new Date().toISOString(),
+      hostname: mockSystemConfig.system.hostname,
+      type: 'full_system_backup',
+    };
+
+    Object.keys(exportConfig).forEach(key => {
+      if (exportConfig[key as keyof ExportConfig] && mockSystemConfig[key as keyof typeof mockSystemConfig]) {
+        data[key] = mockSystemConfig[key as keyof typeof mockSystemConfig];
+      }
+    });
+
+    return data;
+  };
+
+  const handleExport = () => {
+    const data = generateExportData();
+    const content = JSON.stringify(data, null, 2);
+    const filename = `ngfw-full-backup-${mockSystemConfig.system.hostname}-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success(`Full system backup exported: ${filename}`);
+  };
+
+  const handlePreview = () => {
+    const data = generateExportData();
+    setPreviewContent(JSON.stringify(data, null, 2));
+    setPreviewOpen(true);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const data = JSON.parse(content);
+
+        const sections: Record<string, number> = {};
+        configSections.forEach(section => {
+          const sectionData = data[section.key];
+          if (sectionData) {
+            sections[section.key] = Array.isArray(sectionData) ? sectionData.length : 1;
+          }
+        });
+
+        const errors: string[] = [];
+        const warnings: string[] = [];
+
+        if (!data.version) {
+          errors.push('Missing version field');
+        }
+        if (data.version && data.version !== '2.0' && data.version !== '1.0') {
+          warnings.push(`Unknown version: ${data.version}`);
+        }
+        if (Object.keys(sections).length === 0) {
+          errors.push('No configuration sections found');
+        }
+        if (data.hostname && data.hostname !== mockSystemConfig.system.hostname) {
+          warnings.push(`Backup from different device: ${data.hostname}`);
+        }
+
+        setImportPreview({
+          sections,
+          version: data.version || 'unknown',
+          exportDate: data.exportDate || 'unknown',
+          hostname: data.hostname || 'unknown',
+          valid: errors.length === 0,
+          errors,
+          warnings,
+        });
+        setImportData(data);
+        setImporting(true);
+      } catch (err) {
+        toast.error('Failed to parse backup file');
+      }
+    };
+    reader.readAsText(file);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRestore = () => {
+    if (!importData) return;
+    setConfirmRestore(true);
+  };
+
+  const confirmRestoreAction = () => {
+    const restored = Object.keys(importPreview?.sections || {}).length;
+    toast.success(`System restored from backup: ${restored} configuration sections applied`);
+    setImporting(false);
+    setImportPreview(null);
+    setImportData(null);
+    setConfirmRestore(false);
+  };
+
+  const cancelImport = () => {
+    setImporting(false);
+    setImportPreview(null);
+    setImportData(null);
+  };
+
+  return (
+    <Shell>
+      <div className="space-y-4 animate-slide-in">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[hsl(142,70%,35%)]/10 rounded-lg">
+              <Package className="w-5 h-5 text-[hsl(142,70%,35%)]" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-[#333]">System Backup & Restore</h1>
+              <p className="text-[11px] text-[#666]">Export and import complete system configuration</p>
+            </div>
+          </div>
+          <button className="forti-toolbar-btn" onClick={() => toast.success('Backup list refreshed')}>
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Export Section */}
+          <div className="lg:col-span-2 section">
+            <div className="section-header flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                <span>Export Full Backup</span>
+              </div>
+              <button 
+                className="text-[10px] text-blue-600 hover:underline"
+                onClick={toggleAll}
+              >
+                {allSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+            <div className="section-body">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+                {configSections.map((section) => (
+                  <div
+                    key={section.key}
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded border cursor-pointer transition-colors",
+                      exportConfig[section.key as keyof ExportConfig]
+                        ? "border-[hsl(142,70%,35%)]/50 bg-[hsl(142,70%,35%)]/5"
+                        : "border-[#ddd] bg-[#f9f9f9] hover:bg-[#f0f0f0]"
+                    )}
+                    onClick={() => setExportConfig(prev => ({ 
+                      ...prev, 
+                      [section.key]: !prev[section.key as keyof ExportConfig] 
+                    }))}
+                  >
+                    <input
+                      type="checkbox"
+                      className="forti-checkbox"
+                      checked={exportConfig[section.key as keyof ExportConfig]}
+                      onChange={() => {}}
+                    />
+                    <section.icon className={cn("w-3.5 h-3.5", section.color)} />
+                    <span className="text-[10px] font-medium truncate">{section.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 pt-3 border-t border-[#ddd]">
+                <Button variant="outline" size="sm" onClick={handlePreview} disabled={selectedCount === 0}>
+                  Preview
+                </Button>
+                <Button size="sm" onClick={handleExport} disabled={selectedCount === 0} className="flex-1">
+                  <Download className="w-3 h-3 mr-1" />
+                  Export {selectedCount} Sections
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Backups */}
+          <div className="section">
+            <div className="section-header">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4" />
+                <span>Recent Backups</span>
+              </div>
+            </div>
+            <div className="section-body">
+              <div className="space-y-2">
+                {recentBackups.map((backup, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-[#f5f5f5] border border-[#ddd] rounded text-[10px]">
+                    <div>
+                      <div className="font-medium">{backup.date}</div>
+                      <div className="text-[#666]">{backup.type} • {backup.size}</div>
+                    </div>
+                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 border border-green-200 rounded text-[9px]">
+                      {backup.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Import Section */}
+        <div className="section">
+          <div className="section-header">
+            <div className="flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              <span>Import & Restore</span>
+            </div>
+          </div>
+          <div className="section-body">
+            {!importing ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-[#ccc] rounded-lg p-8 text-center cursor-pointer hover:border-[hsl(142,70%,35%)] hover:bg-[hsl(142,70%,35%)]/5 transition-colors"
+                >
+                  <Package className="w-10 h-10 mx-auto text-[#999] mb-3" />
+                  <p className="text-[11px] text-[#666] mb-1">
+                    Click to select backup file or drag & drop
+                  </p>
+                  <p className="text-[10px] text-[#999]">
+                    Supports .json backup files
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-[11px] text-amber-800">
+                      <strong>Important:</strong>
+                      <ul className="mt-1 space-y-1 list-disc list-inside">
+                        <li>Restoring will replace current configuration</li>
+                        <li>Create a backup before restoring</li>
+                        <li>System may restart after restore</li>
+                        <li>Verify backup compatibility before import</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {importPreview && (
+                  <>
+                    <div className={cn(
+                      "flex items-center gap-2 p-3 rounded-lg",
+                      importPreview.valid 
+                        ? "bg-green-50 border border-green-200" 
+                        : "bg-red-50 border border-red-200"
+                    )}>
+                      {importPreview.valid ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-red-600" />
+                      )}
+                      <span className={cn("text-[11px] font-medium", importPreview.valid ? "text-green-700" : "text-red-700")}>
+                        {importPreview.valid ? 'Backup file validated successfully' : 'Validation errors found'}
+                      </span>
+                    </div>
+
+                    {importPreview.errors.length > 0 && (
+                      <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-[11px] text-red-700 space-y-1">
+                        {importPreview.errors.map((error, idx) => (
+                          <div key={idx}>• {error}</div>
+                        ))}
+                      </div>
+                    )}
+
+                    {importPreview.warnings.length > 0 && (
+                      <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-700 space-y-1">
+                        {importPreview.warnings.map((warning, idx) => (
+                          <div key={idx}>⚠ {warning}</div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-3 gap-2 text-[10px]">
+                      <div className="p-2 bg-[#f5f5f5] border border-[#ddd] rounded">
+                        <div className="text-[#666]">Version</div>
+                        <div className="font-mono font-medium">{importPreview.version}</div>
+                      </div>
+                      <div className="p-2 bg-[#f5f5f5] border border-[#ddd] rounded">
+                        <div className="text-[#666]">Source Device</div>
+                        <div className="font-medium">{importPreview.hostname}</div>
+                      </div>
+                      <div className="p-2 bg-[#f5f5f5] border border-[#ddd] rounded">
+                        <div className="text-[#666]">Export Date</div>
+                        <div className="font-medium">{new Date(importPreview.exportDate).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                      {configSections.filter(s => importPreview.sections[s.key]).map((section) => (
+                        <div
+                          key={section.key}
+                          className="flex items-center gap-1.5 p-2 bg-[#f5f5f5] border border-[#ddd] rounded"
+                        >
+                          <section.icon className={cn("w-3 h-3", section.color)} />
+                          <span className="text-[10px] font-medium truncate">{section.label}</span>
+                          <span className="text-[9px] text-[#666] ml-auto">
+                            {Array.isArray(importPreview.sections[section.key]) 
+                              ? importPreview.sections[section.key] 
+                              : '✓'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-3 border-t border-[#ddd]">
+                      <Button variant="outline" size="sm" onClick={cancelImport}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={handleRestore} 
+                        disabled={!importPreview.valid}
+                        className="flex-1 bg-amber-600 hover:bg-amber-700"
+                      >
+                        <Upload className="w-3 h-3 mr-1" />
+                        Restore System Configuration
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] bg-white">
+          <DialogHeader>
+            <DialogTitle>Backup Preview (JSON)</DialogTitle>
+          </DialogHeader>
+          <pre className="text-[10px] font-mono bg-[#1e1e1e] text-[#d4d4d4] p-4 rounded-lg overflow-auto max-h-[60vh]">
+            {previewContent}
+          </pre>
+        </DialogContent>
+      </Dialog>
+
+      {/* Restore Confirmation */}
+      <AlertDialog open={confirmRestore} onOpenChange={setConfirmRestore}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              Confirm System Restore
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>You are about to restore the system configuration from backup.</p>
+              <ul className="text-[11px] space-y-1 list-disc list-inside mt-2">
+                <li>Current configuration will be replaced</li>
+                <li>Active sessions may be interrupted</li>
+                <li>System services may restart</li>
+              </ul>
+              <p className="font-medium mt-3">Are you sure you want to continue?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestoreAction} className="bg-amber-600 hover:bg-amber-700">
+              Restore Configuration
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Shell>
+  );
+};
+
+export default SystemBackup;
