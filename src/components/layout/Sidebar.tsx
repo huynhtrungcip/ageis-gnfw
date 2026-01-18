@@ -50,7 +50,7 @@ const navigation: NavSection[] = [
   },
   {
     title: 'Security Policy',
-    priority: 'normal',
+    priority: 'high',
     items: [
       { label: 'Firewall Rules', path: '/firewall/rules', icon: <Shield size={14} /> },
       { label: 'Aliases', path: '/firewall/aliases', icon: <Network size={14} /> },
@@ -61,7 +61,7 @@ const navigation: NavSection[] = [
   },
   {
     title: 'Network',
-    priority: 'normal',
+    priority: 'high',
     items: [
       { label: 'Interfaces', path: '/interfaces', icon: <Network size={14} /> },
       { label: 'Routing', path: '/routing', icon: <Router size={14} /> },
@@ -70,28 +70,28 @@ const navigation: NavSection[] = [
   },
   {
     title: 'Insights',
-    priority: 'low',
+    priority: 'high',
     items: [
-      { label: 'Behavioral', path: '/insights/behavioral', icon: <Activity size={12} />, muted: true },
-      { label: 'Recommendations', path: '/insights/recommendations', icon: <Lightbulb size={12} />, muted: true },
-      { label: 'Trends', path: '/insights/trends', icon: <TrendingUp size={12} />, muted: true },
+      { label: 'Behavioral', path: '/insights/behavioral', icon: <Activity size={14} /> },
+      { label: 'Recommendations', path: '/insights/recommendations', icon: <Lightbulb size={14} /> },
+      { label: 'Trends', path: '/insights/trends', icon: <TrendingUp size={14} /> },
     ],
   },
   {
     title: 'Monitoring',
-    priority: 'low',
+    priority: 'high',
     items: [
-      { label: 'Traffic Analysis', path: '/monitoring/traffic', icon: <LineChart size={12} />, muted: true },
-      { label: 'Logs', path: '/monitoring/logs', icon: <ScrollText size={12} />, muted: true },
-      { label: 'Reports', path: '/reports', icon: <BarChart3 size={12} />, muted: true },
+      { label: 'Traffic Analysis', path: '/monitoring/traffic', icon: <LineChart size={14} /> },
+      { label: 'Logs', path: '/monitoring/logs', icon: <ScrollText size={14} /> },
+      { label: 'Reports', path: '/reports', icon: <BarChart3 size={14} /> },
     ],
   },
   {
     title: 'System',
-    priority: 'low',
+    priority: 'high',
     items: [
-      { label: 'Config Backup', path: '/system/backup', icon: <Settings size={12} />, muted: true },
-      { label: 'Settings', path: '/system/general', icon: <Settings size={12} />, muted: true },
+      { label: 'Config Backup', path: '/system/backup', icon: <Settings size={14} /> },
+      { label: 'Settings', path: '/system/general', icon: <Settings size={14} /> },
     ],
   },
 ];
