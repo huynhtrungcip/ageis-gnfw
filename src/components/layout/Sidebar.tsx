@@ -122,7 +122,7 @@ const navigation: NavSection[] = [
     items: [
       { label: 'AntiVirus', path: '/security/antivirus' },
       { label: 'Web Filter', path: '/security/webfilter' },
-      { label: 'DNS Filter', path: '/security/webfilter' },
+      { label: 'DNS Filter', path: '/security/dnsfilter' },
       { label: 'Application Control', path: '/security/appcontrol' },
       { label: 'IPS', path: '/security/ids', starred: true },
       { label: 'SSL Inspection', path: '/security/ssl' },

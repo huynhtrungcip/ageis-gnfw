@@ -44,6 +44,11 @@ import TrafficShapers from "./pages/TrafficShapers";
 import TrafficShapingPolicy from "./pages/TrafficShapingPolicy";
 import WildcardFQDN from "./pages/WildcardFQDN";
 import InternetServiceDatabase from "./pages/InternetServiceDatabase";
+import Services from "./pages/Services";
+import DNSFilter from "./pages/DNSFilter";
+import FabricConnectors from "./pages/FabricConnectors";
+import LDAPServers from "./pages/LDAPServers";
+import SSLVPNConfig from "./pages/SSLVPNConfig";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,11 +74,13 @@ const App = () => (
           <Route path="/firewall/traffic-shapers" element={<TrafficShapers />} />
           <Route path="/firewall/traffic-shaping-policy" element={<TrafficShapingPolicy />} />
           <Route path="/firewall/schedules" element={<Schedules />} />
-          <Route path="/firewall/services" element={<Aliases />} />
+          <Route path="/firewall/services" element={<Services />} />
           <Route path="/security/ids" element={<IDSSettings />} />
           <Route path="/security/antivirus" element={<SecurityProfiles />} />
           <Route path="/security/webfilter" element={<SecurityProfiles />} />
+          <Route path="/security/dnsfilter" element={<DNSFilter />} />
           <Route path="/security/appcontrol" element={<ApplicationControl />} />
+          <Route path="/security/ssl" element={<SSLInspection />} />
           <Route path="/security/ssl" element={<SSLInspection />} />
           <Route path="/sdwan" element={<SDWAN />} />
           <Route path="/interfaces" element={<Interfaces />} />
@@ -81,18 +88,18 @@ const App = () => (
           <Route path="/dns" element={<DNSServer />} />
           <Route path="/topology" element={<NetworkTopology />} />
           <Route path="/packet-flow" element={<PacketFlow />} />
-          <Route path="/connectors" element={<Interfaces />} />
+          <Route path="/connectors" element={<FabricConnectors />} />
           <Route path="/ai-security" element={<AISecurity />} />
           <Route path="/insights/behavioral" element={<AISecurity />} />
           <Route path="/insights/recommendations" element={<AISecurity />} />
           <Route path="/insights/trends" element={<AISecurity />} />
           <Route path="/dhcp" element={<DHCP />} />
           <Route path="/vpn/ipsec" element={<VPN />} />
-          <Route path="/vpn/ssl" element={<VPN />} />
+          <Route path="/vpn/ssl" element={<SSLVPNConfig />} />
           <Route path="/vpn/openvpn" element={<VPN />} />
           <Route path="/vpn/wireguard" element={<VPN />} />
           <Route path="/users/groups" element={<UserManagement />} />
-          <Route path="/users/ldap" element={<UserManagement />} />
+          <Route path="/users/ldap" element={<LDAPServers />} />
           <Route path="/monitoring/logs" element={<SystemLogs />} />
           <Route path="/monitoring/traffic" element={<TrafficAnalysis />} />
           <Route path="/monitor/ipsec" element={<VPN />} />
