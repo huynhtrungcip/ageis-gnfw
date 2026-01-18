@@ -7,41 +7,41 @@
 
 @layer base {
   :root {
-    /* Light Theme - FortiGate Style */
-    --background: 0 0% 95%;
+    /* Light Theme - FortiGate Professional Style */
+    --background: 0 0% 96%;
     --background-elevated: 0 0% 100%;
-    --foreground: 0 0% 20%;
+    --foreground: 0 0% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 20%;
+    --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 20%;
+    --popover-foreground: 0 0% 10%;
 
     /* Primary - FortiGate Green */
     --primary: 142 70% 35%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 30%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 15%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 20%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 10%;
 
     /* Semantic */
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 85%;
+    --border: 0 0% 80%;
     --input: 0 0% 100%;
     --ring: 142 70% 35%;
 
     --radius: 0.125rem;
 
-    /* FortiGate specific */
+    /* FortiGate specific - Clear readable colors */
     --forti-green: 142 70% 35%;
     --forti-green-light: 142 60% 45%;
     --forti-green-dark: 142 75% 28%;
@@ -49,14 +49,16 @@
     --forti-sidebar: 220 25% 18%;
     --forti-sidebar-hover: 220 22% 24%;
     --forti-sidebar-active: 142 70% 35%;
-    --forti-row-hover: 0 0% 97%;
+    --forti-row-hover: 50 100% 97%;
     --forti-row-selected: 50 100% 92%;
-    --forti-gray: 0 0% 55%;
-    --forti-border: 0 0% 82%;
+    --forti-gray: 0 0% 40%;
+    --forti-border: 0 0% 78%;
+    --forti-text: 0 0% 10%;
+    --forti-text-secondary: 0 0% 35%;
 
     /* Sidebar */
     --sidebar-background: 220 25% 18%;
-    --sidebar-foreground: 220 10% 70%;
+    --sidebar-foreground: 220 10% 75%;
     --sidebar-primary: 142 70% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 22% 24%;

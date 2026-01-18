@@ -295,7 +295,7 @@ const FirmwareManagement = () => {
                         className="forti-checkbox"
                       />
                     </td>
-                    <td className="font-medium text-[#333]">
+                    <td className="font-medium text-[#111]">
                       v{fw.version}
                       {fw.recommended && (
                         <span className="ml-2 forti-tag bg-blue-100 text-blue-700 border-blue-200">
@@ -303,8 +303,8 @@ const FirmwareManagement = () => {
                         </span>
                       )}
                     </td>
-                    <td className="mono text-[#666]">{fw.buildNumber}</td>
-                    <td className="text-[#666]">{fw.releaseDate}</td>
+                    <td className="mono text-[#333]">{fw.buildNumber}</td>
+                    <td className="text-[#333]">{fw.releaseDate}</td>
                     <td>
                       <span className={cn(
                         "forti-tag",
