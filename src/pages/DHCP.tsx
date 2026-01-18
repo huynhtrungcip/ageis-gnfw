@@ -3,7 +3,7 @@ import { Shell } from '@/components/layout/Shell';
 import { mockDHCPLeases } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
-import { ChevronDown, Plus, RefreshCw, Search, Edit2, Trash2, Server, Network, Settings, X, Download, Upload, Copy } from 'lucide-react';
+import { ChevronDown, Plus, RefreshCw, Search, Edit2, Trash2, Server, Network, Settings, X, Download, Upload, Copy, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -15,6 +15,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface DHCPServer {
   id: string;
@@ -82,6 +99,63 @@ const initialMappings: StaticMapping[] = [
 
 const interfaces = ['LAN', 'DMZ', 'WAN1', 'WAN2', 'Internal', 'Guest'];
 
+// Sortable Row Component
+interface SortableMappingRowProps {
+  mapping: StaticMapping;
+  toggleMapping: (id: string) => void;
+  handleEditMapping: (mapping: StaticMapping) => void;
+  handleDeleteConfirm: (type: 'server' | 'mapping', id: string) => void;
+}
+
+const SortableMappingRow = ({ mapping, toggleMapping, handleEditMapping, handleDeleteConfirm }: SortableMappingRowProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: mapping.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className={cn(!mapping.enabled && "opacity-60", isDragging && "bg-blue-50")}>
+      <td>
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#f0f0f0]">
+          <GripVertical className="w-3 h-3 text-[#999]" />
+        </button>
+      </td>
+      <td>
+        <input type="checkbox" className="forti-checkbox" />
+      </td>
+      <td>
+        <FortiToggle 
+          enabled={mapping.enabled} 
+          onToggle={() => toggleMapping(mapping.id)}
+          size="sm"
+        />
+      </td>
+      <td className="text-[11px] font-medium text-[#111]">{mapping.name}</td>
+      <td className="mono text-[#111]">{mapping.ip}</td>
+      <td className="mono text-[10px] text-[#333]">{mapping.mac}</td>
+      <td>
+        <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">
+          {mapping.interface}
+        </span>
+      </td>
+      <td className="text-[11px] text-[#333]">{mapping.description}</td>
+      <td>
+        <div className="flex items-center gap-1">
+          <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleEditMapping(mapping)}>
+            <Edit2 className="w-3 h-3 text-[#666]" />
+          </button>
+          <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleDeleteConfirm('mapping', mapping.id)}>
+            <Trash2 className="w-3 h-3 text-red-500" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 const DHCP = () => {
   const [leases] = useState(mockDHCPLeases);
   const [activeTab, setActiveTab] = useState<'server' | 'leases' | 'static'>('server');
@@ -89,6 +163,11 @@ const DHCP = () => {
   const [mappings, setMappings] = useState<StaticMapping[]>(initialMappings);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
   
   // Modal states
   const [showServerModal, setShowServerModal] = useState(false);
@@ -255,6 +334,19 @@ const DHCP = () => {
       }
     };
     input.click();
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setMappings((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        toast.success('Order updated');
+        return newItems;
+      });
+    }
   };
 
   return (
@@ -474,57 +566,38 @@ const DHCP = () => {
         {/* Static Mappings Tab */}
         {activeTab === 'static' && (
           <div className="p-4">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="w-8">
-                    <input type="checkbox" className="forti-checkbox" />
-                  </th>
-                  <th className="w-16">Status</th>
-                  <th>Name</th>
-                  <th>IP Address</th>
-                  <th>MAC Address</th>
-                  <th>Interface</th>
-                  <th>Description</th>
-                  <th className="w-20">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mappings.map((mapping) => (
-                  <tr key={mapping.id} className={cn(!mapping.enabled && "opacity-60")}>
-                    <td>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th className="w-6"></th>
+                    <th className="w-8">
                       <input type="checkbox" className="forti-checkbox" />
-                    </td>
-                    <td>
-                      <FortiToggle 
-                        enabled={mapping.enabled} 
-                        onToggle={() => toggleMapping(mapping.id)}
-                        size="sm"
-                      />
-                    </td>
-                    <td className="text-[11px] font-medium text-[#111]">{mapping.name}</td>
-                    <td className="mono text-[#111]">{mapping.ip}</td>
-                    <td className="mono text-[10px] text-[#333]">{mapping.mac}</td>
-                    <td>
-                      <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">
-                        {mapping.interface}
-                      </span>
-                    </td>
-                    <td className="text-[11px] text-[#333]">{mapping.description}</td>
-                    <td>
-                      <div className="flex items-center gap-1">
-                        <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleEditMapping(mapping)}>
-                          <Edit2 className="w-3 h-3 text-[#666]" />
-                        </button>
-                        <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleDeleteConfirm('mapping', mapping.id)}>
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </button>
-                      </div>
-                    </td>
+                    </th>
+                    <th className="w-16">Status</th>
+                    <th>Name</th>
+                    <th>IP Address</th>
+                    <th>MAC Address</th>
+                    <th>Interface</th>
+                    <th>Description</th>
+                    <th className="w-20">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <SortableContext items={mappings.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                  <tbody>
+                    {mappings.map((mapping) => (
+                      <SortableMappingRow
+                        key={mapping.id}
+                        mapping={mapping}
+                        toggleMapping={toggleMapping}
+                        handleEditMapping={handleEditMapping}
+                        handleDeleteConfirm={handleDeleteConfirm}
+                      />
+                    ))}
+                  </tbody>
+                </SortableContext>
+              </table>
+            </DndContext>
           </div>
         )}
 
