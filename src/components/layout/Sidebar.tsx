@@ -140,16 +140,16 @@ export function Sidebar() {
             <Shield size={14} className="text-white" />
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-white font-bold text-sm">FortiGate</span>
-            <span className="text-sidebar-foreground text-xs">60E</span>
+            <span className="text-white font-bold text-sm">Aegis</span>
+            <span className="text-[hsl(var(--sidebar-primary))] text-xs font-medium">NGFW</span>
           </div>
         </div>
       </div>
 
       {/* Device Info */}
       <div className="px-3 py-2 border-b border-sidebar-border bg-[hsl(220,18%,16%)]">
-        <div className="text-[10px] text-sidebar-muted">FW-PRIMARY</div>
-        <div className="text-xs text-sidebar-foreground font-mono">FG60E4Q17001395</div>
+        <div className="text-[10px] text-sidebar-muted">CLUSTER: PRIMARY</div>
+        <div className="text-xs text-sidebar-foreground font-mono">AEGIS-FW-001</div>
       </div>
 
       {/* Navigation */}
@@ -214,8 +214,8 @@ export function Sidebar() {
       <div className="px-3 py-2 border-t border-sidebar-border bg-[hsl(220,18%,16%)]">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[10px] text-sidebar-muted">Firmware</div>
-            <div className="text-[11px] text-sidebar-foreground">v7.4.3 build2573</div>
+            <div className="text-[10px] text-sidebar-muted">Version</div>
+            <div className="text-[11px] text-sidebar-foreground">v1.0.0 build1024</div>
           </div>
           <div className="flex items-center gap-1">
             <span className="status-dot-lg status-healthy" />
