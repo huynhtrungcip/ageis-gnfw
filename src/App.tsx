@@ -31,6 +31,8 @@ import UserManagement from "./pages/UserManagement";
 import PacketFlow from "./pages/PacketFlow";
 import FeatureVisibility from "./pages/FeatureVisibility";
 import ApplicationControl from "./pages/ApplicationControl";
+import HighAvailability from "./pages/HighAvailability";
+import CertificateManagement from "./pages/CertificateManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +86,8 @@ const App = () => (
           <Route path="/system/admins" element={<UserManagement />} />
           <Route path="/system/firmware" element={<SystemSettings />} />
           <Route path="/system/feature-visibility" element={<FeatureVisibility />} />
+          <Route path="/system/ha" element={<HighAvailability />} />
+          <Route path="/system/certificates" element={<CertificateManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
