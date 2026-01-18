@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { mockSystemStatus } from '@/data/mockData';
 import { 
   Bell, 
   User, 
@@ -8,12 +7,10 @@ import {
   LogOut, 
   Settings, 
   Key,
-  Search,
   HelpCircle,
   AlertTriangle,
-  Globe,
-  Wifi,
-  RefreshCw
+  Terminal,
+  Maximize2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,17 +24,10 @@ import { toast } from 'sonner';
 
 export function Header() {
   const location = useLocation();
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [alerts, setAlerts] = useState([
-    { id: 1, type: 'critical', message: 'SSH Brute Force Attack Detected', time: '2m ago' },
-    { id: 2, type: 'high', message: 'C2 Communication Blocked', time: '8m ago' },
-    { id: 3, type: 'medium', message: 'Unusual Outbound Traffic', time: '15m ago' },
+    { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago' },
+    { id: 2, type: 'high', message: 'New firmware available', time: '1h ago' },
   ]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const handleLogout = () => {
     toast.success('Logged out successfully');
@@ -45,192 +35,118 @@ export function Header() {
 
   const handleDismissAlert = (id: number) => {
     setAlerts(prev => prev.filter(a => a.id !== id));
-    toast.success('Alert dismissed');
   };
-
-  // Get page title from path
-  const getPageTitle = () => {
-    const pathMap: Record<string, string[]> = {
-      '/': ['Dashboard', 'Status'],
-      '/interfaces': ['Network', 'Interfaces'],
-      '/routing': ['Network', 'Static Routes'],
-      '/dhcp': ['Network', 'DHCP Server'],
-      '/firewall/rules': ['Policy & Objects', 'Firewall Policy'],
-      '/firewall/aliases': ['Policy & Objects', 'Addresses'],
-      '/firewall/schedules': ['Policy & Objects', 'Schedules'],
-      '/firewall/nat': ['Policy & Objects', 'Virtual IPs'],
-      '/security/ids': ['Security Profiles', 'IPS'],
-      '/threats': ['Log & Report', 'Security Events'],
-      '/incidents': ['Monitor', 'Threat Monitor'],
-      '/vpn/ipsec': ['VPN', 'IPsec Tunnels'],
-      '/system/users': ['User & Authentication', 'User Definition'],
-      '/monitoring/traffic': ['Log & Report', 'Forward Traffic'],
-      '/monitoring/logs': ['Log & Report', 'System Events'],
-      '/reports': ['Log & Report', 'Reports'],
-      '/system/backup': ['System', 'Configuration'],
-      '/system/general': ['System', 'Settings'],
-    };
-    return pathMap[location.pathname] || ['Dashboard'];
-  };
-
-  const breadcrumb = getPageTitle();
 
   return (
-    <header className="h-10 bg-[#f5f5f5] border-b border-[#ddd] flex items-center justify-between px-4">
-      {/* Left: Breadcrumb */}
-      <div className="flex items-center gap-2 text-[12px]">
-        {breadcrumb.map((item, idx) => (
-          <span key={idx} className="flex items-center gap-2">
-            {idx > 0 && <span className="text-gray-400">&gt;</span>}
-            <span className={idx === breadcrumb.length - 1 ? "text-gray-800 font-medium" : "text-gray-500"}>
-              {item}
-            </span>
-          </span>
-        ))}
-      </div>
-
-      {/* Center: Search */}
-      <div className="flex-1 max-w-sm mx-6">
-        <div className="flex items-center gap-2 px-3 py-1 bg-white rounded border border-[#ddd]">
-          <Search size={13} className="text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Search" 
-            className="bg-transparent text-[12px] text-gray-700 placeholder-gray-400 outline-none flex-1"
-          />
-        </div>
-      </div>
-
-      {/* Right: Status & Actions */}
+    <header className="h-9 flex items-center justify-between px-3" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
+      {/* Left: Device Info */}
       <div className="flex items-center gap-3">
-        {/* Quick Status */}
-        <div className="flex items-center gap-3 text-[10px] text-gray-500">
-          <div className="flex items-center gap-1">
-            <Wifi size={12} className="text-green-500" />
-            <span>WAN1</span>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 bg-[#4caf50] rounded flex items-center justify-center">
+            <span className="text-[10px] text-white font-bold">FG</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Globe size={12} className="text-blue-500" />
-            <span>103.159.54.219</span>
-          </div>
+          <span className="text-white text-xs font-semibold">FortiGate 100E</span>
         </div>
+        <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">FG100E-DATECH</span>
+      </div>
 
-        <div className="w-px h-5 bg-gray-300" />
+      {/* Right: Actions */}
+      <div className="flex items-center gap-1">
+        {/* CLI Console */}
+        <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors" title="CLI Console">
+          <Terminal size={14} />
+        </button>
 
-        {/* Refresh */}
-        <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors">
-          <RefreshCw size={14} />
+        {/* Fullscreen */}
+        <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors" title="Fullscreen">
+          <Maximize2 size={14} />
         </button>
 
         {/* Help */}
-        <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors">
+        <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors" title="Help">
           <HelpCircle size={14} />
         </button>
 
-        {/* Alerts Dropdown */}
+        {/* Alerts */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="relative p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors">
+            <button className="relative p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors">
               <Bell size={14} />
               {alerts.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white font-bold flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center">
                   {alerts.length}
                 </span>
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <div className="px-3 py-2 border-b border-border bg-gray-50">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold flex items-center gap-2">
-                  <AlertTriangle size={14} className="text-orange-500" />
-                  Alert Messages
-                </span>
-                <span className="text-xs text-gray-500">{alerts.length} new</span>
-              </div>
+          <DropdownMenuContent align="end" className="w-72">
+            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f5f5f5]">
+              <span className="text-xs font-semibold text-[#333]">Alert Messages</span>
             </div>
             {alerts.length === 0 ? (
-              <div className="px-3 py-6 text-center text-sm text-gray-500">
-                No new alerts
+              <div className="px-3 py-4 text-center text-xs text-gray-500">
+                No alerts
               </div>
             ) : (
-              <div className="max-h-64 overflow-y-auto">
+              <div className="max-h-48 overflow-y-auto">
                 {alerts.map((alert) => (
                   <div 
                     key={alert.id}
-                    className="px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                    className="px-3 py-2 hover:bg-[#fafafa] border-b border-[#eee] last:border-b-0 flex items-start justify-between"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "w-2 h-2 rounded-full",
-                            alert.type === 'critical' ? "bg-red-500" :
-                            alert.type === 'high' ? "bg-orange-500" : "bg-yellow-500"
-                          )} />
-                          <span className="text-xs font-medium text-gray-700">{alert.message}</span>
-                        </div>
-                        <span className="text-[10px] text-gray-400 ml-4">{alert.time}</span>
+                    <div className="flex items-start gap-2">
+                      <span className={cn(
+                        "w-2 h-2 rounded-full mt-1",
+                        alert.type === 'critical' ? "bg-red-500" : "bg-orange-500"
+                      )} />
+                      <div>
+                        <div className="text-[11px] text-[#333]">{alert.message}</div>
+                        <div className="text-[10px] text-gray-400">{alert.time}</div>
                       </div>
-                      <button 
-                        onClick={() => handleDismissAlert(alert.id)}
-                        className="text-gray-400 hover:text-gray-600 text-sm"
-                      >
-                        ×
-                      </button>
                     </div>
+                    <button 
+                      onClick={() => handleDismissAlert(alert.id)}
+                      className="text-gray-400 hover:text-gray-600 text-xs"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
             )}
-            <div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
-              <Link to="/incidents" className="text-xs text-[#4caf50] hover:underline">
-                View all alerts →
-              </Link>
-            </div>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="w-px h-5 bg-gray-300" />
+        <div className="w-px h-4 bg-gray-600 mx-1" />
 
-        {/* User Dropdown */}
+        {/* User */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 px-2 py-1 hover:bg-gray-200 rounded transition-colors">
-              <div className="w-6 h-6 rounded-full bg-[#4caf50] flex items-center justify-center">
-                <User size={12} className="text-white" />
+            <button className="flex items-center gap-1.5 px-2 py-1 hover:bg-white/10 rounded transition-colors">
+              <div className="w-5 h-5 rounded-full bg-[#4caf50] flex items-center justify-center">
+                <User size={10} className="text-white" />
               </div>
-              <span className="text-[12px] text-gray-700 font-medium">admin</span>
-              <ChevronDown size={12} className="text-gray-400" />
+              <span className="text-[11px] text-white">admin</span>
+              <ChevronDown size={10} className="text-gray-400" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
-              <div className="text-sm font-medium text-gray-700">Administrator</div>
-              <div className="text-xs text-gray-500">admin@aegis-ngfw.local</div>
-            </div>
+          <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem asChild>
-              <Link to="/system/users" className="flex items-center gap-2 cursor-pointer">
-                <User size={14} />
+              <Link to="/system/admins" className="flex items-center gap-2 cursor-pointer text-[11px]">
+                <User size={12} />
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-              <Key size={14} />
+            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-[11px]">
+              <Key size={12} />
               <span>Change Password</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/system/general" className="flex items-center gap-2 cursor-pointer">
-                <Settings size={14} />
-                <span>Settings</span>
-              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={handleLogout}
-              className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
+              className="flex items-center gap-2 cursor-pointer text-[11px] text-red-600 focus:text-red-600"
             >
-              <LogOut size={14} />
+              <LogOut size={12} />
               <span>Logout</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

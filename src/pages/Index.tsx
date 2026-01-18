@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { mockInterfaces, mockSystemStatus, mockVPNTunnels } from '@/data/mockData';
 import { 
-  ChevronRight, 
   Cpu, 
   HardDrive, 
   Shield, 
@@ -16,14 +15,15 @@ import {
   Bug, 
   Filter,
   Settings,
-  GripVertical,
-  Maximize2,
-  X,
   RefreshCw,
   CheckCircle2,
   Server,
   Wifi,
-  Database
+  Database,
+  ChevronRight,
+  ArrowRight,
+  X,
+  XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -36,487 +36,396 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  Legend
+  Legend,
+  LineChart,
+  Line
 } from 'recharts';
 
 // Mock chart data
-const generateFileJobData = () => {
-  const dates = ['05/03/17', '06/03/17', '07/03/17', '08/03/17', '09/03/17'];
-  return dates.map(date => ({
-    date,
-    onDemand: Math.floor(Math.random() * 3),
-    sniffer: Math.floor(Math.random() * 2),
-    device: Math.floor(Math.random() * 5) + 1,
-    networkShare: Math.floor(Math.random() * 2),
-    adapter: Math.floor(Math.random() * 1),
-  }));
+const generateTrafficData = () => {
+  const hours = [];
+  for (let i = 0; i < 24; i++) {
+    hours.push({
+      time: `${i}:00`,
+      inbound: Math.floor(Math.random() * 50) + 10,
+      outbound: Math.floor(Math.random() * 40) + 5,
+    });
+  }
+  return hours;
 };
-
-const generateScanningActivityData = () => {
-  const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-  return weeks.map((week, i) => ({
-    week,
-    files: 3000 + Math.floor(Math.random() * 3000) + (i * 500),
-  }));
-};
-
-const scanningStats = [
-  { rating: 'Malicious', sniffer: 0, device: 0, onDemand: 0, network: 0, adapter: 0, url: 0, all: 0 },
-  { rating: 'Suspicious - High Risk', sniffer: 0, device: 2, onDemand: 0, network: 0, adapter: 0, url: 0, all: 2 },
-  { rating: 'Suspicious - Medium Risk', sniffer: 0, device: 12, onDemand: 0, network: 0, adapter: 0, url: 0, all: 12 },
-  { rating: 'Suspicious - Low Risk', sniffer: 0, device: 0, onDemand: 100, network: 0, adapter: 0, url: 0, all: 100 },
-  { rating: 'Clean', sniffer: 0, device: 13056, onDemand: 5, network: 0, adapter: 0, url: 0, all: 13061 },
-  { rating: 'Other', sniffer: 0, device: 0, onDemand: 0, network: 0, adapter: 0, url: 0, all: 0 },
-  { rating: 'Processed', sniffer: 0, device: 13170, onDemand: 5, network: 0, adapter: 0, url: 0, all: 13175 },
-  { rating: 'Pending', sniffer: 0, device: 0, onDemand: 0, network: 0, adapter: 0, url: 0, all: 0 },
-  { rating: 'Processing', sniffer: 0, device: 3, onDemand: 0, network: 0, adapter: 0, url: 0, all: 3 },
-  { rating: 'Total', sniffer: 0, device: 13173, onDemand: 5, network: 0, adapter: 0, url: 0, all: 13178 },
-];
 
 const licenses = [
-  { name: 'Support', status: 'active', icon: ShieldCheck },
-  { name: 'IPS', status: 'active', icon: Lock },
-  { name: 'AntiVirus', status: 'active', icon: Bug },
-  { name: 'Web Filter', status: 'active', icon: Filter },
+  { name: 'VM License', status: 'Valid', expiry: '2025-12-31' },
+  { name: 'Support', status: 'Valid', expiry: '2025-12-31' },
+  { name: 'IPS & IPS', status: 'Valid', expiry: '2025-12-31' },
+  { name: 'AntiVirus', status: 'Valid', expiry: '2025-12-31' },
+  { name: 'Web Filtering', status: 'Valid', expiry: '2025-12-31' },
+  { name: 'Email Filtering', status: 'Valid', expiry: '2025-12-31' },
+  { name: 'FortiSandbox Cloud', status: 'Valid', expiry: '2025-12-31' },
 ];
 
-// Widget Header Component
-const WidgetHeader = ({ 
+// Widget Component
+const Widget = ({ 
   title, 
-  icon: Icon,
-  onSettings,
-  onMaximize,
-  onClose 
+  children,
+  className = '',
+  headerActions
 }: { 
   title: string; 
-  icon?: React.ElementType;
-  onSettings?: () => void;
-  onMaximize?: () => void;
-  onClose?: () => void;
+  children: React.ReactNode;
+  className?: string;
+  headerActions?: React.ReactNode;
 }) => (
-  <div className="widget-header">
-    <div className="flex items-center gap-2">
-      <GripVertical size={12} className="text-white/60 cursor-grab" />
-      {Icon && <Icon size={14} />}
+  <div className={cn("widget", className)}>
+    <div className="widget-header">
       <span>{title}</span>
+      {headerActions}
     </div>
-    <div className="flex items-center gap-1">
-      {onSettings && (
-        <button onClick={onSettings} className="p-0.5 hover:bg-white/20 rounded">
-          <Settings size={12} />
-        </button>
-      )}
-      {onMaximize && (
-        <button onClick={onMaximize} className="p-0.5 hover:bg-white/20 rounded">
-          <Maximize2 size={12} />
-        </button>
-      )}
-      {onClose && (
-        <button onClick={onClose} className="p-0.5 hover:bg-white/20 rounded">
-          <X size={12} />
-        </button>
-      )}
+    <div className="widget-body">
+      {children}
     </div>
   </div>
 );
 
 const Dashboard = () => {
-  const { cpu, memory, uptime, hostname } = mockSystemStatus;
+  const { cpu, memory, uptime, hostname, disk } = mockSystemStatus;
   const memPct = Math.round((memory.used / memory.total) * 100);
+  const diskPct = Math.round((disk.used / disk.total) * 100);
   
-  // Real-time chart data with updates
-  const [fileJobData, setFileJobData] = useState(generateFileJobData);
-  const [scanningData, setScanningData] = useState(generateScanningActivityData);
-
-  // Simulate real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFileJobData(generateFileJobData());
-      setScanningData(generateScanningActivityData());
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const [trafficData] = useState(generateTrafficData);
 
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
-    return `${days} day(s) ${hours} hour(s) ${mins} minute(s)`;
+    return `${days} days ${hours} hours ${mins} minutes`;
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+    return (bytes / 1024).toFixed(2) + ' KB';
   };
 
   return (
     <Shell>
       <div className="space-y-3">
-        {/* Top Action Bar */}
-        <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-sm border border-border">
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-primary">
-            <span className="text-lg leading-none">+</span> Add Widget
-          </Button>
-          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5">
-            <RefreshCw size={12} /> Reset View
-          </Button>
+        {/* Top Row - System Info + Licenses */}
+        <div className="grid grid-cols-3 gap-3">
+          {/* System Information */}
+          <Widget title="System Information" className="col-span-2">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[11px]">
+              <div className="flex justify-between py-1 border-b border-[#eee]">
+                <span className="text-[#666]">Hostname:</span>
+                <span className="font-medium">{hostname}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#eee]">
+                <span className="text-[#666]">Serial Number:</span>
+                <span className="font-medium font-mono">FG100E4Q16005747</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#eee]">
+                <span className="text-[#666]">Operation Mode:</span>
+                <span className="font-medium">NAT</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#eee]">
+                <span className="text-[#666]">HA Status:</span>
+                <span className="font-medium">Standalone</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#eee]">
+                <span className="text-[#666]">Firmware:</span>
+                <span className="font-medium">v7.0.5 build0304 (GA)</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#eee]">
+                <span className="text-[#666]">System Time:</span>
+                <span className="font-medium">{new Date().toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#eee]">
+                <span className="text-[#666]">Uptime:</span>
+                <span className="font-medium">{formatUptime(uptime)}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-[#eee]">
+                <span className="text-[#666]">VDOM Mode:</span>
+                <span className="font-medium">Disabled</span>
+              </div>
+            </div>
+          </Widget>
+
+          {/* Licenses */}
+          <Widget title="Licenses">
+            <div className="space-y-1">
+              {licenses.slice(0, 5).map((lic, idx) => (
+                <div key={idx} className="flex items-center justify-between text-[11px] py-0.5">
+                  <span className="text-[#666]">{lic.name}</span>
+                  <span className="inline-flex items-center gap-1 text-[#4caf50]">
+                    <CheckCircle2 size={12} />
+                    {lic.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Widget>
         </div>
 
-        {/* Main Grid - 2 Column Layout */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Left Column */}
-          <div className="space-y-3">
-            {/* System Information Widget */}
-            <div className="widget">
-              <WidgetHeader title="System Information" icon={Server} onSettings={() => {}} onMaximize={() => {}} />
-              <div className="widget-body">
-                <table className="widget-table">
-                  <tbody>
-                    <tr>
-                      <td className="widget-label">Unit Type</td>
-                      <td className="widget-value">
-                        Primary <Link to="#" className="text-primary hover:underline">[Change]</Link>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="widget-label">Host Name</td>
-                      <td className="widget-value">
-                        {hostname} <Link to="#" className="text-primary hover:underline">[Change]</Link>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="widget-label">Serial Number</td>
-                      <td className="widget-value font-mono">AEGIS-FW-001</td>
-                    </tr>
-                    <tr>
-                      <td className="widget-label">System Time</td>
-                      <td className="widget-value">
-                        {new Date().toLocaleString()} <Link to="#" className="text-primary hover:underline">[Change]</Link>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="widget-label">Firmware Version</td>
-                      <td className="widget-value">
-                        v1.0.0 build1024 (GA) <Link to="#" className="text-primary hover:underline">[Update]</Link>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="widget-label">System Configuration</td>
-                      <td className="widget-value">
-                        Last Backup: {new Date().toLocaleDateString()} <Link to="#" className="text-primary hover:underline">[Backup]</Link>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="widget-label">Current Administrator</td>
-                      <td className="widget-value">admin</td>
-                    </tr>
-                    <tr>
-                      <td className="widget-label">Uptime</td>
-                      <td className="widget-value">{formatUptime(uptime)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                {/* License Status */}
-                <div className="mt-3 pt-3 border-t border-border">
-                  <table className="widget-table">
-                    <tbody>
-                      {licenses.map((lic) => (
-                        <tr key={lic.name}>
-                          <td className="widget-label">{lic.name}</td>
-                          <td className="widget-value">
-                            <span className="inline-flex items-center gap-1.5">
-                              <CheckCircle2 size={14} className="text-green-600" />
-                              <span className="text-green-600">Active</span>
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+        {/* Second Row - Resources + Interface */}
+        <div className="grid grid-cols-3 gap-3">
+          {/* CPU / Memory / Disk */}
+          <Widget title="Resources">
+            <div className="space-y-3">
+              {/* CPU */}
+              <div>
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="text-[#666]">CPU</span>
+                  <span className="font-medium">{cpu.usage}%</span>
+                </div>
+                <div className="forti-progress">
+                  <div 
+                    className={cn(
+                      "forti-progress-bar",
+                      cpu.usage > 80 ? "red" : cpu.usage > 60 ? "orange" : "green"
+                    )}
+                    style={{ width: `${cpu.usage}%` }}
+                  />
+                </div>
+              </div>
+              {/* Memory */}
+              <div>
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="text-[#666]">Memory</span>
+                  <span className="font-medium">{memPct}%</span>
+                </div>
+                <div className="forti-progress">
+                  <div 
+                    className={cn(
+                      "forti-progress-bar",
+                      memPct > 80 ? "red" : memPct > 60 ? "orange" : "blue"
+                    )}
+                    style={{ width: `${memPct}%` }}
+                  />
+                </div>
+              </div>
+              {/* Session */}
+              <div>
+                <div className="flex items-center justify-between text-[11px] mb-1">
+                  <span className="text-[#666]">Session</span>
+                  <span className="font-medium">2.4K</span>
+                </div>
+                <div className="forti-progress">
+                  <div className="forti-progress-bar green" style={{ width: '12%' }} />
                 </div>
               </div>
             </div>
+          </Widget>
 
-            {/* System Resources Widget */}
-            <div className="widget">
-              <WidgetHeader title="System Resources" icon={Activity} onSettings={() => {}} onMaximize={() => {}} />
-              <div className="widget-body">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Cpu size={16} className="text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground w-24">CPU Usage:</span>
-                    <div className="flex-1 h-4 bg-gray-200 rounded-sm overflow-hidden">
-                      <div 
-                        className={cn(
-                          "h-full transition-all",
-                          cpu.usage > 80 ? "bg-red-500" : cpu.usage > 60 ? "bg-yellow-500" : "bg-green-500"
-                        )}
-                        style={{ width: `${cpu.usage}%` }}
-                      />
+          {/* Interface Bandwidth */}
+          <Widget title="Interface Bandwidth (Mbps)" className="col-span-2">
+            <div className="h-32">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trafficData.slice(-12)} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="#999" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="#999" />
+                  <Tooltip 
+                    contentStyle={{ fontSize: 11, background: '#fff', border: '1px solid #ddd' }}
+                  />
+                  <Area type="monotone" dataKey="inbound" stroke="#4caf50" fill="#4caf50" fillOpacity={0.3} />
+                  <Area type="monotone" dataKey="outbound" stroke="#2196f3" fill="#2196f3" fillOpacity={0.3} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Widget>
+        </div>
+
+        {/* Third Row - FortiGate Unit + Interfaces */}
+        <div className="grid grid-cols-3 gap-3">
+          {/* FortiGate Unit Visualization */}
+          <Widget title="Unit Operation">
+            <div className="flex flex-col items-center py-2">
+              {/* FortiGate Device Visual */}
+              <div className="bg-[#333] rounded px-4 py-2 text-center mb-2">
+                <div className="text-[10px] text-gray-400 mb-1">FORTINET</div>
+                <div className="text-[11px] text-white font-bold">FortiGate 100E</div>
+                <div className="flex items-center justify-center gap-1 mt-2">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+                    <div 
+                      key={i}
+                      className={cn(
+                        "forti-port",
+                        i <= 4 ? "up" : "down"
+                      )}
+                    >
+                      {i}
                     </div>
-                    <span className="text-xs font-medium w-12 text-right">{cpu.usage}%</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <HardDrive size={16} className="text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground w-24">Memory Usage:</span>
-                    <div className="flex-1 h-4 bg-gray-200 rounded-sm overflow-hidden">
-                      <div 
-                        className={cn(
-                          "h-full transition-all",
-                          memPct > 80 ? "bg-red-500" : memPct > 60 ? "bg-yellow-500" : "bg-green-500"
-                        )}
-                        style={{ width: `${memPct}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-medium w-12 text-right">{memPct}%</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-border flex items-center gap-3">
-                  <Button variant="outline" size="sm" className="h-7 text-xs">
-                    <RefreshCw size={12} className="mr-1.5" /> Reboot
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-xs">
-                    <Settings size={12} className="mr-1.5" /> Shutdown
-                  </Button>
+                  ))}
                 </div>
               </div>
-            </div>
-
-            {/* Disk Monitor Widget */}
-            <div className="widget">
-              <WidgetHeader title="Disk Monitor" icon={Database} onSettings={() => {}} onMaximize={() => {}} />
-              <div className="widget-body">
-                <div className="grid grid-cols-4 gap-2">
-                  <div className="text-center p-2 border border-border rounded-sm">
-                    <div className="text-lg font-bold text-green-600">98%</div>
-                    <div className="text-[10px] text-muted-foreground">Disk 1</div>
-                  </div>
-                  <div className="text-center p-2 border border-border rounded-sm">
-                    <div className="text-lg font-bold text-green-600">95%</div>
-                    <div className="text-[10px] text-muted-foreground">Disk 2</div>
-                  </div>
-                  <div className="text-center p-2 border border-border rounded-sm">
-                    <div className="text-lg font-bold text-green-600">87%</div>
-                    <div className="text-[10px] text-muted-foreground">Disk 3</div>
-                  </div>
-                  <div className="text-center p-2 border border-border rounded-sm">
-                    <div className="text-lg font-bold text-gray-400">--</div>
-                    <div className="text-[10px] text-muted-foreground">Disk 4</div>
-                  </div>
-                </div>
+              {/* Status */}
+              <div className="flex items-center gap-4 text-[10px]">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#4caf50]" />
+                  Connected: 4
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#ccc]" />
+                  Disconnected: 6
+                </span>
               </div>
             </div>
-          </div>
+          </Widget>
 
-          {/* Right Column */}
-          <div className="space-y-3">
-            {/* Scanning Statistics Widget */}
-            <div className="widget">
-              <WidgetHeader title="Scanning Statistics - Last 7 Days" icon={Shield} onSettings={() => {}} onMaximize={() => {}} />
-              <div className="widget-body p-0">
-                <table className="w-full text-[11px]">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="text-left py-1.5 px-2 font-medium">Rating</th>
-                      <th className="text-right py-1.5 px-2 font-medium">Sniffer</th>
-                      <th className="text-right py-1.5 px-2 font-medium">Device(s)</th>
-                      <th className="text-right py-1.5 px-2 font-medium">On Demand</th>
-                      <th className="text-right py-1.5 px-2 font-medium">Network</th>
-                      <th className="text-right py-1.5 px-2 font-medium">Adapter</th>
-                      <th className="text-right py-1.5 px-2 font-medium">URL</th>
-                      <th className="text-right py-1.5 px-2 font-medium">All</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scanningStats.map((row, idx) => (
-                      <tr key={idx} className={cn(
-                        "border-b border-border/60",
-                        row.rating === 'Total' && "bg-muted font-medium"
-                      )}>
-                        <td className="py-1.5 px-2">{row.rating}</td>
-                        <td className="text-right py-1.5 px-2">{row.sniffer}</td>
-                        <td className="text-right py-1.5 px-2">
-                          {row.device > 0 ? (
-                            <Link to="#" className="text-primary hover:underline">{row.device}</Link>
-                          ) : row.device}
-                        </td>
-                        <td className="text-right py-1.5 px-2">
-                          {row.onDemand > 0 ? (
-                            <Link to="#" className="text-primary hover:underline">{row.onDemand}</Link>
-                          ) : row.onDemand}
-                        </td>
-                        <td className="text-right py-1.5 px-2">{row.network}</td>
-                        <td className="text-right py-1.5 px-2">{row.adapter}</td>
-                        <td className="text-right py-1.5 px-2">{row.url}</td>
-                        <td className="text-right py-1.5 px-2">
-                          {row.all > 0 ? (
-                            <Link to="#" className="text-primary hover:underline">{row.all}</Link>
-                          ) : row.all}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="px-2 py-1.5 text-[10px] text-muted-foreground text-right border-t border-border">
-                  Last Updated: {new Date().toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            {/* Interface Status Widget */}
-            <div className="widget">
-              <WidgetHeader title="Interface Status" icon={Network} onSettings={() => {}} onMaximize={() => {}} />
-              <div className="widget-body p-0">
-                {mockInterfaces.slice(0, 5).map((iface) => (
-                  <div key={iface.id} className="flex items-center justify-between px-3 py-2 border-b border-border/60 hover:bg-muted/50">
-                    <div className="flex items-center gap-2">
-                      <Wifi size={14} className={iface.status === 'up' ? 'text-green-600' : 'text-gray-400'} />
-                      <div>
-                        <div className="text-xs font-medium">{iface.name}</div>
-                        <div className="text-[10px] text-muted-foreground font-mono">{iface.ipAddress}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
+          {/* Interfaces Status */}
+          <Widget title="Top Interfaces by Bandwidth" className="col-span-2">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-[#666]">
+                  <th className="pb-1">Interface</th>
+                  <th className="pb-1">IP</th>
+                  <th className="pb-1">Status</th>
+                  <th className="pb-1 text-right">Inbound</th>
+                  <th className="pb-1 text-right">Outbound</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockInterfaces.slice(0, 4).map((iface) => (
+                  <tr key={iface.id} className="border-t border-[#eee]">
+                    <td className="py-1.5 font-medium">{iface.name}</td>
+                    <td className="py-1.5 font-mono text-[#666]">{iface.ipAddress}</td>
+                    <td className="py-1.5">
                       <span className={cn(
-                        "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
-                        iface.status === 'up' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-gray-100 text-gray-500'
+                        "inline-flex items-center gap-1",
+                        iface.status === 'up' ? 'text-[#4caf50]' : 'text-[#999]'
                       )}>
                         <span className={cn(
-                          "w-1.5 h-1.5 rounded-full",
-                          iface.status === 'up' ? 'bg-green-500' : 'bg-gray-400'
+                          "w-2 h-2 rounded-full",
+                          iface.status === 'up' ? 'bg-[#4caf50]' : 'bg-[#ccc]'
                         )} />
-                        {iface.status.toUpperCase()}
+                        {iface.status === 'up' ? 'Up' : 'Down'}
                       </span>
-                    </div>
-                  </div>
+                    </td>
+                    <td className="py-1.5 text-right text-[#666]">{formatBytes(iface.rxBytes)}</td>
+                    <td className="py-1.5 text-right text-[#666]">{formatBytes(iface.txBytes)}</td>
+                  </tr>
                 ))}
-                <div className="px-3 py-2 bg-muted">
-                  <Link to="/interfaces" className="text-xs text-primary hover:underline flex items-center gap-1">
-                    View all interfaces <ChevronRight size={12} />
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* VPN Status Widget */}
-            <div className="widget">
-              <WidgetHeader title="VPN Status" icon={Globe} onSettings={() => {}} onMaximize={() => {}} />
-              <div className="widget-body p-0">
-                <table className="w-full text-[11px]">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="text-left py-1.5 px-2 font-medium">Name</th>
-                      <th className="text-left py-1.5 px-2 font-medium">Type</th>
-                      <th className="text-left py-1.5 px-2 font-medium">Gateway</th>
-                      <th className="text-center py-1.5 px-2 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockVPNTunnels.slice(0, 4).map((vpn) => (
-                      <tr key={vpn.id} className="border-b border-border/60">
-                        <td className="py-1.5 px-2 font-medium">{vpn.name}</td>
-                        <td className="py-1.5 px-2 text-muted-foreground">
-                          {vpn.type === 'ipsec' ? 'IPsec' : vpn.type === 'openvpn' ? 'OpenVPN' : 'WireGuard'}
-                        </td>
-                        <td className="py-1.5 px-2 font-mono text-muted-foreground">{vpn.remoteGateway}</td>
-                        <td className="py-1.5 px-2 text-center">
-                          <span className={cn(
-                            "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
-                            vpn.status === 'connected' 
-                              ? 'bg-green-100 text-green-700' 
-                              : 'bg-gray-100 text-gray-500'
-                          )}>
-                            <span className={cn(
-                              "w-1.5 h-1.5 rounded-full",
-                              vpn.status === 'connected' ? 'bg-green-500' : 'bg-gray-400'
-                            )} />
-                            {vpn.status.toUpperCase()}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+              </tbody>
+            </table>
+          </Widget>
         </div>
 
-        {/* Bottom Row - Full Width Charts with Recharts */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* File Job Statistics Chart */}
-          <div className="widget">
-            <WidgetHeader title="Pending File Job Statistics" icon={Activity} onSettings={() => {}} onMaximize={() => {}} />
-            <div className="widget-body">
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={fileJobData} barSize={12}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        fontSize: 11, 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 4
-                      }} 
-                    />
-                    <Bar dataKey="onDemand" fill="#ef4444" name="On Demand" />
-                    <Bar dataKey="sniffer" fill="#22c55e" name="Sniffer" />
-                    <Bar dataKey="device" fill="#3b82f6" name="Device(s)" />
-                    <Bar dataKey="networkShare" fill="#8b5cf6" name="Network Share" />
-                    <Bar dataKey="adapter" fill="#f97316" name="Adapter" />
-                  </BarChart>
-                </ResponsiveContainer>
+        {/* Fourth Row - Security + Sessions */}
+        <div className="grid grid-cols-3 gap-3">
+          {/* Security Events */}
+          <Widget title="Security Events (Last 24 Hours)">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-red-500" />
+                  Critical
+                </span>
+                <span className="font-bold text-red-500">3</span>
               </div>
-              <div className="mt-2 flex items-center gap-4 text-[10px]">
-                <span className="flex items-center gap-1"><span className="w-3 h-2 bg-red-500 rounded-sm" /> On Demand</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-2 bg-green-500 rounded-sm" /> Sniffer</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-2 bg-blue-500 rounded-sm" /> Device(s)</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-2 bg-purple-500 rounded-sm" /> Network Share</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-2 bg-orange-500 rounded-sm" /> Adapter</span>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-orange-500" />
+                  High
+                </span>
+                <span className="font-bold text-orange-500">12</span>
               </div>
-              <div className="mt-2 text-[10px] text-muted-foreground text-right">
-                Last Updated: {new Date().toLocaleString()}
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-yellow-500" />
+                  Medium
+                </span>
+                <span className="font-bold text-yellow-600">45</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-blue-500" />
+                  Low
+                </span>
+                <span className="font-bold text-blue-500">128</span>
               </div>
             </div>
-          </div>
+            <Link to="/threats" className="mt-3 flex items-center gap-1 text-[11px] text-[#4caf50] hover:underline">
+              View all events <ChevronRight size={12} />
+            </Link>
+          </Widget>
 
-          {/* File Scanning Activity Chart */}
-          <div className="widget">
-            <WidgetHeader title="File Scanning Activity - Last 4 Weeks" icon={Activity} onSettings={() => {}} onMaximize={() => {}} />
-            <div className="widget-body">
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={scanningData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="week" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        fontSize: 11, 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 4
-                      }} 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="files" 
-                      stroke="#22c55e" 
-                      fill="#22c55e" 
-                      fillOpacity={0.3}
-                      name="Files Scanned"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-2 text-[10px] text-muted-foreground text-right">
-                Last Updated: {new Date().toLocaleString()}
-              </div>
-            </div>
-          </div>
+          {/* Top Sessions */}
+          <Widget title="Top Sessions by Source" className="col-span-2">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-[#666]">
+                  <th className="pb-1">Source</th>
+                  <th className="pb-1">Destination</th>
+                  <th className="pb-1">Application</th>
+                  <th className="pb-1 text-right">Sessions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-[#eee]">
+                  <td className="py-1.5 font-mono">192.168.1.105</td>
+                  <td className="py-1.5 font-mono">8.8.8.8</td>
+                  <td className="py-1.5">DNS</td>
+                  <td className="py-1.5 text-right font-medium">1,247</td>
+                </tr>
+                <tr className="border-t border-[#eee]">
+                  <td className="py-1.5 font-mono">192.168.1.112</td>
+                  <td className="py-1.5 font-mono">151.101.1.140</td>
+                  <td className="py-1.5">HTTPS</td>
+                  <td className="py-1.5 text-right font-medium">892</td>
+                </tr>
+                <tr className="border-t border-[#eee]">
+                  <td className="py-1.5 font-mono">192.168.1.108</td>
+                  <td className="py-1.5 font-mono">142.250.185.46</td>
+                  <td className="py-1.5">HTTPS</td>
+                  <td className="py-1.5 text-right font-medium">654</td>
+                </tr>
+              </tbody>
+            </table>
+          </Widget>
         </div>
+
+        {/* Fifth Row - VPN Status */}
+        <Widget title="IPsec VPN">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="text-left text-[#666]">
+                <th className="pb-1">Tunnel Name</th>
+                <th className="pb-1">Type</th>
+                <th className="pb-1">Remote Gateway</th>
+                <th className="pb-1">Status</th>
+                <th className="pb-1 text-right">Incoming</th>
+                <th className="pb-1 text-right">Outgoing</th>
+                <th className="pb-1 text-right">Uptime</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockVPNTunnels.map((vpn) => (
+                <tr key={vpn.id} className="border-t border-[#eee]">
+                  <td className="py-1.5 font-medium">{vpn.name}</td>
+                  <td className="py-1.5">{vpn.type.toUpperCase()}</td>
+                  <td className="py-1.5 font-mono text-[#666]">{vpn.remoteGateway}</td>
+                  <td className="py-1.5">
+                    <span className={cn(
+                      "inline-flex items-center gap-1",
+                      vpn.status === 'connected' ? 'text-[#4caf50]' : 'text-[#999]'
+                    )}>
+                      <span className={cn(
+                        "w-2 h-2 rounded-full",
+                        vpn.status === 'connected' ? 'bg-[#4caf50]' : 'bg-[#ccc]'
+                      )} />
+                      {vpn.status === 'connected' ? 'Up' : 'Down'}
+                    </span>
+                  </td>
+                  <td className="py-1.5 text-right text-[#666]">{formatBytes(vpn.bytesIn)}</td>
+                  <td className="py-1.5 text-right text-[#666]">{formatBytes(vpn.bytesOut)}</td>
+                  <td className="py-1.5 text-right text-[#666]">
+                    {vpn.status === 'connected' ? `${Math.floor(vpn.uptime / 3600)}h ${Math.floor((vpn.uptime % 3600) / 60)}m` : '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Widget>
       </div>
     </Shell>
   );
