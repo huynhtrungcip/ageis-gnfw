@@ -23,7 +23,7 @@ import {
   Wifi,
   LucideIcon
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface NavItem {
   label: string;
@@ -186,9 +186,32 @@ const navigation: NavSection[] = [
 
 export function Sidebar() {
   const location = useLocation();
-  const [expandedSections, setExpandedSections] = useState<string[]>(
-    navigation.filter(s => s.defaultOpen).map(s => s.title)
-  );
+  
+  // Initialize with defaultOpen sections
+  const getInitialExpanded = () => {
+    const defaultExpanded = navigation.filter(s => s.defaultOpen).map(s => s.title);
+    // Also expand section containing current route
+    navigation.forEach(section => {
+      if (section.items.some(item => location.pathname === item.path || location.pathname.startsWith(item.path.split('/').slice(0, 2).join('/')))) {
+        if (!defaultExpanded.includes(section.title)) {
+          defaultExpanded.push(section.title);
+        }
+      }
+    });
+    return defaultExpanded;
+  };
+
+  const [expandedSections, setExpandedSections] = useState<string[]>(getInitialExpanded);
+
+  // Auto-expand section when navigating to a route inside it
+  useEffect(() => {
+    navigation.forEach(section => {
+      const hasActiveItem = section.items.some(item => location.pathname === item.path);
+      if (hasActiveItem && !expandedSections.includes(section.title)) {
+        setExpandedSections(prev => [...prev, section.title]);
+      }
+    });
+  }, [location.pathname]);
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev => 
