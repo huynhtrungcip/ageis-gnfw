@@ -16,7 +16,8 @@ import {
   Globe,
   Users,
   Download,
-  Edit2
+  Edit2,
+  GripVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -25,6 +26,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface VPNTunnel {
   id: string;
@@ -61,6 +79,92 @@ const mockSSLUsers: SSLVPNUser[] = [
   { id: 'ssl-5', username: 'charlie.brown', group: 'Contractors', status: 'offline', sourceIp: '', assignedIp: '', loginTime: null, bytesIn: 0, bytesOut: 0 },
 ];
 
+// Sortable VPN Tunnel Row
+interface SortableTunnelRowProps {
+  tunnel: VPNTunnel;
+  selectedRows: string[];
+  toggleRowSelection: (id: string) => void;
+  handleConnect: (id: string) => void;
+  handleDelete: (id: string) => void;
+  formatBytes: (bytes: number) => string;
+  formatUptime: (seconds: number) => string;
+}
+
+const SortableTunnelRow = ({ tunnel, selectedRows, toggleRowSelection, handleConnect, handleDelete, formatBytes, formatUptime }: SortableTunnelRowProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tunnel.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr 
+      ref={setNodeRef}
+      style={style}
+      className={cn(selectedRows.includes(tunnel.id) && "selected", isDragging && "bg-blue-50")}
+    >
+      <td>
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#f0f0f0]">
+          <GripVertical className="w-3 h-3 text-[#999]" />
+        </button>
+      </td>
+      <td>
+        <input 
+          type="checkbox" 
+          checked={selectedRows.includes(tunnel.id)}
+          onChange={() => toggleRowSelection(tunnel.id)}
+          className="forti-checkbox"
+        />
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            "forti-status-dot",
+            tunnel.status === 'connected' ? 'up' :
+            tunnel.status === 'connecting' ? 'warning' : 'down'
+          )} />
+        </div>
+      </td>
+      <td className="text-[11px] font-medium text-[#111]">{tunnel.name}</td>
+      <td className="mono text-[10px] text-[#333]">{tunnel.remoteGateway}</td>
+      <td className="text-[10px] text-[#333]">{tunnel.phase1}</td>
+      <td className="text-[10px] text-[#333]">{tunnel.phase2}</td>
+      <td className="text-[11px]">{formatUptime(tunnel.uptime)}</td>
+      <td>
+        <div className="text-[10px]">
+          <span className="text-green-600">↓{formatBytes(tunnel.bytesIn)}</span>
+          <span className="text-[#999] mx-1">/</span>
+          <span className="text-blue-600">↑{formatBytes(tunnel.bytesOut)}</span>
+        </div>
+      </td>
+      <td>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handleConnect(tunnel.id)}
+            className={cn(
+              "p-1 rounded transition-colors",
+              tunnel.status === 'connected' 
+                ? "hover:bg-red-100 text-red-600" 
+                : "hover:bg-green-100 text-green-600"
+            )}
+            title={tunnel.status === 'connected' ? 'Bring Down' : 'Bring Up'}
+          >
+            {tunnel.status === 'connected' ? <Square size={12} /> : <Play size={12} />}
+          </button>
+          <button
+            onClick={() => handleDelete(tunnel.id)}
+            className="p-1 rounded hover:bg-red-100 text-red-600 transition-colors"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 const VPN = () => {
   const [tunnels, setTunnels] = useState<VPNTunnel[]>(mockVPNTunnels.map(t => ({
     ...t,
@@ -80,6 +184,11 @@ const VPN = () => {
     localNetwork: '',
     remoteNetwork: '',
   });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const formatBytes = (bytes: number): string => {
     if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
@@ -167,6 +276,19 @@ const VPN = () => {
     setTunnels(prev => prev.filter(t => t.id !== id));
     setSelectedRows(prev => prev.filter(r => r !== id));
     toast.success('VPN tunnel deleted');
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setTunnels((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        toast.success('Order updated');
+        return newItems;
+      });
+    }
   };
 
   const toggleRowSelection = (id: string) => {
@@ -295,83 +417,42 @@ const VPN = () => {
         {/* IPsec Tab */}
         {activeTab === 'ipsec' && (
           <div className="p-4">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="w-8">
-                    <input type="checkbox" className="forti-checkbox" />
-                  </th>
-                  <th className="w-16">Status</th>
-                  <th>Name</th>
-                  <th>Remote Gateway</th>
-                  <th>Phase 1</th>
-                  <th>Phase 2</th>
-                  <th>Uptime</th>
-                  <th>Traffic</th>
-                  <th className="w-20">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTunnels.map((tunnel) => (
-                  <tr 
-                    key={tunnel.id}
-                    className={cn(selectedRows.includes(tunnel.id) && "selected")}
-                  >
-                    <td>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedRows.includes(tunnel.id)}
-                        onChange={() => toggleRowSelection(tunnel.id)}
-                        className="forti-checkbox"
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "forti-status-dot",
-                          tunnel.status === 'connected' ? 'up' :
-                          tunnel.status === 'connecting' ? 'warning' : 'down'
-                        )} />
-                      </div>
-                    </td>
-                    <td className="text-[11px] font-medium text-[#111]">{tunnel.name}</td>
-                    <td className="mono text-[10px] text-[#333]">{tunnel.remoteGateway}</td>
-                    <td className="text-[10px] text-[#333]">{tunnel.phase1}</td>
-                    <td className="text-[10px] text-[#333]">{tunnel.phase2}</td>
-                    <td className="text-[11px]">{formatUptime(tunnel.uptime)}</td>
-                    <td>
-                      <div className="text-[10px]">
-                        <span className="text-green-600">↓{formatBytes(tunnel.bytesIn)}</span>
-                        <span className="text-[#999] mx-1">/</span>
-                        <span className="text-blue-600">↑{formatBytes(tunnel.bytesOut)}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleConnect(tunnel.id)}
-                          className={cn(
-                            "p-1 rounded transition-colors",
-                            tunnel.status === 'connected' 
-                              ? "hover:bg-red-100 text-red-600" 
-                              : "hover:bg-green-100 text-green-600"
-                          )}
-                          title={tunnel.status === 'connected' ? 'Bring Down' : 'Bring Up'}
-                        >
-                          {tunnel.status === 'connected' ? <Square size={12} /> : <Play size={12} />}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(tunnel.id)}
-                          className="p-1 rounded hover:bg-red-100 text-red-600 transition-colors"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </td>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th className="w-6"></th>
+                    <th className="w-8">
+                      <input type="checkbox" className="forti-checkbox" />
+                    </th>
+                    <th className="w-16">Status</th>
+                    <th>Name</th>
+                    <th>Remote Gateway</th>
+                    <th>Phase 1</th>
+                    <th>Phase 2</th>
+                    <th>Uptime</th>
+                    <th>Traffic</th>
+                    <th className="w-20">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <SortableContext items={filteredTunnels.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                  <tbody>
+                    {filteredTunnels.map((tunnel) => (
+                      <SortableTunnelRow
+                        key={tunnel.id}
+                        tunnel={tunnel}
+                        selectedRows={selectedRows}
+                        toggleRowSelection={toggleRowSelection}
+                        handleConnect={handleConnect}
+                        handleDelete={handleDelete}
+                        formatBytes={formatBytes}
+                        formatUptime={formatUptime}
+                      />
+                    ))}
+                  </tbody>
+                </SortableContext>
+              </table>
+            </DndContext>
             <div className="text-[11px] text-[#666] mt-2 px-1">
               {filteredTunnels.length} tunnels
             </div>

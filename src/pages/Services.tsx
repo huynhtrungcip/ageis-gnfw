@@ -13,7 +13,8 @@ import {
   Network,
   X,
   Download,
-  Upload
+  Upload,
+  GripVertical
 } from 'lucide-react';
 import {
   Dialog,
@@ -39,6 +40,23 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { exportToJSON, exportToCSV, importFromJSON, createFileInput } from '@/lib/exportImport';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ServiceObject {
   id: string;
@@ -67,6 +85,75 @@ const initialServices: ServiceObject[] = [
   { id: '12', name: 'VoIP-Ports', category: 'Custom', protocol: 'UDP', destPorts: '5060-5061,10000-20000', sourcePorts: '1-65535', comment: 'VoIP signaling and media', references: 3, isSystem: false },
 ];
 
+// Sortable Service Row
+interface SortableServiceRowProps {
+  service: ServiceObject;
+  selectedIds: string[];
+  handleSelect: (id: string) => void;
+  getProtocolColor: (protocol: string) => string;
+  onDoubleClick: () => void;
+}
+
+const SortableServiceRow = ({ service, selectedIds, handleSelect, getProtocolColor, onDoubleClick }: SortableServiceRowProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: service.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr 
+      ref={setNodeRef}
+      style={style}
+      className={cn(selectedIds.includes(service.id) && "selected", isDragging && "bg-blue-50")}
+      onDoubleClick={onDoubleClick}
+    >
+      <td>
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 hover:bg-[#f0f0f0]">
+          <GripVertical className="w-3 h-3 text-[#999]" />
+        </button>
+      </td>
+      <td>
+        <input 
+          type="checkbox" 
+          className="forti-checkbox"
+          checked={selectedIds.includes(service.id)}
+          onChange={() => handleSelect(service.id)}
+        />
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          <Hash className="w-3 h-3 text-amber-600" />
+          <span className="text-[11px] font-medium">{service.name}</span>
+          {service.isSystem && (
+            <span className="text-[9px] px-1 py-0.5 bg-gray-100 text-gray-500 border border-gray-200 rounded">
+              SYSTEM
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="text-[11px] text-[#666]">{service.category}</td>
+      <td>
+        <span className={cn("text-[10px] px-1.5 py-0.5 border", getProtocolColor(service.protocol))}>
+          {service.protocol}
+        </span>
+      </td>
+      <td className="mono text-[11px]">{service.destPorts}</td>
+      <td className="text-[11px] text-[#666]">{service.comment}</td>
+      <td className="text-center">
+        <span className={cn(
+          "text-[11px]",
+          service.references > 0 ? "text-blue-600" : "text-[#999]"
+        )}>
+          {service.references}
+        </span>
+      </td>
+    </tr>
+  );
+};
+
 const Services = () => {
   const [services, setServices] = useState<ServiceObject[]>(initialServices);
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,6 +163,11 @@ const Services = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ServiceObject | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -247,6 +339,19 @@ const Services = () => {
     });
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setServices((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        toast.success('Order updated');
+        return newItems;
+      });
+    }
+  };
+
   return (
     <Shell>
       <div className="space-y-0 animate-slide-in">
@@ -366,81 +471,53 @@ const Services = () => {
 
         {/* Table */}
         <div className="p-4">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="w-8">
-                  <input 
-                    type="checkbox" 
-                    className="forti-checkbox"
-                    checked={selectedIds.length === filteredServices.length && filteredServices.length > 0}
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Protocol</th>
-                <th>Destination Port</th>
-                <th>Comments</th>
-                <th className="text-center">Ref.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredServices.map((service) => (
-                <tr 
-                  key={service.id} 
-                  className={cn(selectedIds.includes(service.id) && "selected")}
-                  onDoubleClick={() => {
-                    setSelectedIds([service.id]);
-                    setTimeout(openEditModal, 0);
-                  }}
-                >
-                  <td>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-6"></th>
+                  <th className="w-8">
                     <input 
                       type="checkbox" 
                       className="forti-checkbox"
-                      checked={selectedIds.includes(service.id)}
-                      onChange={() => handleSelect(service.id)}
+                      checked={selectedIds.length === filteredServices.length && filteredServices.length > 0}
+                      onChange={handleSelectAll}
                     />
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <Hash className="w-3 h-3 text-amber-600" />
-                      <span className="text-[11px] font-medium">{service.name}</span>
-                      {service.isSystem && (
-                        <span className="text-[9px] px-1 py-0.5 bg-gray-100 text-gray-500 border border-gray-200 rounded">
-                          SYSTEM
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="text-[11px] text-[#666]">{service.category}</td>
-                  <td>
-                    <span className={cn("text-[10px] px-1.5 py-0.5 border", getProtocolColor(service.protocol))}>
-                      {service.protocol}
-                    </span>
-                  </td>
-                  <td className="mono text-[11px]">{service.destPorts}</td>
-                  <td className="text-[11px] text-[#666]">{service.comment}</td>
-                  <td className="text-center">
-                    <span className={cn(
-                      "text-[11px]",
-                      service.references > 0 ? "text-blue-600" : "text-[#999]"
-                    )}>
-                      {service.references}
-                    </span>
-                  </td>
+                  </th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Protocol</th>
+                  <th>Destination Port</th>
+                  <th>Comments</th>
+                  <th className="text-center">Ref.</th>
                 </tr>
-              ))}
-              {filteredServices.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center text-[11px] text-[#999] py-8">
-                    {searchQuery ? 'No matching services found' : 'No services configured'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <SortableContext items={filteredServices.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <tbody>
+                  {filteredServices.map((service) => (
+                    <SortableServiceRow
+                      key={service.id}
+                      service={service}
+                      selectedIds={selectedIds}
+                      handleSelect={handleSelect}
+                      getProtocolColor={getProtocolColor}
+                      onDoubleClick={() => {
+                        setSelectedIds([service.id]);
+                        setTimeout(openEditModal, 0);
+                      }}
+                    />
+                  ))}
+                  {filteredServices.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="text-center text-[11px] text-[#999] py-8">
+                        {searchQuery ? 'No matching services found' : 'No services configured'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </SortableContext>
+            </table>
+          </DndContext>
           <div className="text-[11px] text-[#666] mt-2 px-1">
             {filteredServices.length} services
             {selectedIds.length > 0 && ` (${selectedIds.length} selected)`}
