@@ -470,9 +470,9 @@ const HighAvailability = () => {
                         {event.event}
                       </span>
                     </td>
-                    <td className="text-[11px]">{event.from}</td>
-                    <td className="text-[11px]">{event.to}</td>
-                    <td className="text-[11px] text-[#666]">{event.reason}</td>
+                    <td className="text-[11px] text-[#111]">{event.from}</td>
+                    <td className="text-[11px] text-[#111]">{event.to}</td>
+                    <td className="text-[11px] text-[#333]">{event.reason}</td>
                     <td className="text-[11px] text-green-600">{event.duration}</td>
                   </tr>
                 ))}
@@ -485,8 +485,8 @@ const HighAvailability = () => {
         {activeTab === 'status' && !haEnabled && (
           <div className="p-8 text-center">
             <Server className="w-16 h-16 mx-auto text-[#ccc] mb-4" />
-            <div className="text-[14px] font-medium text-[#666] mb-2">High Availability is Disabled</div>
-            <div className="text-[11px] text-[#999] mb-4">Enable HA to configure cluster settings and view status</div>
+            <div className="text-[14px] font-medium text-[#333] mb-2">High Availability is Disabled</div>
+            <div className="text-[11px] text-[#555] mb-4">Enable HA to configure cluster settings and view status</div>
             <button onClick={() => setHaEnabled(true)} className="forti-btn forti-btn-primary">
               Enable High Availability
             </button>
