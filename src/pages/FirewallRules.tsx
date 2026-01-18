@@ -2,19 +2,20 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockFirewallRules } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
   Search,
-  Copy,
   Shield,
-  ArrowUp,
-  ArrowDown,
-  GripVertical,
   Check,
   X,
   Network,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Edit2,
+  Trash2,
+  Copy,
+  RefreshCw
 } from 'lucide-react';
 import { FirewallRuleModal } from '@/components/firewall/FirewallRuleModal';
 import type { FirewallRule } from '@/types/firewall';
@@ -36,9 +37,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Checkbox } from '@/components/ui/checkbox';
 
-// Group rules by interface pair
 interface InterfacePair {
   from: string;
   to: string;
@@ -52,11 +51,12 @@ interface SortableRowProps {
   isSelected: boolean;
   onSelect: (id: string) => void;
   onEdit: (rule: FirewallRule) => void;
+  onToggle: (id: string) => void;
   formatBytes: (n: number) => string;
   isDraggingDisabled: boolean;
 }
 
-function SortableRow({ rule, index, isSelected, onSelect, onEdit, formatBytes, isDraggingDisabled }: SortableRowProps) {
+function SortableRow({ rule, index, isSelected, onSelect, onEdit, onToggle, formatBytes, isDraggingDisabled }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -76,23 +76,29 @@ function SortableRow({ rule, index, isSelected, onSelect, onEdit, formatBytes, i
     <tr
       ref={setNodeRef}
       style={style}
-      onClick={() => onSelect(rule.id)}
       className={cn(
-        "cursor-pointer",
-        !rule.enabled && "opacity-50",
         isDragging && "bg-yellow-50",
-        isSelected && "bg-[#fff8e1]"
+        isSelected && "selected"
       )}
     >
       <td className="w-8 text-center">
-        <Checkbox
+        <input
+          type="checkbox"
           checked={isSelected}
-          onCheckedChange={() => onSelect(rule.id)}
+          onChange={() => onSelect(rule.id)}
           onClick={(e) => e.stopPropagation()}
+          className="forti-checkbox"
+        />
+      </td>
+      <td className="w-12 text-center">
+        <FortiToggle
+          enabled={rule.enabled}
+          onToggle={() => onToggle(rule.id)}
+          size="sm"
         />
       </td>
       <td className="w-10 text-center text-[11px] text-[#666]">{index + 1}</td>
-      <td className="text-[11px] font-medium text-[#333]" onDoubleClick={() => onEdit(rule)}>
+      <td className="text-[11px] font-medium" onDoubleClick={() => onEdit(rule)}>
         {rule.description || `Rule-${index + 1}`}
       </td>
       <td className="text-[11px]">
@@ -108,10 +114,7 @@ function SortableRow({ rule, index, isSelected, onSelect, onEdit, formatBytes, i
         </span>
       </td>
       <td className="text-[11px] text-[#666]">
-        <span className="inline-flex items-center gap-1">
-          <span className="w-3 h-3 bg-gray-300 rounded-sm text-[8px] flex items-center justify-center">📅</span>
-          {rule.schedule || 'always'}
-        </span>
+        {rule.schedule || 'always'}
       </td>
       <td className="text-[11px]">
         <span className="inline-flex items-center gap-1">
@@ -121,27 +124,17 @@ function SortableRow({ rule, index, isSelected, onSelect, onEdit, formatBytes, i
       </td>
       <td className="text-[11px]">
         <span className={cn(
-          "inline-flex items-center gap-1",
-          rule.action === 'pass' ? 'text-[#4caf50]' : 'text-red-500'
+          "inline-flex items-center gap-1 px-1.5 py-0.5 border text-[10px]",
+          rule.action === 'pass' 
+            ? 'bg-green-100 text-green-700 border-green-200' 
+            : 'bg-red-100 text-red-600 border-red-200'
         )}>
-          {rule.action === 'pass' ? <Check size={12} /> : <X size={12} />}
+          {rule.action === 'pass' ? <Check size={10} /> : <X size={10} />}
           {rule.action === 'pass' ? 'ACCEPT' : 'DENY'}
         </span>
       </td>
       <td className="text-[11px]">
-        <span className={cn(
-          "inline-flex items-center gap-1",
-          rule.enabled ? 'text-[#4caf50]' : 'text-[#999]'
-        )}>
-          <span className={cn(
-            "w-2 h-2 rounded-full",
-            rule.enabled ? 'bg-[#4caf50]' : 'bg-[#ccc]'
-          )} />
-          {rule.enabled ? 'Enabled' : 'Disabled'}
-        </span>
-      </td>
-      <td className="text-[11px] text-[#666]">
-        <span className="inline-flex items-center gap-1">
+        <span className="inline-flex items-center gap-1 text-[#666]">
           <Shield size={10} />
           UTM
         </span>
@@ -160,20 +153,7 @@ const FirewallRules = () => {
   const [viewMode, setViewMode] = useState<'sequence' | 'interface'>('interface');
   const [expandedPairs, setExpandedPairs] = useState<string[]>(['lan-wan1', 'vlan-kinhdoanh-vlan-kythuat']);
 
-  // Group rules by interface pairs for Interface Pair View
   const getInterfacePairs = (): InterfacePair[] => {
-    const pairMap = new Map<string, FirewallRule[]>();
-    rules.forEach(rule => {
-      const from = rule.interface;
-      const to = rule.interface === 'WAN' ? 'LAN' : 'WAN';
-      const key = `${from.toLowerCase()}-${to.toLowerCase()}`;
-      if (!pairMap.has(key)) {
-        pairMap.set(key, []);
-      }
-      pairMap.get(key)!.push(rule);
-    });
-
-    // Create demo interface pairs like FortiGate
     const demoPairs: InterfacePair[] = [
       { from: 'lan', to: 'wan1', rules: rules.filter(r => r.interface === 'LAN').slice(0, 2), expanded: true },
       { from: 'Vlan-Kinhdoanh', to: 'Vlan-Kythuat', rules: rules.filter(r => r.interface === 'LAN').slice(0, 1), expanded: true },
@@ -181,7 +161,6 @@ const FirewallRules = () => {
       { from: 'Vlan-Kinhdoanh', to: 'wan1', rules: [], expanded: false },
       { from: 'Vlan-Kythuat', to: 'Vlan-Kinhdoanh', rules: rules.filter(r => r.interface === 'WAN').slice(0, 1), expanded: true },
     ];
-
     return demoPairs;
   };
 
@@ -208,6 +187,12 @@ const FirewallRules = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleToggleRule = (id: string) => {
+    setRules(prev => prev.map(r => 
+      r.id === id ? { ...r, enabled: !r.enabled } : r
+    ));
   };
 
   const handleAddRule = () => {
@@ -269,9 +254,9 @@ const FirewallRules = () => {
 
   return (
     <Shell>
-      <div className="space-y-0">
+      <div className="space-y-0 animate-slide-in">
         {/* FortiGate Toolbar */}
-        <div className="flex items-center gap-0.5 px-1 py-1 bg-[#f0f0f0] border border-[#ccc]">
+        <div className="forti-toolbar">
           <button onClick={handleAddRule} className="forti-toolbar-btn primary">
             <Plus size={12} /> Create New
           </button>
@@ -280,24 +265,30 @@ const FirewallRules = () => {
             className="forti-toolbar-btn"
             disabled={selectedIds.length !== 1}
           >
-            ✏️ Edit
+            <Edit2 size={12} /> Edit
           </button>
           <button 
             onClick={handleDeleteSelected}
             className="forti-toolbar-btn"
             disabled={selectedIds.length === 0}
           >
-            🗑️ Delete
+            <Trash2 size={12} /> Delete
+          </button>
+          <button className="forti-toolbar-btn">
+            <Copy size={12} /> Clone
           </button>
           <div className="forti-toolbar-separator" />
           <button className="forti-toolbar-btn">
             <Search size={12} /> Policy Lookup
           </button>
+          <button className="forti-toolbar-btn">
+            <RefreshCw size={12} /> Refresh
+          </button>
           
           <div className="flex-1" />
           
-          {/* Search */}
           <div className="forti-search">
+            <Search size={12} className="text-[#999]" />
             <input 
               type="text" 
               placeholder="Search" 
@@ -305,12 +296,10 @@ const FirewallRules = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <Search size={12} className="text-[#999]" />
           </div>
 
           <div className="forti-toolbar-separator" />
           
-          {/* View Toggle */}
           <div className="forti-view-toggle">
             <button 
               className={cn("forti-view-btn", viewMode === 'interface' && "active")}
@@ -333,11 +322,12 @@ const FirewallRules = () => {
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <div className="border border-[#ccc] border-t-0">
+          <div className="p-4">
             <table className="data-table">
               <thead>
                 <tr>
                   <th className="w-8"></th>
+                  <th className="w-12">Status</th>
                   <th className="w-10">ID</th>
                   <th>Name</th>
                   <th>Source</th>
@@ -345,15 +335,12 @@ const FirewallRules = () => {
                   <th>Schedule</th>
                   <th>Service</th>
                   <th>Action</th>
-                  <th>NAT</th>
                   <th>Security Profiles</th>
-                  <th>Log</th>
                   <th className="text-right">Bytes</th>
                 </tr>
               </thead>
               <tbody>
                 {viewMode === 'interface' ? (
-                  // Interface Pair View
                   interfacePairs.map((pair, pairIdx) => {
                     const pairKey = `${pair.from}-${pair.to}`;
                     const isExpanded = expandedPairs.includes(pairKey);
@@ -361,15 +348,14 @@ const FirewallRules = () => {
                     
                     return (
                       <>
-                        {/* Interface Pair Header */}
                         <tr 
                           key={`pair-${pairIdx}`}
                           className="group-header cursor-pointer"
                           onClick={() => togglePair(pairKey)}
                         >
-                          <td colSpan={12} className="py-1 px-2">
+                          <td colSpan={11} className="py-1 px-2">
                             <div className="flex items-center gap-2">
-                              <Checkbox className="border-white" />
+                              <input type="checkbox" className="forti-checkbox border-white" onClick={e => e.stopPropagation()} />
                               {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                               <span className="inline-flex items-center gap-1">
                                 <span className="w-3 h-3 bg-green-400 rounded-sm" />
@@ -387,7 +373,6 @@ const FirewallRules = () => {
                           </td>
                         </tr>
                         
-                        {/* Rules in this pair */}
                         {isExpanded && (
                           <SortableContext
                             items={pair.rules.map(r => r.id)}
@@ -401,6 +386,7 @@ const FirewallRules = () => {
                                 isSelected={selectedIds.includes(rule.id)}
                                 onSelect={handleSelect}
                                 onEdit={handleEditRule}
+                                onToggle={handleToggleRule}
                                 formatBytes={formatBytes}
                                 isDraggingDisabled={isDraggingDisabled}
                               />
@@ -411,7 +397,6 @@ const FirewallRules = () => {
                     );
                   })
                 ) : (
-                  // Sequence View
                   <SortableContext
                     items={rules.filter(r => 
                       searchQuery === '' || 
@@ -429,6 +414,7 @@ const FirewallRules = () => {
                           isSelected={selectedIds.includes(rule.id)}
                           onSelect={handleSelect}
                           onEdit={handleEditRule}
+                          onToggle={handleToggleRule}
                           formatBytes={formatBytes}
                           isDraggingDisabled={isDraggingDisabled}
                         />
@@ -436,11 +422,10 @@ const FirewallRules = () => {
                   </SortableContext>
                 )}
                 
-                {/* Implicit Policy */}
                 <tr className="group-header">
-                  <td colSpan={12} className="py-1 px-2">
+                  <td colSpan={11} className="py-1 px-2">
                     <div className="flex items-center gap-2">
-                      <Checkbox className="border-white" />
+                      <input type="checkbox" className="forti-checkbox border-white" />
                       <ChevronRight size={12} />
                       <span>Implicit</span>
                       <span className="ml-2 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">1</span>
@@ -449,6 +434,9 @@ const FirewallRules = () => {
                 </tr>
               </tbody>
             </table>
+            <div className="text-[11px] text-[#666] mt-2 px-1">
+              {rules.length} policies
+            </div>
           </div>
         </DndContext>
       </div>
