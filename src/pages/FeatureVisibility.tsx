@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Shield, 
   Network, 
@@ -10,8 +11,6 @@ import {
   Search,
   Info
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 interface Feature {
@@ -101,44 +100,37 @@ const FeatureVisibility = () => {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'core': return <Network size={16} />;
-      case 'security': return <Shield size={16} />;
-      case 'additional': return <Settings size={16} />;
+      case 'core': return <Network size={14} />;
+      case 'security': return <Shield size={14} />;
+      case 'additional': return <Settings size={14} />;
       default: return null;
     }
   };
 
   const FeatureCard = ({ feature }: { feature: Feature }) => (
-    <div 
-      className={cn(
-        "flex items-center justify-between p-3 rounded-lg border transition-all",
-        feature.enabled 
-          ? "bg-white border-border" 
-          : "bg-muted/30 border-border/50"
-      )}
-    >
+    <div className="forti-feature-item">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className={cn(
-            "text-sm font-medium",
-            !feature.enabled && "text-muted-foreground"
+            "text-[11px] font-medium",
+            !feature.enabled && "text-[#999]"
           )}>
             {feature.name}
           </span>
           {feature.requiresLicense && (
-            <span className="px-1.5 py-0.5 text-[9px] font-medium bg-amber-100 text-amber-700 rounded">
+            <span className="px-1 py-0.5 text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">
               LICENSE
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+        <p className="text-[10px] text-[#666] mt-0.5 truncate">
           {feature.description}
         </p>
       </div>
-      <Switch
-        checked={feature.enabled}
-        onCheckedChange={() => toggleFeature(feature.id)}
-        className="ml-3"
+      <FortiToggle
+        enabled={feature.enabled}
+        onToggle={() => toggleFeature(feature.id)}
+        size="sm"
       />
     </div>
   );
@@ -147,32 +139,29 @@ const FeatureVisibility = () => {
     title, 
     category, 
     features: columnFeatures,
-    color 
+    headerColor 
   }: { 
     title: string; 
     category: string;
     features: Feature[];
-    color: string;
+    headerColor: string;
   }) => (
-    <div className="section flex flex-col">
-      <div className={cn(
-        "section-header border-b-2",
-        color
-      )}>
+    <div className="section">
+      <div className={cn("section-header", headerColor)}>
         <div className="flex items-center gap-2">
           {getCategoryIcon(category)}
-          <span className="font-medium">{title}</span>
+          <span>{title}</span>
         </div>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-[10px] opacity-80">
           {columnFeatures.filter(f => f.enabled).length}/{columnFeatures.length} enabled
         </span>
       </div>
-      <div className="p-3 space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
+      <div className="section-body space-y-1 max-h-[calc(100vh-280px)] overflow-y-auto">
         {columnFeatures.map(feature => (
           <FeatureCard key={feature.id} feature={feature} />
         ))}
         {columnFeatures.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground text-sm">
+          <div className="text-center py-8 text-[#999] text-[11px]">
             No features match your search
           </div>
         )}
@@ -182,46 +171,46 @@ const FeatureVisibility = () => {
 
   return (
     <Shell>
-      <div className="space-y-4">
+      <div className="space-y-0 animate-slide-in">
         {/* Toolbar */}
         <div className="forti-toolbar">
-          <div className="forti-toolbar-left">
-            <Button 
-              onClick={handleSave}
-              disabled={!hasChanges}
-              size="sm" 
-              className="gap-1.5 bg-[#4caf50] hover:bg-[#43a047]"
-            >
-              <Save size={14} />
-              Apply
-            </Button>
-            <button 
-              onClick={handleReset}
-              className="forti-action-btn"
-            >
-              <RotateCcw size={14} />
-              Reset
-            </button>
-          </div>
-
-          <div className="forti-toolbar-right">
-            <div className="forti-search">
-              <Search size={14} />
-              <input
-                type="text"
-                placeholder="Search features..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
+          <button 
+            onClick={handleSave}
+            disabled={!hasChanges}
+            className={cn(
+              "forti-toolbar-btn",
+              hasChanges ? "primary" : ""
+            )}
+          >
+            <Save size={12} />
+            Apply
+          </button>
+          <button 
+            onClick={handleReset}
+            className="forti-toolbar-btn"
+          >
+            <RotateCcw size={12} />
+            Reset
+          </button>
+          <div className="forti-toolbar-separator" />
+          <div className="flex-1" />
+          <div className="forti-search">
+            <Search size={12} className="text-[#999]" />
+            <input
+              type="text"
+              placeholder="Search features..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-48"
+            />
           </div>
         </div>
 
         {/* Info Banner */}
-        <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <Info size={16} className="text-blue-600 mt-0.5 shrink-0" />
-          <div className="text-xs text-blue-800">
-            <p className="font-medium mb-1">Feature Visibility</p>
+        <div className="flex items-start gap-3 p-3 bg-blue-50 border-l-4 border-l-blue-500 border border-blue-200 mx-4 mt-4">
+          <Info size={14} className="text-blue-600 mt-0.5 shrink-0" />
+          <div className="text-[11px] text-blue-800">
+            <p className="font-semibold mb-1">Feature Visibility</p>
             <p>
               Enable or disable features to customize the management interface. 
               Disabled features will be hidden from the menu and configuration pages. 
@@ -231,29 +220,29 @@ const FeatureVisibility = () => {
         </div>
 
         {/* Feature Columns */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 p-4">
           <FeatureColumn 
             title="Core Features" 
             category="core"
             features={coreFeatures}
-            color="border-b-blue-500"
+            headerColor=""
           />
           <FeatureColumn 
             title="Security Features" 
             category="security"
             features={securityFeatures}
-            color="border-b-red-500"
+            headerColor=""
           />
           <FeatureColumn 
             title="Additional Features" 
             category="additional"
             features={additionalFeatures}
-            color="border-b-amber-500"
+            headerColor=""
           />
         </div>
 
         {/* Summary */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
+        <div className="flex items-center justify-between text-[11px] text-[#666] px-4 py-2 bg-[#f5f5f5] border-t border-[#ddd]">
           <span>
             Total: {features.filter(f => f.enabled).length} of {features.length} features enabled
           </span>

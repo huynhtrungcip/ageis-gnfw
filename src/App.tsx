@@ -13,6 +13,7 @@ import NATConfig from "./pages/NATConfig";
 import Interfaces from "./pages/Interfaces";
 import AISecurity from "./pages/AISecurity";
 import DHCP from "./pages/DHCP";
+import DNSServer from "./pages/DNSServer";
 import VPN from "./pages/VPN";
 import SystemLogs from "./pages/SystemLogs";
 import SystemMonitoring from "./pages/SystemMonitoring";
@@ -58,7 +59,7 @@ const App = () => (
           <Route path="/sdwan" element={<SDWAN />} />
           <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/routing" element={<Routing />} />
-          <Route path="/dns" element={<Interfaces />} />
+          <Route path="/dns" element={<DNSServer />} />
           <Route path="/topology" element={<PacketFlow />} />
           <Route path="/connectors" element={<Interfaces />} />
           <Route path="/ai-security" element={<AISecurity />} />
