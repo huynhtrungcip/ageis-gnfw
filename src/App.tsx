@@ -23,6 +23,7 @@ import Routing from "./pages/Routing";
 import Reports from "./pages/Reports";
 import SystemSettings from "./pages/SystemSettings";
 import TrafficAnalysis from "./pages/TrafficAnalysis";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
           <Route path="/reports" element={<Reports />} />
           <Route path="/system/general" element={<SystemSettings />} />
           <Route path="/system/backup" element={<ConfigBackup />} />
+          <Route path="/system/users" element={<UserManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
