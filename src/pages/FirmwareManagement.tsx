@@ -14,10 +14,22 @@ import {
   Server,
   FileArchive,
   ArrowUpCircle,
-  History
+  History,
+  Trash2,
+  X
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Current System Info
 interface SystemInfo {
@@ -56,7 +68,7 @@ interface FirmwareVersion {
   recommended: boolean;
 }
 
-const availableFirmware: FirmwareVersion[] = [
+const initialFirmware: FirmwareVersion[] = [
   { id: 'fw-1', version: '7.4.3', buildNumber: '2620', releaseDate: '2024-02-01', type: 'maintenance', size: '245 MB', releaseNotes: 'Security fixes and performance improvements', recommended: true },
   { id: 'fw-2', version: '7.4.2', buildNumber: '2571', releaseDate: '2024-01-15', type: 'stable', size: '242 MB', releaseNotes: 'Current installed version', recommended: false },
   { id: 'fw-3', version: '7.4.1', buildNumber: '2463', releaseDate: '2023-12-10', type: 'stable', size: '238 MB', releaseNotes: 'SSL-VPN improvements', recommended: false },
@@ -74,7 +86,7 @@ interface BackupEntry {
   status: 'success' | 'failed';
 }
 
-const backupHistory: BackupEntry[] = [
+const initialBackups: BackupEntry[] = [
   { id: 'bk-1', filename: 'config_backup_20240201_143022.conf', date: '2024-02-01 14:30:22', size: '2.4 MB', type: 'auto', firmwareVersion: '7.4.2', status: 'success' },
   { id: 'bk-2', filename: 'config_backup_20240125_090015.conf', date: '2024-01-25 09:00:15', size: '2.3 MB', type: 'manual', firmwareVersion: '7.4.2', status: 'success' },
   { id: 'bk-3', filename: 'pre_upgrade_20240115_083045.conf', date: '2024-01-15 08:30:45', size: '2.2 MB', type: 'pre-upgrade', firmwareVersion: '7.4.1', status: 'success' },
@@ -85,21 +97,94 @@ const FirmwareManagement = () => {
   const [activeTab, setActiveTab] = useState('current');
   const [selectedFirmware, setSelectedFirmware] = useState<string | null>(null);
   const [backupBeforeUpgrade, setBackupBeforeUpgrade] = useState(true);
+  const [firmware, setFirmware] = useState<FirmwareVersion[]>(initialFirmware);
+  const [backups, setBackups] = useState<BackupEntry[]>(initialBackups);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'firmware' | 'backup'; id: string } | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
+  const [backupToRestore, setBackupToRestore] = useState<string | null>(null);
 
   const handleUpgrade = () => {
     if (!selectedFirmware) {
       toast.error('Please select a firmware version');
       return;
     }
-    toast.success('Firmware upgrade initiated. System will reboot...');
+    const fw = firmware.find(f => f.id === selectedFirmware);
+    if (fw?.version === systemInfo.currentFirmware) {
+      toast.error('Selected version is already installed');
+      return;
+    }
+    toast.success(`Firmware upgrade to v${fw?.version} initiated. System will reboot...`);
   };
 
   const handleBackup = () => {
-    toast.success('Configuration backup started');
+    const newBackup: BackupEntry = {
+      id: `bk-${Date.now()}`,
+      filename: `config_backup_${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}.conf`,
+      date: new Date().toLocaleString(),
+      size: '2.4 MB',
+      type: 'manual',
+      firmwareVersion: systemInfo.currentFirmware,
+      status: 'success',
+    };
+    setBackups(prev => [newBackup, ...prev]);
+    toast.success('Configuration backup created successfully');
   };
 
-  const handleRestore = (id: string) => {
-    toast.success('Configuration restore initiated');
+  const handleRestoreConfirm = (id: string) => {
+    setBackupToRestore(id);
+    setRestoreConfirmOpen(true);
+  };
+
+  const handleRestore = () => {
+    if (backupToRestore) {
+      const backup = backups.find(b => b.id === backupToRestore);
+      toast.success(`Restoring configuration from ${backup?.filename}...`);
+    }
+    setRestoreConfirmOpen(false);
+    setBackupToRestore(null);
+  };
+
+  const handleDeleteConfirm = (type: 'firmware' | 'backup', id: string) => {
+    setItemToDelete({ type, id });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (itemToDelete) {
+      if (itemToDelete.type === 'firmware') {
+        setFirmware(prev => prev.filter(f => f.id !== itemToDelete.id));
+        toast.success('Firmware version removed');
+      } else {
+        setBackups(prev => prev.filter(b => b.id !== itemToDelete.id));
+        toast.success('Backup deleted');
+      }
+    }
+    setDeleteConfirmOpen(false);
+    setItemToDelete(null);
+  };
+
+  const handleDownloadBackup = (backup: BackupEntry) => {
+    toast.success(`Downloading ${backup.filename}...`);
+  };
+
+  const handleExportAll = () => {
+    const data = { firmware, backups, systemInfo };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'firmware_management_export.json';
+    a.click();
+    toast.success('Firmware data exported');
+  };
+
+  const handleCheckUpdates = () => {
+    toast.success('Checking for firmware updates...');
+    setTimeout(() => {
+      toast.success('System is up to date');
+    }, 2000);
   };
 
   return (
@@ -119,14 +204,18 @@ const FirmwareManagement = () => {
             <FileArchive size={12} />
             <span>Backup Now</span>
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => setShowUploadModal(true)}>
             <Upload size={12} />
             <span>Upload Firmware</span>
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleCheckUpdates}>
             <RefreshCw size={12} />
             <span>Check Updates</span>
+          </button>
+          <button className="forti-toolbar-btn" onClick={handleExportAll}>
+            <Download size={12} />
+            <span>Export</span>
           </button>
           <div className="flex-1" />
           <div className="forti-search">
@@ -144,11 +233,11 @@ const FirmwareManagement = () => {
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
             <Shield size={14} className="text-green-600" />
             <span className="text-lg font-bold text-green-600">v{systemInfo.currentFirmware}</span>
-            <span className="text-[11px] text-[#666]">Current</span>
+            <span className="text-[11px] text-[#333]">Current</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
             <Clock size={14} className="text-purple-600" />
-            <span className="text-[11px] text-[#666]">{systemInfo.uptime}</span>
+            <span className="text-[11px] text-[#333]">{systemInfo.uptime}</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
             {systemInfo.licenseStatus === 'valid' ? (
@@ -156,7 +245,7 @@ const FirmwareManagement = () => {
             ) : (
               <AlertTriangle size={14} className="text-yellow-600" />
             )}
-            <span className="text-[11px] text-[#666]">License: {systemInfo.licenseExpiry}</span>
+            <span className="text-[11px] text-[#333]">License: {systemInfo.licenseExpiry}</span>
           </div>
         </div>
 
@@ -166,19 +255,19 @@ const FirmwareManagement = () => {
             <TabsList className="bg-transparent h-auto p-0 rounded-none">
               <TabsTrigger 
                 value="current" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px] text-[#333] data-[state=active]:text-[hsl(142,70%,35%)]"
               >
                 System Information
               </TabsTrigger>
               <TabsTrigger 
                 value="upgrade" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px] text-[#333] data-[state=active]:text-[hsl(142,70%,35%)]"
               >
                 Available Firmware
               </TabsTrigger>
               <TabsTrigger 
                 value="backup" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
+                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px] text-[#333] data-[state=active]:text-[hsl(142,70%,35%)]"
               >
                 Backup & Restore
               </TabsTrigger>
@@ -197,19 +286,19 @@ const FirmwareManagement = () => {
                     <tbody>
                       <tr>
                         <td className="widget-label">Model</td>
-                        <td className="widget-value">{systemInfo.model}</td>
+                        <td className="widget-value text-[#111]">{systemInfo.model}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Serial Number</td>
-                        <td className="widget-value mono">{systemInfo.serialNumber}</td>
+                        <td className="widget-value mono text-[#111]">{systemInfo.serialNumber}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Hostname</td>
-                        <td className="widget-value">{systemInfo.hostname}</td>
+                        <td className="widget-value text-[#111]">{systemInfo.hostname}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Uptime</td>
-                        <td className="widget-value">{systemInfo.uptime}</td>
+                        <td className="widget-value text-[#111]">{systemInfo.uptime}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -225,15 +314,15 @@ const FirmwareManagement = () => {
                     <tbody>
                       <tr>
                         <td className="widget-label">Current Version</td>
-                        <td className="widget-value">v{systemInfo.currentFirmware}</td>
+                        <td className="widget-value text-[#111]">v{systemInfo.currentFirmware}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Build Number</td>
-                        <td className="widget-value">{systemInfo.buildNumber}</td>
+                        <td className="widget-value text-[#111]">{systemInfo.buildNumber}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Last Updated</td>
-                        <td className="widget-value">{systemInfo.lastUpdated}</td>
+                        <td className="widget-value text-[#111]">{systemInfo.lastUpdated}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">License Status</td>
@@ -250,7 +339,7 @@ const FirmwareManagement = () => {
                       </tr>
                       <tr>
                         <td className="widget-label">License Expiry</td>
-                        <td className="widget-value">{systemInfo.licenseExpiry}</td>
+                        <td className="widget-value text-[#111]">{systemInfo.licenseExpiry}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -272,10 +361,11 @@ const FirmwareManagement = () => {
                   <th>Size</th>
                   <th>Release Notes</th>
                   <th className="w-24">Status</th>
+                  <th className="w-16">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {availableFirmware.map((fw) => (
+                {firmware.map((fw) => (
                   <tr 
                     key={fw.id}
                     onClick={() => setSelectedFirmware(fw.id)}
@@ -315,8 +405,8 @@ const FirmwareManagement = () => {
                         {fw.type.toUpperCase()}
                       </span>
                     </td>
-                    <td className="text-[#666]">{fw.size}</td>
-                    <td className="text-[#666]">{fw.releaseNotes}</td>
+                    <td className="text-[#333]">{fw.size}</td>
+                    <td className="text-[#333]">{fw.releaseNotes}</td>
                     <td>
                       {fw.version === systemInfo.currentFirmware ? (
                         <span className="forti-tag bg-green-100 text-green-700 border-green-200">
@@ -334,6 +424,19 @@ const FirmwareManagement = () => {
                         </button>
                       )}
                     </td>
+                    <td>
+                      {fw.version !== systemInfo.currentFirmware && (
+                        <button 
+                          className="p-1 hover:bg-[#f0f0f0]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteConfirm('firmware', fw.id);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -343,7 +446,7 @@ const FirmwareManagement = () => {
             <div className="p-4 bg-[#f5f5f5] border-x border-b border-[#ddd]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 text-[11px]">
+                  <label className="flex items-center gap-2 text-[11px] text-[#333]">
                     <input 
                       type="checkbox" 
                       checked={backupBeforeUpgrade}
@@ -355,7 +458,7 @@ const FirmwareManagement = () => {
                 </div>
                 <button 
                   onClick={handleUpgrade}
-                  disabled={!selectedFirmware || availableFirmware.find(f => f.id === selectedFirmware)?.version === systemInfo.currentFirmware}
+                  disabled={!selectedFirmware || firmware.find(f => f.id === selectedFirmware)?.version === systemInfo.currentFirmware}
                   className="forti-btn forti-btn-primary flex items-center gap-2"
                 >
                   <ArrowUpCircle size={14} />
@@ -376,15 +479,15 @@ const FirmwareManagement = () => {
                   <th>Type</th>
                   <th>Firmware Version</th>
                   <th>Status</th>
-                  <th className="w-32">Actions</th>
+                  <th className="w-40">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {backupHistory.map((backup) => (
+                {backups.map((backup) => (
                   <tr key={backup.id}>
-                    <td className="font-medium text-[#333] mono text-[10px]">{backup.filename}</td>
-                    <td className="text-[#666]">{backup.date}</td>
-                    <td className="text-[#666]">{backup.size}</td>
+                    <td className="font-medium text-[#111] mono text-[10px]">{backup.filename}</td>
+                    <td className="text-[#333]">{backup.date}</td>
+                    <td className="text-[#333]">{backup.size}</td>
                     <td>
                       <span className={cn(
                         "forti-tag",
@@ -395,7 +498,7 @@ const FirmwareManagement = () => {
                         {backup.type.toUpperCase()}
                       </span>
                     </td>
-                    <td className="text-[#666]">v{backup.firmwareVersion}</td>
+                    <td className="text-[#333]">v{backup.firmwareVersion}</td>
                     <td>
                       <span className={cn(
                         "forti-tag",
@@ -406,13 +509,25 @@ const FirmwareManagement = () => {
                     </td>
                     <td>
                       <div className="flex items-center gap-1">
-                        <button className="forti-toolbar-btn text-[10px]" onClick={() => handleRestore(backup.id)}>
+                        <button 
+                          className="forti-toolbar-btn text-[10px]" 
+                          onClick={() => handleRestoreConfirm(backup.id)}
+                        >
                           <History size={10} />
                           Restore
                         </button>
-                        <button className="forti-toolbar-btn text-[10px]">
+                        <button 
+                          className="forti-toolbar-btn text-[10px]"
+                          onClick={() => handleDownloadBackup(backup)}
+                        >
                           <Download size={10} />
                           Download
+                        </button>
+                        <button 
+                          className="p-1 hover:bg-[#f0f0f0]"
+                          onClick={() => handleDeleteConfirm('backup', backup.id)}
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
                         </button>
                       </div>
                     </td>
@@ -423,6 +538,85 @@ const FirmwareManagement = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Upload Firmware Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white border border-[#ccc] shadow-xl w-[500px]">
+            <div className="forti-modal-header flex items-center justify-between">
+              <span>Upload Firmware</span>
+              <button onClick={() => setShowUploadModal(false)} className="text-white/80 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="forti-modal-body space-y-4">
+              <div className="border-2 border-dashed border-[#ccc] p-8 text-center">
+                <Upload className="w-12 h-12 mx-auto text-[#999] mb-4" />
+                <div className="text-[11px] text-[#333] mb-2">Drag and drop firmware file here</div>
+                <div className="text-[10px] text-[#666] mb-4">or</div>
+                <button 
+                  className="forti-btn forti-btn-secondary"
+                  onClick={() => {
+                    toast.success('File browser opened');
+                  }}
+                >
+                  Browse Files
+                </button>
+              </div>
+              <div className="text-[10px] text-[#666]">
+                Supported formats: .bin, .img, .gz
+              </div>
+            </div>
+            <div className="forti-modal-footer">
+              <button className="forti-btn forti-btn-secondary" onClick={() => setShowUploadModal(false)}>
+                Cancel
+              </button>
+              <button className="forti-btn forti-btn-primary" onClick={() => {
+                toast.success('Firmware uploaded successfully');
+                setShowUploadModal(false);
+              }}>
+                Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {itemToDelete?.type === 'firmware' ? 'Firmware' : 'Backup'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {itemToDelete?.type === 'firmware' ? 'firmware version' : 'backup'}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Confirmation */}
+      <AlertDialog open={restoreConfirmOpen} onOpenChange={setRestoreConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Configuration</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to restore this configuration? Current settings will be overwritten. The system may restart.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestore} className="bg-orange-600 hover:bg-orange-700">
+              Restore
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };

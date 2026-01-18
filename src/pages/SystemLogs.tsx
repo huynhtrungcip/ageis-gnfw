@@ -331,17 +331,17 @@ const SystemLogs = () => {
             <tbody>
               {paginatedLogs.map((log) => (
                 <tr key={log.id}>
-                  <td className="mono text-muted-foreground text-xs">{formatTime(log.timestamp)}</td>
+                  <td className="mono text-[#333] text-xs">{formatTime(log.timestamp)}</td>
                   <td>
                     <span className={cn("tag inline-flex items-center gap-1", getSeverityClass(log.severity))}>
                       {getSeverityIcon(log.severity)}
                       {log.severity.toUpperCase().slice(0, 4)}
                     </span>
                   </td>
-                  <td className="text-muted-foreground">{log.interface}</td>
-                  <td className="text-muted-foreground">{log.facility}</td>
-                  <td className="mono text-xs text-muted-foreground">{log.source}</td>
-                  <td className="max-w-md truncate">{log.message}</td>
+                  <td className="text-[#333]">{log.interface}</td>
+                  <td className="text-[#333]">{log.facility}</td>
+                  <td className="mono text-xs text-[#333]">{log.source}</td>
+                  <td className="max-w-md truncate text-[#111]">{log.message}</td>
                 </tr>
               ))}
             </tbody>

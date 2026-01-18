@@ -283,7 +283,7 @@ const VPN = () => {
                 "flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium transition-colors border-b-2",
                 activeTab === tab.id 
                   ? "bg-white text-[hsl(142,70%,35%)] border-[hsl(142,70%,35%)]" 
-                  : "text-[#666] border-transparent hover:text-[#333] hover:bg-[#f0f0f0]"
+                  : "text-[#333] border-transparent hover:text-[#111] hover:bg-[#f0f0f0]"
               )}
             >
               <tab.icon className="w-3.5 h-3.5" />
@@ -334,10 +334,10 @@ const VPN = () => {
                         )} />
                       </div>
                     </td>
-                    <td className="text-[11px] font-medium">{tunnel.name}</td>
-                    <td className="mono text-[10px]">{tunnel.remoteGateway}</td>
-                    <td className="text-[10px] text-[#666]">{tunnel.phase1}</td>
-                    <td className="text-[10px] text-[#666]">{tunnel.phase2}</td>
+                    <td className="text-[11px] font-medium text-[#111]">{tunnel.name}</td>
+                    <td className="mono text-[10px] text-[#333]">{tunnel.remoteGateway}</td>
+                    <td className="text-[10px] text-[#333]">{tunnel.phase1}</td>
+                    <td className="text-[10px] text-[#333]">{tunnel.phase2}</td>
                     <td className="text-[11px]">{formatUptime(tunnel.uptime)}</td>
                     <td>
                       <div className="text-[10px]">
@@ -414,11 +414,11 @@ const VPN = () => {
                           {user.status.toUpperCase()}
                         </span>
                       </td>
-                      <td className="text-[11px] font-medium">{user.username}</td>
-                      <td className="text-[11px] text-[#666]">{user.group}</td>
-                      <td className="mono text-[10px]">{user.sourceIp || '--'}</td>
-                      <td className="mono text-[10px]">{user.assignedIp || '--'}</td>
-                      <td className="text-[11px] text-[#666]">{formatLoginTime(user.loginTime)}</td>
+                      <td className="text-[11px] font-medium text-[#111]">{user.username}</td>
+                      <td className="text-[11px] text-[#333]">{user.group}</td>
+                      <td className="mono text-[10px] text-[#333]">{user.sourceIp || '--'}</td>
+                      <td className="mono text-[10px] text-[#333]">{user.assignedIp || '--'}</td>
+                      <td className="text-[11px] text-[#333]">{formatLoginTime(user.loginTime)}</td>
                       <td>
                         {user.status === 'online' ? (
                           <div className="text-[10px]">

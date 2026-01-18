@@ -7,17 +7,29 @@ import {
   RefreshCw, 
   Settings, 
   Activity,
-  Cpu,
-  HardDrive,
-  Wifi,
   AlertTriangle,
   CheckCircle2,
   XCircle,
   ArrowLeftRight,
   Clock,
-  Zap
+  Plus,
+  Edit2,
+  Trash2,
+  X,
+  Download,
+  Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ClusterMember {
   id: string;
@@ -68,6 +80,15 @@ const HighAvailability = () => {
   const [members, setMembers] = useState<ClusterMember[]>(mockClusterMembers);
   const [activeTab, setActiveTab] = useState<'status' | 'settings' | 'history'>('status');
   
+  // Modal states
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [editingMember, setEditingMember] = useState<ClusterMember | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<string | null>(null);
+  
+  // Form state
+  const [memberForm, setMemberForm] = useState<Partial<ClusterMember>>({});
+  
   // HA Settings
   const [groupName, setGroupName] = useState('AEGIS-HA-CLUSTER');
   const [groupId, setGroupId] = useState('1');
@@ -109,8 +130,116 @@ const HighAvailability = () => {
     })));
   };
 
-  const primaryNode = members.find(m => m.role === 'primary');
-  const secondaryNode = members.find(m => m.role === 'secondary');
+  const handleCreateMember = () => {
+    setEditingMember(null);
+    setMemberForm({
+      hostname: '',
+      role: 'secondary',
+      status: 'passive',
+      priority: 100,
+      serialNumber: '',
+    });
+    setShowMemberModal(true);
+  };
+
+  const handleEditMember = (member: ClusterMember) => {
+    setEditingMember(member);
+    setMemberForm(member);
+    setShowMemberModal(true);
+  };
+
+  const handleSaveMember = () => {
+    if (!memberForm.hostname || !memberForm.serialNumber) {
+      toast.error('Hostname and Serial Number are required');
+      return;
+    }
+
+    if (editingMember) {
+      setMembers(prev => prev.map(m => 
+        m.id === editingMember.id ? { ...m, ...memberForm } as ClusterMember : m
+      ));
+      toast.success('Cluster member updated');
+    } else {
+      const newMember: ClusterMember = {
+        id: Date.now().toString(),
+        hostname: memberForm.hostname!,
+        role: memberForm.role || 'secondary',
+        status: 'passive',
+        priority: memberForm.priority || 100,
+        serialNumber: memberForm.serialNumber!,
+        uptime: 0,
+        cpu: 0,
+        memory: 0,
+        sessions: 0,
+        lastSync: new Date(),
+      };
+      setMembers(prev => [...prev, newMember]);
+      toast.success('Cluster member added');
+    }
+    setShowMemberModal(false);
+  };
+
+  const handleDeleteConfirm = (id: string) => {
+    setMemberToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (memberToDelete) {
+      setMembers(prev => prev.filter(m => m.id !== memberToDelete));
+      toast.success('Cluster member removed');
+    }
+    setDeleteConfirmOpen(false);
+    setMemberToDelete(null);
+  };
+
+  const handleExport = () => {
+    const data = {
+      haEnabled,
+      haMode,
+      groupName,
+      groupId,
+      heartbeatInterface,
+      monitorInterfaces,
+      sessionPickup,
+      overrideEnabled,
+      pingServer,
+      members,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ha_config.json';
+    a.click();
+    toast.success('HA configuration exported');
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target?.result as string);
+            if (data.haEnabled !== undefined) setHaEnabled(data.haEnabled);
+            if (data.haMode) setHaMode(data.haMode);
+            if (data.groupName) setGroupName(data.groupName);
+            if (data.members) setMembers(data.members);
+            toast.success('HA configuration imported');
+          } catch {
+            toast.error('Invalid file format');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
+  };
 
   return (
     <Shell>
@@ -125,11 +254,24 @@ const HighAvailability = () => {
             <ArrowLeftRight className="w-3 h-3" />
             Manual Failover
           </button>
+          <button onClick={handleCreateMember} className="forti-toolbar-btn">
+            <Plus className="w-3 h-3" />
+            Add Member
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn" onClick={handleExport}>
+            <Download className="w-3 h-3" />
+            Export
+          </button>
+          <button className="forti-toolbar-btn" onClick={handleImport}>
+            <Upload className="w-3 h-3" />
+            Import
+          </button>
           <div className="forti-toolbar-separator" />
           <div className="flex items-center gap-2 px-2">
-            <span className="text-[11px] text-[#666]">HA Mode:</span>
+            <span className="text-[11px] text-[#333]">HA Mode:</span>
             <FortiToggle enabled={haEnabled} onToggle={() => setHaEnabled(!haEnabled)} size="sm" />
-            <span className={cn("text-[11px] font-medium", haEnabled ? "text-green-600" : "text-[#999]")}>
+            <span className={cn("text-[11px] font-medium", haEnabled ? "text-green-600" : "text-[#666]")}>
               {haEnabled ? 'Enabled' : 'Disabled'}
             </span>
           </div>
@@ -147,10 +289,10 @@ const HighAvailability = () => {
             <XCircle className="w-5 h-5 text-gray-400" />
           )}
           <div>
-            <div className={cn("text-[12px] font-semibold", haEnabled ? "text-green-700" : "text-gray-600")}>
+            <div className={cn("text-[12px] font-semibold", haEnabled ? "text-green-700" : "text-[#333]")}>
               {haEnabled ? 'High Availability Active' : 'High Availability Disabled'}
             </div>
-            <div className="text-[10px] text-[#666]">
+            <div className="text-[10px] text-[#333]">
               {haEnabled 
                 ? `Cluster: ${groupName} | Mode: ${haMode === 'active-passive' ? 'Active-Passive' : 'Active-Active'} | Members: ${members.length}`
                 : 'Enable HA to configure cluster settings'
@@ -173,7 +315,7 @@ const HighAvailability = () => {
                 "flex items-center gap-1.5 px-4 py-2 text-[11px] font-medium transition-colors border-b-2",
                 activeTab === tab.id 
                   ? "bg-white text-[hsl(142,70%,35%)] border-[hsl(142,70%,35%)]" 
-                  : "text-[#666] border-transparent hover:text-[#333] hover:bg-[#f0f0f0]"
+                  : "text-[#333] border-transparent hover:text-[#111] hover:bg-[#f0f0f0]"
               )}
             >
               <tab.icon className="w-3.5 h-3.5" />
@@ -193,34 +335,48 @@ const HighAvailability = () => {
                   member.status === 'active' && "ring-2 ring-green-500"
                 )}>
                   <div className={cn(
-                    "section-header",
+                    "section-header flex items-center justify-between",
                     member.status === 'active' ? "" : "!bg-gradient-to-b !from-gray-500 !to-gray-600"
                   )}>
                     <div className="flex items-center gap-2">
                       <Server className="w-4 h-4" />
                       <span>{member.hostname}</span>
                     </div>
-                    <span className={cn(
-                      "px-2 py-0.5 text-[9px] font-bold rounded",
-                      member.status === 'active' ? "bg-white/20" : "bg-white/10"
-                    )}>
-                      {member.role.toUpperCase()}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "px-2 py-0.5 text-[9px] font-bold rounded",
+                        member.status === 'active' ? "bg-white/20" : "bg-white/10"
+                      )}>
+                        {member.role.toUpperCase()}
+                      </span>
+                      <button 
+                        className="p-1 hover:bg-white/20 rounded"
+                        onClick={() => handleEditMember(member)}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                      <button 
+                        className="p-1 hover:bg-white/20 rounded"
+                        onClick={() => handleDeleteConfirm(member.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                   <div className="section-body">
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div className="text-center p-3 bg-[#f5f5f5] border border-[#ddd]">
                         <div className={cn(
                           "text-lg font-bold",
-                          member.status === 'active' ? "text-green-600" : "text-[#666]"
+                          member.status === 'active' ? "text-green-600" : "text-[#333]"
                         )}>
                           {member.status === 'active' ? 'ACTIVE' : 'STANDBY'}
                         </div>
-                        <div className="text-[10px] text-[#666]">Status</div>
+                        <div className="text-[10px] text-[#333]">Status</div>
                       </div>
                       <div className="text-center p-3 bg-[#f5f5f5] border border-[#ddd]">
-                        <div className="text-lg font-bold">{member.priority}</div>
-                        <div className="text-[10px] text-[#666]">Priority</div>
+                        <div className="text-lg font-bold text-[#111]">{member.priority}</div>
+                        <div className="text-[10px] text-[#333]">Priority</div>
                       </div>
                     </div>
 
@@ -228,19 +384,19 @@ const HighAvailability = () => {
                       <tbody>
                         <tr>
                           <td className="widget-label">Serial Number</td>
-                          <td className="widget-value mono text-[10px]">{member.serialNumber}</td>
+                          <td className="widget-value mono text-[10px] text-[#111]">{member.serialNumber}</td>
                         </tr>
                         <tr>
                           <td className="widget-label">Uptime</td>
-                          <td className="widget-value">{formatUptime(member.uptime)}</td>
+                          <td className="widget-value text-[#111]">{formatUptime(member.uptime)}</td>
                         </tr>
                         <tr>
                           <td className="widget-label">Last Sync</td>
-                          <td className="widget-value">{formatSyncTime(member.lastSync)}</td>
+                          <td className="widget-value text-[#111]">{formatSyncTime(member.lastSync)}</td>
                         </tr>
                         <tr>
                           <td className="widget-label">Sessions</td>
-                          <td className="widget-value">{member.sessions.toLocaleString()}</td>
+                          <td className="widget-value text-[#111]">{member.sessions.toLocaleString()}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -248,8 +404,8 @@ const HighAvailability = () => {
                     <div className="mt-4 space-y-2">
                       <div>
                         <div className="flex justify-between text-[10px] mb-1">
-                          <span className="text-[#666]">CPU</span>
-                          <span>{member.cpu}%</span>
+                          <span className="text-[#333]">CPU</span>
+                          <span className="text-[#111]">{member.cpu}%</span>
                         </div>
                         <div className="forti-progress">
                           <div 
@@ -263,8 +419,8 @@ const HighAvailability = () => {
                       </div>
                       <div>
                         <div className="flex justify-between text-[10px] mb-1">
-                          <span className="text-[#666]">Memory</span>
-                          <span>{member.memory}%</span>
+                          <span className="text-[#333]">Memory</span>
+                          <span className="text-[#111]">{member.memory}%</span>
                         </div>
                         <div className="forti-progress">
                           <div 
@@ -298,7 +454,7 @@ const HighAvailability = () => {
                     <div key={item.label} className="flex items-center gap-2 p-2 bg-[#f8f8f8] border border-[#ddd]">
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                       <div>
-                        <div className="text-[11px] font-medium">{item.label}</div>
+                        <div className="text-[11px] font-medium text-[#111]">{item.label}</div>
                         <div className="text-[10px] text-green-600">Synchronized</div>
                       </div>
                     </div>
@@ -384,7 +540,7 @@ const HighAvailability = () => {
                     <label className="forti-label">Monitor Interfaces</label>
                     <div className="space-y-2 mt-2">
                       {['port1', 'port2', 'port3', 'port4'].map((port) => (
-                        <label key={port} className="flex items-center gap-2 text-[11px]">
+                        <label key={port} className="flex items-center gap-2 text-[11px] text-[#333]">
                           <input
                             type="checkbox"
                             checked={monitorInterfaces.includes(port)}
@@ -423,19 +579,27 @@ const HighAvailability = () => {
               <div className="section-body space-y-2">
                 <div className="forti-feature-item">
                   <div>
-                    <div className="text-[11px] font-medium">Session Pickup</div>
-                    <div className="text-[10px] text-[#666]">Maintain sessions during failover</div>
+                    <div className="text-[11px] font-medium text-[#111]">Session Pickup</div>
+                    <div className="text-[10px] text-[#333]">Maintain sessions during failover</div>
                   </div>
                   <FortiToggle enabled={sessionPickup} onToggle={() => setSessionPickup(!sessionPickup)} size="sm" />
                 </div>
                 <div className="forti-feature-item">
                   <div>
-                    <div className="text-[11px] font-medium">Override</div>
-                    <div className="text-[10px] text-[#666]">Primary unit resumes control after recovery</div>
+                    <div className="text-[11px] font-medium text-[#111]">Override</div>
+                    <div className="text-[10px] text-[#333]">Primary unit resumes control after recovery</div>
                   </div>
                   <FortiToggle enabled={overrideEnabled} onToggle={() => setOverrideEnabled(!overrideEnabled)} size="sm" />
                 </div>
               </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end gap-2">
+              <button className="forti-btn forti-btn-secondary">Cancel</button>
+              <button className="forti-btn forti-btn-primary" onClick={() => toast.success('HA settings saved')}>
+                Save Changes
+              </button>
             </div>
           </div>
         )}
@@ -461,7 +625,7 @@ const HighAvailability = () => {
                   { time: '2024-01-10 08:45:11', event: 'Failover', from: 'AEGIS-NGFW-01', to: 'AEGIS-NGFW-02', reason: 'Link Failure (port1)', duration: '< 1s' },
                 ].map((event, idx) => (
                   <tr key={idx}>
-                    <td className="mono text-[10px]">{event.time}</td>
+                    <td className="mono text-[10px] text-[#333]">{event.time}</td>
                     <td>
                       <span className={cn(
                         "text-[10px] px-1.5 py-0.5 border",
@@ -493,6 +657,95 @@ const HighAvailability = () => {
           </div>
         )}
       </div>
+
+      {/* Member Modal */}
+      {showMemberModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white border border-[#ccc] shadow-xl w-[500px]">
+            <div className="forti-modal-header flex items-center justify-between">
+              <span>{editingMember ? 'Edit Cluster Member' : 'Add Cluster Member'}</span>
+              <button onClick={() => setShowMemberModal(false)} className="text-white/80 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="forti-modal-body space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="forti-label">Hostname *</label>
+                  <input
+                    type="text"
+                    className="forti-input w-full"
+                    placeholder="AEGIS-NGFW-03"
+                    value={memberForm.hostname || ''}
+                    onChange={(e) => setMemberForm({ ...memberForm, hostname: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="forti-label">Serial Number *</label>
+                  <input
+                    type="text"
+                    className="forti-input w-full"
+                    placeholder="FGT60F0000000003"
+                    value={memberForm.serialNumber || ''}
+                    onChange={(e) => setMemberForm({ ...memberForm, serialNumber: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="forti-label">Role</label>
+                  <select
+                    className="forti-select w-full"
+                    value={memberForm.role || 'secondary'}
+                    onChange={(e) => setMemberForm({ ...memberForm, role: e.target.value as any })}
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="standby">Standby</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="forti-label">Priority</label>
+                  <input
+                    type="number"
+                    className="forti-input w-full"
+                    value={memberForm.priority || 100}
+                    onChange={(e) => setMemberForm({ ...memberForm, priority: parseInt(e.target.value) })}
+                    min="0"
+                    max="255"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="forti-modal-footer">
+              <button className="forti-btn forti-btn-secondary" onClick={() => setShowMemberModal(false)}>
+                Cancel
+              </button>
+              <button className="forti-btn forti-btn-primary" onClick={handleSaveMember}>
+                {editingMember ? 'Update' : 'Add'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Cluster Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this cluster member? This may affect HA functionality.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };
