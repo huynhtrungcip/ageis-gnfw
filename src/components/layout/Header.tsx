@@ -58,6 +58,7 @@ const pathToLabel: Record<string, string> = {
   '/system/feature-visibility': 'Feature Visibility',
   '/system/users': 'User Definition',
   '/system/backup': 'Config Backup',
+  '/system/full-backup': 'Full System Backup',
   '/users': 'User & Device',
   '/users/groups': 'User Groups',
   '/users/ldap': 'LDAP/RADIUS Servers',
@@ -90,15 +91,19 @@ const sectionMap: Record<string, string> = {
 export function Header() {
   const location = useLocation();
   const [alerts, setAlerts] = useState([
-    { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago' },
-    { id: 2, type: 'high', message: 'New firmware available', time: '1h ago' },
+    { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago', link: '/monitoring/traffic' },
+    { id: 2, type: 'high', message: 'New firmware available', time: '1h ago', link: '/system/firmware' },
+    { id: 3, type: 'medium', message: '3 blocked intrusion attempts', time: '15m ago', link: '/threats' },
+    { id: 4, type: 'low', message: 'Backup completed successfully', time: '3h ago', link: '/system/full-backup' },
   ]);
 
   const handleLogout = () => {
     toast.success('Logged out successfully');
   };
 
-  const handleDismissAlert = (id: number) => {
+  const handleDismissAlert = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     setAlerts(prev => prev.filter(a => a.id !== id));
   };
 
@@ -195,16 +200,19 @@ export function Header() {
                 No alerts
               </div>
             ) : (
-              <div className="max-h-48 overflow-y-auto">
+              <div className="max-h-64 overflow-y-auto">
                 {alerts.map((alert) => (
-                  <div 
+                  <Link 
                     key={alert.id}
-                    className="px-3 py-2 hover:bg-[#fafafa] border-b border-[#eee] last:border-b-0 flex items-start justify-between"
+                    to={alert.link}
+                    className="px-3 py-2 hover:bg-[#e8f5e9] border-b border-[#eee] last:border-b-0 flex items-start justify-between cursor-pointer block transition-colors"
                   >
                     <div className="flex items-start gap-2">
                       <span className={cn(
-                        "w-2 h-2 rounded-full mt-1",
-                        alert.type === 'critical' ? "bg-red-500" : "bg-orange-500"
+                        "w-2 h-2 rounded-full mt-1 shrink-0",
+                        alert.type === 'critical' ? "bg-red-500" : 
+                        alert.type === 'high' ? "bg-orange-500" :
+                        alert.type === 'medium' ? "bg-yellow-500" : "bg-blue-500"
                       )} />
                       <div>
                         <div className="text-[11px] text-[#333]">{alert.message}</div>
@@ -212,15 +220,20 @@ export function Header() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => handleDismissAlert(alert.id)}
-                      className="text-gray-400 hover:text-gray-600 text-xs"
+                      onClick={(e) => handleDismissAlert(alert.id, e)}
+                      className="text-gray-400 hover:text-red-600 text-xs ml-2 shrink-0"
                     >
                       ×
                     </button>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
+            <div className="px-3 py-2 border-t border-[#ddd] bg-[#f5f5f5]">
+              <Link to="/logs" className="text-[10px] text-[hsl(142,70%,35%)] hover:underline">
+                View all logs →
+              </Link>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
 

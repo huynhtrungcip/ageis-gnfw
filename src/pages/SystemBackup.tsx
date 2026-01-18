@@ -21,7 +21,11 @@ import {
   Lock,
   Server,
   RefreshCw,
-  History
+  History,
+  Calendar,
+  Play,
+  Pause,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -188,6 +192,23 @@ const recentBackups = [
   { date: '2024-01-12 14:30', size: '2.2 MB', type: 'Full', status: 'success' },
 ];
 
+interface ScheduledBackup {
+  id: string;
+  name: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  time: string;
+  day?: number;
+  enabled: boolean;
+  lastRun?: string;
+  nextRun: string;
+  retention: number;
+}
+
+const initialScheduledBackups: ScheduledBackup[] = [
+  { id: '1', name: 'Daily Backup', frequency: 'daily', time: '02:00', enabled: true, lastRun: '2024-01-15 02:00', nextRun: '2024-01-16 02:00', retention: 7 },
+  { id: '2', name: 'Weekly Full Backup', frequency: 'weekly', time: '03:00', day: 0, enabled: true, lastRun: '2024-01-14 03:00', nextRun: '2024-01-21 03:00', retention: 4 },
+];
+
 const SystemBackup = () => {
   const [exportConfig, setExportConfig] = useState<ExportConfig>({
     system: true, interfaces: true, firewallRules: true, natRules: true,
@@ -203,6 +224,19 @@ const SystemBackup = () => {
   const [confirmRestore, setConfirmRestore] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Scheduled backup states
+  const [scheduledBackups, setScheduledBackups] = useState<ScheduledBackup[]>(initialScheduledBackups);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduledBackup | null>(null);
+  const [scheduleForm, setScheduleForm] = useState({
+    name: '',
+    frequency: 'daily' as 'daily' | 'weekly' | 'monthly',
+    time: '02:00',
+    day: 0,
+    retention: 7,
+    enabled: true,
+  });
+
   const selectedCount = Object.values(exportConfig).filter(Boolean).length;
   const allSelected = selectedCount === configSections.length;
 
@@ -211,6 +245,79 @@ const SystemBackup = () => {
     const newConfig = { ...exportConfig };
     configSections.forEach(s => { newConfig[s.key as keyof ExportConfig] = newValue; });
     setExportConfig(newConfig);
+  };
+
+  // Scheduled backup handlers
+  const handleCreateSchedule = () => {
+    setEditingSchedule(null);
+    setScheduleForm({ name: '', frequency: 'daily', time: '02:00', day: 0, retention: 7, enabled: true });
+    setScheduleModalOpen(true);
+  };
+
+  const handleEditSchedule = (schedule: ScheduledBackup) => {
+    setEditingSchedule(schedule);
+    setScheduleForm({
+      name: schedule.name,
+      frequency: schedule.frequency,
+      time: schedule.time,
+      day: schedule.day || 0,
+      retention: schedule.retention,
+      enabled: schedule.enabled,
+    });
+    setScheduleModalOpen(true);
+  };
+
+  const handleSaveSchedule = () => {
+    if (!scheduleForm.name) {
+      toast.error('Please enter a schedule name');
+      return;
+    }
+
+    const getNextRun = () => {
+      const now = new Date();
+      const [hours, minutes] = scheduleForm.time.split(':').map(Number);
+      const next = new Date(now);
+      next.setHours(hours, minutes, 0, 0);
+      
+      if (next <= now) {
+        next.setDate(next.getDate() + 1);
+      }
+      
+      return next.toISOString().replace('T', ' ').split('.')[0];
+    };
+
+    if (editingSchedule) {
+      setScheduledBackups(scheduledBackups.map(s => s.id === editingSchedule.id ? {
+        ...s,
+        ...scheduleForm,
+        nextRun: getNextRun(),
+      } : s));
+      toast.success('Schedule updated');
+    } else {
+      const newSchedule: ScheduledBackup = {
+        id: Date.now().toString(),
+        ...scheduleForm,
+        nextRun: getNextRun(),
+      };
+      setScheduledBackups([...scheduledBackups, newSchedule]);
+      toast.success('Schedule created');
+    }
+    setScheduleModalOpen(false);
+  };
+
+  const handleToggleSchedule = (id: string) => {
+    setScheduledBackups(scheduledBackups.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
+    const schedule = scheduledBackups.find(s => s.id === id);
+    toast.success(`Schedule ${schedule?.enabled ? 'disabled' : 'enabled'}`);
+  };
+
+  const handleDeleteSchedule = (id: string) => {
+    setScheduledBackups(scheduledBackups.filter(s => s.id !== id));
+    toast.success('Schedule deleted');
+  };
+
+  const handleRunNow = (schedule: ScheduledBackup) => {
+    toast.success(`Running backup: ${schedule.name}`);
   };
 
   const generateExportData = () => {
@@ -431,6 +538,93 @@ const SystemBackup = () => {
           </div>
         </div>
 
+        {/* Scheduled Backups Section */}
+        <div className="section">
+          <div className="section-header flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span>Scheduled Backups</span>
+            </div>
+            <button 
+              className="text-[10px] text-[hsl(142,70%,35%)] hover:underline"
+              onClick={handleCreateSchedule}
+            >
+              + Add Schedule
+            </button>
+          </div>
+          <div className="section-body">
+            {scheduledBackups.length === 0 ? (
+              <div className="text-center py-4 text-[11px] text-[#666]">
+                No scheduled backups configured
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {scheduledBackups.map((schedule) => (
+                  <div 
+                    key={schedule.id} 
+                    className={cn(
+                      "flex items-center justify-between p-3 border rounded",
+                      schedule.enabled ? "bg-[#f5f5f5] border-[#ddd]" : "bg-gray-100 border-gray-200 opacity-60"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => handleToggleSchedule(schedule.id)}
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                          schedule.enabled ? "bg-[hsl(142,70%,35%)] text-white" : "bg-gray-300 text-gray-600"
+                        )}
+                      >
+                        {schedule.enabled ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                      </button>
+                      <div>
+                        <div className="text-[11px] font-medium">{schedule.name}</div>
+                        <div className="text-[10px] text-[#666]">
+                          {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)} at {schedule.time}
+                          {schedule.frequency === 'weekly' && ` (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][schedule.day || 0]})`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-[10px] text-[#666]">Next run</div>
+                        <div className="text-[10px] font-mono">{schedule.nextRun}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-[#666]">Retention</div>
+                        <div className="text-[10px]">{schedule.retention} backups</div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          className="p-1.5 text-blue-600 hover:bg-blue-100 rounded"
+                          onClick={() => handleRunNow(schedule)}
+                          title="Run Now"
+                        >
+                          <Play className="w-3 h-3" />
+                        </button>
+                        <button 
+                          className="p-1.5 text-gray-600 hover:bg-gray-200 rounded"
+                          onClick={() => handleEditSchedule(schedule)}
+                          title="Edit"
+                        >
+                          <Settings className="w-3 h-3" />
+                        </button>
+                        <button 
+                          className="p-1.5 text-red-600 hover:bg-red-100 rounded"
+                          onClick={() => handleDeleteSchedule(schedule.id)}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Import Section */}
         <div className="section">
           <div className="section-header">
@@ -576,6 +770,103 @@ const SystemBackup = () => {
           <pre className="text-[10px] font-mono bg-[#1e1e1e] text-[#d4d4d4] p-4 rounded-lg overflow-auto max-h-[60vh]">
             {previewContent}
           </pre>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Modal */}
+      <Dialog open={scheduleModalOpen} onOpenChange={setScheduleModalOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle>{editingSchedule ? 'Edit Scheduled Backup' : 'Create Scheduled Backup'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="forti-label">Schedule Name *</label>
+              <input
+                type="text"
+                className="forti-input w-full"
+                value={scheduleForm.name}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, name: e.target.value })}
+                placeholder="e.g., Daily Backup"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="forti-label">Frequency</label>
+                <select
+                  className="forti-select w-full"
+                  value={scheduleForm.frequency}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, frequency: e.target.value as any })}
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div>
+                <label className="forti-label">Time</label>
+                <input
+                  type="time"
+                  className="forti-input w-full"
+                  value={scheduleForm.time}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, time: e.target.value })}
+                />
+              </div>
+            </div>
+            {scheduleForm.frequency === 'weekly' && (
+              <div>
+                <label className="forti-label">Day of Week</label>
+                <select
+                  className="forti-select w-full"
+                  value={scheduleForm.day}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, day: parseInt(e.target.value) })}
+                >
+                  <option value={0}>Sunday</option>
+                  <option value={1}>Monday</option>
+                  <option value={2}>Tuesday</option>
+                  <option value={3}>Wednesday</option>
+                  <option value={4}>Thursday</option>
+                  <option value={5}>Friday</option>
+                  <option value={6}>Saturday</option>
+                </select>
+              </div>
+            )}
+            {scheduleForm.frequency === 'monthly' && (
+              <div>
+                <label className="forti-label">Day of Month</label>
+                <input
+                  type="number"
+                  className="forti-input w-full"
+                  min={1}
+                  max={28}
+                  value={scheduleForm.day}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, day: parseInt(e.target.value) })}
+                />
+              </div>
+            )}
+            <div>
+              <label className="forti-label">Retention (number of backups to keep)</label>
+              <input
+                type="number"
+                className="forti-input w-full"
+                min={1}
+                max={100}
+                value={scheduleForm.retention}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, retention: parseInt(e.target.value) })}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch 
+                checked={scheduleForm.enabled} 
+                onCheckedChange={(checked) => setScheduleForm({ ...scheduleForm, enabled: checked })}
+              />
+              <span className="text-[11px]">Enable schedule</span>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" size="sm" onClick={() => setScheduleModalOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleSaveSchedule}>Save Schedule</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
