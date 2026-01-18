@@ -42,6 +42,8 @@ import VirtualIPs from "./pages/VirtualIPs";
 import IPPools from "./pages/IPPools";
 import TrafficShapers from "./pages/TrafficShapers";
 import TrafficShapingPolicy from "./pages/TrafficShapingPolicy";
+import WildcardFQDN from "./pages/WildcardFQDN";
+import InternetServiceDatabase from "./pages/InternetServiceDatabase";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +61,8 @@ const App = () => (
           <Route path="/incidents" element={<Incidents />} />
           <Route path="/firewall/rules" element={<FirewallRules />} />
           <Route path="/firewall/aliases" element={<Aliases />} />
+          <Route path="/firewall/wildcard-fqdn" element={<WildcardFQDN />} />
+          <Route path="/firewall/internet-service" element={<InternetServiceDatabase />} />
           <Route path="/firewall/nat" element={<NATConfig />} />
           <Route path="/firewall/virtual-ips" element={<VirtualIPs />} />
           <Route path="/firewall/ip-pools" element={<IPPools />} />
