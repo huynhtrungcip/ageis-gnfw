@@ -1,18 +1,16 @@
-import { Shell } from "@/components/layout/Shell";
-import { Button } from "@/components/ui/button";
-import { FortiToggle } from "@/components/ui/forti-toggle";
+import { useState } from 'react';
+import { Shell } from '@/components/layout/Shell';
+import { cn } from '@/lib/utils';
+import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
   Edit2, 
   Trash2, 
   RefreshCw,
   Search,
-  ChevronDown,
   ArrowUpDown,
-  Network,
-  ArrowRight
-} from "lucide-react";
-import { useState } from "react";
+  Network
+} from 'lucide-react';
 
 interface ShapingPolicy {
   id: string;
@@ -117,6 +115,7 @@ const mockPolicies: ShapingPolicy[] = [
 const TrafficShapingPolicy = () => {
   const [policies, setPolicies] = useState<ShapingPolicy[]>(mockPolicies);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const togglePolicy = (id: string) => {
     setPolicies(prev => prev.map(policy => 
@@ -124,160 +123,146 @@ const TrafficShapingPolicy = () => {
     ));
   };
 
+  const handleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   const filteredPolicies = policies.filter(policy => 
+    searchQuery === '' ||
     policy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     policy.application.toLowerCase().includes(searchQuery.toLowerCase()) ||
     policy.trafficShaper.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatBytes = (bytes: number) => {
-    if (bytes >= 1073741824) {
-      return `${(bytes / 1073741824).toFixed(1)} GB`;
-    }
-    if (bytes >= 1048576) {
-      return `${(bytes / 1048576).toFixed(1)} MB`;
-    }
-    if (bytes >= 1024) {
-      return `${(bytes / 1024).toFixed(1)} KB`;
-    }
-    return `${bytes} B`;
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+    if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return bytes + ' B';
   };
 
   return (
     <Shell>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-semibold text-white">Traffic Shaping Policy</h1>
-            <span className="text-xs text-gray-400 px-2 py-0.5 bg-[#1e2d3d] rounded">
-              {policies.length} policies
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button size="sm" className="h-7 text-xs bg-[#4caf50] hover:bg-[#45a049] text-white">
-              <Plus size={12} className="mr-1" />
-              Create New
-              <ChevronDown size={10} className="ml-1" />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <Edit2 size={12} />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <Trash2 size={12} />
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs border-[#2a3f54] text-gray-300 hover:bg-[#2a3f54]">
-              <RefreshCw size={12} />
-            </Button>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search Policies..."
+      <div className="space-y-0 animate-slide-in">
+        {/* FortiGate Toolbar */}
+        <div className="forti-toolbar">
+          <button className="forti-toolbar-btn primary">
+            <Plus className="w-3 h-3" />
+            Create New
+          </button>
+          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+            <Edit2 className="w-3 h-3" />
+            Edit
+          </button>
+          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn">
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+          <div className="flex-1" />
+          <div className="forti-search">
+            <Search className="w-3 h-3 text-[#999]" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              className="w-40"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-7 pl-7 pr-3 text-xs bg-[#1e2d3d] border border-[#2a3f54] rounded text-gray-300 placeholder-gray-500 focus:outline-none focus:border-[#4caf50]"
             />
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-4 gap-3">
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Total Policies</div>
-            <div className="text-xl font-bold text-white">{policies.length}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Active</div>
-            <div className="text-xl font-bold text-green-400">{policies.filter(p => p.enabled).length}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Total Matches</div>
-            <div className="text-xl font-bold text-blue-400">{policies.reduce((a, p) => a + p.matches, 0).toLocaleString()}</div>
-          </div>
-          <div className="bg-[#1e2d3d] rounded p-3 border border-[#2a3f54]">
-            <div className="text-[10px] text-gray-400 uppercase mb-1">Total Traffic</div>
-            <div className="text-xl font-bold text-purple-400">{formatBytes(policies.reduce((a, p) => a + p.bytes, 0))}</div>
-          </div>
-        </div>
-
         {/* Table */}
-        <div className="bg-[#1e2d3d] rounded border border-[#2a3f54] overflow-hidden">
-          <table className="w-full text-xs">
+        <div className="p-4">
+          <table className="data-table">
             <thead>
-              <tr className="bg-[#16232f] text-gray-400 text-left">
-                <th className="px-3 py-2 font-medium w-10"></th>
-                <th className="px-3 py-2 font-medium">ID</th>
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Source</th>
-                <th className="px-3 py-2 font-medium text-center">→</th>
-                <th className="px-3 py-2 font-medium">Destination</th>
-                <th className="px-3 py-2 font-medium">Application</th>
-                <th className="px-3 py-2 font-medium">Shaper</th>
-                <th className="px-3 py-2 font-medium">Matches</th>
-                <th className="px-3 py-2 font-medium">Bytes</th>
-                <th className="px-3 py-2 font-medium">Status</th>
+              <tr>
+                <th className="w-8">
+                  <input type="checkbox" className="forti-checkbox" />
+                </th>
+                <th className="w-16">Status</th>
+                <th className="w-10">ID</th>
+                <th>Name</th>
+                <th>Source</th>
+                <th>Destination</th>
+                <th>Application</th>
+                <th>Shaper</th>
+                <th className="text-right">Matches</th>
+                <th className="text-right">Bytes</th>
               </tr>
             </thead>
             <tbody>
               {filteredPolicies.map((policy, index) => (
-                <tr 
-                  key={policy.id} 
-                  className="border-t border-[#2a3f54] hover:bg-[#2a3f54]/30 transition-colors"
-                >
-                  <td className="px-3 py-2">
-                    <input type="checkbox" className="rounded bg-[#16232f] border-[#2a3f54]" />
+                <tr key={policy.id} className={cn(!policy.enabled && "opacity-60", selectedIds.includes(policy.id) && "selected")}>
+                  <td>
+                    <input 
+                      type="checkbox" 
+                      className="forti-checkbox"
+                      checked={selectedIds.includes(policy.id)}
+                      onChange={() => handleSelect(policy.id)}
+                    />
                   </td>
-                  <td className="px-3 py-2 text-gray-400">{index + 1}</td>
-                  <td className="px-3 py-2">
+                  <td>
+                    <FortiToggle 
+                      enabled={policy.enabled} 
+                      onToggle={() => togglePolicy(policy.id)}
+                      size="sm"
+                    />
+                  </td>
+                  <td className="text-[11px] text-[#666]">{index + 1}</td>
+                  <td>
                     <div className="flex items-center gap-2">
-                      <ArrowUpDown size={14} className="text-cyan-400" />
-                      <span className="text-white font-medium">{policy.name}</span>
+                      <ArrowUpDown className="w-3 h-3 text-cyan-600" />
+                      <span className="text-[11px] font-medium">{policy.name}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-2">
-                    <div className="text-white">{policy.source}</div>
-                    <div className="text-gray-500 text-[10px]">{policy.srcInterface}</div>
+                  <td>
+                    <div>
+                      <span className="inline-flex items-center gap-1 text-[11px]">
+                        <span className="w-3 h-3 bg-green-400 rounded-sm" />
+                        {policy.source}
+                      </span>
+                      <div className="text-[10px] text-[#999]">{policy.srcInterface}</div>
+                    </div>
                   </td>
-                  <td className="px-3 py-2 text-center">
-                    <ArrowRight size={12} className="text-gray-500 mx-auto" />
+                  <td>
+                    <div>
+                      <span className="inline-flex items-center gap-1 text-[11px]">
+                        <Network className="w-3 h-3" />
+                        {policy.destination}
+                      </span>
+                      <div className="text-[10px] text-[#999]">{policy.dstInterface}</div>
+                    </div>
                   </td>
-                  <td className="px-3 py-2">
-                    <div className="text-white">{policy.destination}</div>
-                    <div className="text-gray-500 text-[10px]">{policy.dstInterface}</div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-400">
+                  <td>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 border border-purple-200">
                       {policy.application}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td>
                     {policy.trafficShaper ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-orange-500/20 text-orange-400">
+                      <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 border border-orange-200">
                         {policy.trafficShaper}
                       </span>
                     ) : (
-                      <span className="text-gray-500">—</span>
+                      <span className="text-[10px] text-[#999]">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-gray-300">{policy.matches.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-gray-300">{formatBytes(policy.bytes)}</td>
-                  <td className="px-3 py-2">
-                    <FortiToggle 
-                      enabled={policy.enabled} 
-                      onToggle={() => togglePolicy(policy.id)} 
-                    />
-                  </td>
+                  <td className="text-right text-[11px] text-[#666]">{policy.matches.toLocaleString()}</td>
+                  <td className="text-right text-[11px] text-[#666]">{formatBytes(policy.bytes)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <div className="text-[11px] text-[#666] mt-2 px-1">
+            {filteredPolicies.length} shaping policies
+          </div>
         </div>
       </div>
     </Shell>
