@@ -1,12 +1,14 @@
 import { cn } from "@/lib/utils";
 
-interface FortiToggleProps {
+export interface FortiToggleProps {
   enabled: boolean;
   onToggle?: () => void;
+  onChange?: () => void;
   size?: 'sm' | 'md';
 }
 
-export const FortiToggle = ({ enabled, onToggle, size = 'md' }: FortiToggleProps) => {
+export const FortiToggle = ({ enabled, onToggle, onChange, size = 'md' }: FortiToggleProps) => {
+  const handleClick = onToggle || onChange;
   const sizeClasses = size === 'sm' 
     ? 'w-8 h-4' 
     : 'w-10 h-5';
@@ -21,7 +23,7 @@ export const FortiToggle = ({ enabled, onToggle, size = 'md' }: FortiToggleProps
 
   return (
     <button
-      onClick={onToggle}
+      onClick={handleClick}
       className={cn(
         "relative rounded-full transition-colors cursor-pointer border-2",
         sizeClasses,
