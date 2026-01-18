@@ -105,8 +105,8 @@ const navigation: NavSection[] = [
     items: [
       { label: 'IPv4 Policy', path: '/firewall/rules', starred: true },
       { label: 'Addresses', path: '/firewall/aliases' },
-      { label: 'Wildcard FQDN Addresses', path: '/firewall/aliases' },
-      { label: 'Internet Service Database', path: '/firewall/aliases' },
+      { label: 'Wildcard FQDN Addresses', path: '/firewall/wildcard-fqdn' },
+      { label: 'Internet Service Database', path: '/firewall/internet-service' },
       { label: 'Services', path: '/firewall/services' },
       { label: 'Schedules', path: '/firewall/schedules' },
       { label: 'Virtual IPs', path: '/firewall/virtual-ips' },
