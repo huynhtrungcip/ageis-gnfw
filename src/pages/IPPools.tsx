@@ -10,8 +10,16 @@ import {
   Search,
   ChevronDown,
   Database,
-  Layers
+  Layers,
+  X
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface IPPool {
   id: string;
@@ -27,7 +35,7 @@ interface IPPool {
   totalIPs: number;
 }
 
-const mockPools: IPPool[] = [
+const initialPools: IPPool[] = [
   {
     id: '1',
     name: 'SNAT-Pool-1',
@@ -83,10 +91,21 @@ const mockPools: IPPool[] = [
 ];
 
 const IPPools = () => {
-  const [pools, setPools] = useState<IPPool[]>(mockPools);
+  const [pools, setPools] = useState<IPPool[]>(initialPools);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<IPPool | null>(null);
+
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formComments, setFormComments] = useState('');
+  const [formType, setFormType] = useState<IPPool['type']>('overload');
+  const [formStartIP, setFormStartIP] = useState('');
+  const [formEndIP, setFormEndIP] = useState('');
+  const [formInterface, setFormInterface] = useState('wan1');
+  const [formArpReply, setFormArpReply] = useState(true);
 
   const togglePool = (id: string) => {
     setPools(prev => prev.map(pool => 
@@ -98,6 +117,14 @@ const IPPools = () => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredPools.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredPools.map(p => p.id));
+    }
   };
 
   const filteredPools = pools.filter(pool => 
@@ -116,6 +143,95 @@ const IPPools = () => {
     }
   };
 
+  const openCreateModal = (type: IPPool['type']) => {
+    setEditingItem(null);
+    setFormName('');
+    setFormComments('');
+    setFormType(type);
+    setFormStartIP('');
+    setFormEndIP('');
+    setFormInterface('wan1');
+    setFormArpReply(true);
+    setModalOpen(true);
+    setShowCreateMenu(false);
+  };
+
+  const openEditModal = () => {
+    if (selectedIds.length !== 1) return;
+    const item = pools.find(p => p.id === selectedIds[0]);
+    if (item) {
+      setEditingItem(item);
+      setFormName(item.name);
+      setFormComments(item.comments);
+      setFormType(item.type);
+      setFormStartIP(item.startIP);
+      setFormEndIP(item.endIP);
+      setFormInterface(item.associatedInterface);
+      setFormArpReply(item.arpReply);
+      setModalOpen(true);
+    }
+  };
+
+  const handleSave = () => {
+    if (!formName.trim() || !formStartIP.trim() || !formEndIP.trim()) {
+      toast.error('Name, Start IP, and End IP are required');
+      return;
+    }
+
+    // Calculate total IPs
+    const startParts = formStartIP.split('.').map(Number);
+    const endParts = formEndIP.split('.').map(Number);
+    const totalIPs = endParts[3] - startParts[3] + 1;
+
+    if (editingItem) {
+      setPools(prev => prev.map(p => 
+        p.id === editingItem.id 
+          ? { ...p, name: formName, comments: formComments, type: formType, startIP: formStartIP, endIP: formEndIP, associatedInterface: formInterface, arpReply: formArpReply, totalIPs }
+          : p
+      ));
+      toast.success(`Updated "${formName}" successfully`);
+    } else {
+      const newItem: IPPool = {
+        id: Date.now().toString(),
+        name: formName,
+        comments: formComments,
+        type: formType,
+        startIP: formStartIP,
+        endIP: formEndIP,
+        associatedInterface: formInterface,
+        arpReply: formArpReply,
+        enabled: true,
+        usedIPs: 0,
+        totalIPs: totalIPs > 0 ? totalIPs : 1
+      };
+      setPools(prev => [...prev, newItem]);
+      toast.success(`Created "${formName}" successfully`);
+    }
+    setModalOpen(false);
+    setSelectedIds([]);
+  };
+
+  const handleDelete = () => {
+    if (selectedIds.length === 0) return;
+    
+    const hasUsed = pools.some(p => selectedIds.includes(p.id) && p.usedIPs > 0);
+    if (hasUsed) {
+      toast.error('Cannot delete pools that have IPs in use');
+      return;
+    }
+
+    setPools(prev => prev.filter(p => !selectedIds.includes(p.id)));
+    toast.success(`Deleted ${selectedIds.length} pool(s) successfully`);
+    setSelectedIds([]);
+  };
+
+  const handleRefresh = () => {
+    setPools([...initialPools]);
+    setSelectedIds([]);
+    setSearchQuery('');
+    toast.success('Data refreshed');
+  };
+
   return (
     <Shell>
       <div className="space-y-0 animate-slide-in">
@@ -132,31 +248,48 @@ const IPPools = () => {
             </button>
             {showCreateMenu && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('overload')}
+                >
                   <Database className="w-3 h-3" />
                   Overload
                 </button>
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('one-to-one')}
+                >
                   <Layers className="w-3 h-3" />
                   One-to-One
                 </button>
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={() => openCreateModal('fixed-port-range')}
+                >
                   <Database className="w-3 h-3" />
                   Fixed Port Range
                 </button>
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length !== 1}
+            onClick={openEditModal}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length === 0}
+            onClick={handleDelete}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
@@ -170,6 +303,11 @@ const IPPools = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-[#999] hover:text-[#666]">
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -179,7 +317,12 @@ const IPPools = () => {
             <thead>
               <tr>
                 <th className="w-8">
-                  <input type="checkbox" className="forti-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    className="forti-checkbox"
+                    checked={selectedIds.length === filteredPools.length && filteredPools.length > 0}
+                    onChange={handleSelectAll}
+                  />
                 </th>
                 <th className="w-16">Status</th>
                 <th>Name</th>
@@ -193,7 +336,14 @@ const IPPools = () => {
             </thead>
             <tbody>
               {filteredPools.map((pool) => (
-                <tr key={pool.id} className={cn(!pool.enabled && "opacity-60", selectedIds.includes(pool.id) && "selected")}>
+                <tr 
+                  key={pool.id} 
+                  className={cn(!pool.enabled && "opacity-60", selectedIds.includes(pool.id) && "selected")}
+                  onDoubleClick={() => {
+                    setSelectedIds([pool.id]);
+                    setTimeout(openEditModal, 0);
+                  }}
+                >
                   <td>
                     <input 
                       type="checkbox" 
@@ -256,13 +406,120 @@ const IPPools = () => {
                   </td>
                 </tr>
               ))}
+              {filteredPools.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="text-center text-[11px] text-[#999] py-8">
+                    {searchQuery ? 'No matching IP pools found' : 'No IP pools configured'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           <div className="text-[11px] text-[#666] mt-2 px-1">
             {filteredPools.length} IP pools
+            {selectedIds.length > 0 && ` (${selectedIds.length} selected)`}
           </div>
         </div>
       </div>
+
+      {/* Create/Edit Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              {editingItem ? 'Edit IP Pool' : 'New IP Pool'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Name</label>
+              <input
+                type="text"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+                placeholder="e.g., My-IP-Pool"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Type</label>
+              <select
+                value={formType}
+                onChange={(e) => setFormType(e.target.value as IPPool['type'])}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              >
+                <option value="overload">Overload</option>
+                <option value="one-to-one">One-to-One</option>
+                <option value="fixed-port-range">Fixed Port Range</option>
+                <option value="port-block-allocation">Port Block Allocation</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Start IP</label>
+              <input
+                type="text"
+                value={formStartIP}
+                onChange={(e) => setFormStartIP(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background font-mono"
+                placeholder="e.g., 203.0.113.100"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">End IP</label>
+              <input
+                type="text"
+                value={formEndIP}
+                onChange={(e) => setFormEndIP(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background font-mono"
+                placeholder="e.g., 203.0.113.110"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Interface</label>
+              <select
+                value={formInterface}
+                onChange={(e) => setFormInterface(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              >
+                <option value="wan1">wan1</option>
+                <option value="wan2">wan2</option>
+                <option value="internal">internal</option>
+                <option value="dmz">dmz</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">ARP Reply</label>
+              <div className="col-span-3">
+                <FortiToggle enabled={formArpReply} onToggle={() => setFormArpReply(!formArpReply)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Comments</label>
+              <input
+                type="text"
+                value={formComments}
+                onChange={(e) => setFormComments(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+                placeholder="Optional description"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="px-3 py-1.5 text-xs border border-border rounded hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
+            >
+              {editingItem ? 'Save' : 'Create'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Shell>
   );
 };
