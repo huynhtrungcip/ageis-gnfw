@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Search, Globe, RefreshCw, ChevronDown, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Globe, RefreshCw, ChevronDown, ExternalLink, X } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
-interface WildcardFQDN {
+interface WildcardFQDNItem {
   id: string;
   name: string;
   fqdn: string;
@@ -13,7 +20,7 @@ interface WildcardFQDN {
   references: number;
 }
 
-const mockFQDNs: WildcardFQDN[] = [
+const initialFQDNs: WildcardFQDNItem[] = [
   {
     id: '1',
     name: 'google-services',
@@ -62,10 +69,18 @@ const mockFQDNs: WildcardFQDN[] = [
 ];
 
 const WildcardFQDN = () => {
-  const [fqdns, setFqdns] = useState<WildcardFQDN[]>(mockFQDNs);
+  const [fqdns, setFqdns] = useState<WildcardFQDNItem[]>(initialFQDNs);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<WildcardFQDNItem | null>(null);
+  
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formFqdn, setFormFqdn] = useState('');
+  const [formInterface, setFormInterface] = useState('any');
+  const [formComment, setFormComment] = useState('');
 
   const handleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -73,11 +88,95 @@ const WildcardFQDN = () => {
     );
   };
 
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredFQDNs.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredFQDNs.map(f => f.id));
+    }
+  };
+
   const filteredFQDNs = fqdns.filter(fqdn => 
     searchQuery === '' ||
     fqdn.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     fqdn.fqdn.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const openCreateModal = () => {
+    setEditingItem(null);
+    setFormName('');
+    setFormFqdn('');
+    setFormInterface('any');
+    setFormComment('');
+    setModalOpen(true);
+    setShowCreateMenu(false);
+  };
+
+  const openEditModal = () => {
+    if (selectedIds.length !== 1) return;
+    const item = fqdns.find(f => f.id === selectedIds[0]);
+    if (item) {
+      setEditingItem(item);
+      setFormName(item.name);
+      setFormFqdn(item.fqdn);
+      setFormInterface(item.interface);
+      setFormComment(item.comment);
+      setModalOpen(true);
+    }
+  };
+
+  const handleSave = () => {
+    if (!formName.trim() || !formFqdn.trim()) {
+      toast.error('Name and FQDN are required');
+      return;
+    }
+
+    if (editingItem) {
+      // Update existing
+      setFqdns(prev => prev.map(f => 
+        f.id === editingItem.id 
+          ? { ...f, name: formName, fqdn: formFqdn, interface: formInterface, comment: formComment }
+          : f
+      ));
+      toast.success(`Updated "${formName}" successfully`);
+    } else {
+      // Create new
+      const newItem: WildcardFQDNItem = {
+        id: Date.now().toString(),
+        name: formName,
+        fqdn: formFqdn,
+        interface: formInterface,
+        comment: formComment,
+        visibility: true,
+        references: 0
+      };
+      setFqdns(prev => [...prev, newItem]);
+      toast.success(`Created "${formName}" successfully`);
+    }
+    setModalOpen(false);
+    setSelectedIds([]);
+  };
+
+  const handleDelete = () => {
+    if (selectedIds.length === 0) return;
+    
+    const hasReferences = fqdns.some(f => selectedIds.includes(f.id) && f.references > 0);
+    if (hasReferences) {
+      toast.error('Cannot delete items that are referenced by policies');
+      return;
+    }
+
+    setFqdns(prev => prev.filter(f => !selectedIds.includes(f.id)));
+    toast.success(`Deleted ${selectedIds.length} item(s) successfully`);
+    setSelectedIds([]);
+  };
+
+  const handleRefresh = () => {
+    setFqdns([...initialFQDNs]);
+    setSelectedIds([]);
+    setSearchQuery('');
+    toast.success('Data refreshed');
+  };
 
   return (
     <Shell>
@@ -95,23 +194,34 @@ const WildcardFQDN = () => {
             </button>
             {showCreateMenu && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                  onClick={openCreateModal}
+                >
                   <Globe className="w-3 h-3" />
                   Wildcard FQDN
                 </button>
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length !== 1}
+            onClick={openEditModal}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length === 0}
+            onClick={handleDelete}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
@@ -125,6 +235,11 @@ const WildcardFQDN = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-[#999] hover:text-[#666]">
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -134,7 +249,12 @@ const WildcardFQDN = () => {
             <thead>
               <tr>
                 <th className="w-8">
-                  <input type="checkbox" className="forti-checkbox" />
+                  <input 
+                    type="checkbox" 
+                    className="forti-checkbox"
+                    checked={selectedIds.length === filteredFQDNs.length && filteredFQDNs.length > 0}
+                    onChange={handleSelectAll}
+                  />
                 </th>
                 <th>Name</th>
                 <th>Wildcard FQDN</th>
@@ -145,7 +265,14 @@ const WildcardFQDN = () => {
             </thead>
             <tbody>
               {filteredFQDNs.map((fqdn) => (
-                <tr key={fqdn.id} className={cn(selectedIds.includes(fqdn.id) && "selected")}>
+                <tr 
+                  key={fqdn.id} 
+                  className={cn(selectedIds.includes(fqdn.id) && "selected")}
+                  onDoubleClick={() => {
+                    setSelectedIds([fqdn.id]);
+                    setTimeout(() => openEditModal(), 0);
+                  }}
+                >
                   <td>
                     <input 
                       type="checkbox" 
@@ -182,13 +309,92 @@ const WildcardFQDN = () => {
                   </td>
                 </tr>
               ))}
+              {filteredFQDNs.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center text-[11px] text-[#999] py-8">
+                    {searchQuery ? 'No matching records found' : 'No wildcard FQDN addresses configured'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           <div className="text-[11px] text-[#666] mt-2 px-1">
             {filteredFQDNs.length} wildcard FQDN addresses
+            {selectedIds.length > 0 && ` (${selectedIds.length} selected)`}
           </div>
         </div>
       </div>
+
+      {/* Create/Edit Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">
+              {editingItem ? 'Edit Wildcard FQDN' : 'New Wildcard FQDN'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Name</label>
+              <input
+                type="text"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+                placeholder="e.g., my-wildcard-fqdn"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">FQDN</label>
+              <input
+                type="text"
+                value={formFqdn}
+                onChange={(e) => setFormFqdn(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background font-mono"
+                placeholder="e.g., *.example.com"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Interface</label>
+              <select
+                value={formInterface}
+                onChange={(e) => setFormInterface(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+              >
+                <option value="any">any</option>
+                <option value="wan1">wan1</option>
+                <option value="wan2">wan2</option>
+                <option value="internal">internal</option>
+                <option value="dmz">dmz</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right text-muted-foreground">Comment</label>
+              <input
+                type="text"
+                value={formComment}
+                onChange={(e) => setFormComment(e.target.value)}
+                className="col-span-3 text-xs border border-border rounded px-2 py-1.5 bg-background"
+                placeholder="Optional description"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="px-3 py-1.5 text-xs border border-border rounded hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90"
+            >
+              {editingItem ? 'Save' : 'Create'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Shell>
   );
 };
