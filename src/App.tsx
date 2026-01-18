@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import ThreatMonitor from "./pages/ThreatMonitor";
 import ThreatDetail from "./pages/ThreatDetail";
@@ -61,6 +61,15 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+
+          {/* Base section routes (avoid 404 when clicking breadcrumb section) */}
+          <Route path="/firewall" element={<Navigate to="/firewall/rules" replace />} />
+          <Route path="/security" element={<Navigate to="/security/ids" replace />} />
+          <Route path="/vpn" element={<Navigate to="/vpn/ipsec" replace />} />
+          <Route path="/users" element={<Navigate to="/users/groups" replace />} />
+          <Route path="/monitoring" element={<Navigate to="/monitoring/traffic" replace />} />
+          <Route path="/system" element={<Navigate to="/system/general" replace />} />
+          <Route path="/insights" element={<Navigate to="/ai-security" replace />} />
           <Route path="/threats" element={<ThreatMonitor />} />
           <Route path="/threats/:id" element={<ThreatDetail />} />
           <Route path="/incidents" element={<Incidents />} />
