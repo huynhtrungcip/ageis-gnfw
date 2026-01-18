@@ -13,7 +13,8 @@ import {
   Layers,
   X,
   Download,
-  Upload
+  Upload,
+  GripVertical
 } from 'lucide-react';
 import {
   Dialog,
@@ -39,6 +40,23 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { exportToJSON, exportToCSV, importFromJSON, createFileInput } from '@/lib/exportImport';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface IPPool {
   id: string;
@@ -109,6 +127,52 @@ const initialPools: IPPool[] = [
   },
 ];
 
+interface SortablePoolRowProps {
+  pool: IPPool;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onToggle: (id: string) => void;
+  onDoubleClick: () => void;
+  getTypeLabel: (type: IPPool['type']) => string;
+}
+
+const SortablePoolRow = ({ pool, isSelected, onSelect, onToggle, onDoubleClick, getTypeLabel }: SortablePoolRowProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: pool.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
+  return (
+    <tr ref={setNodeRef} style={style} className={cn(!pool.enabled && "opacity-60", isSelected && "selected")} onDoubleClick={onDoubleClick}>
+      <td className="w-6 cursor-grab" {...attributes} {...listeners}><GripVertical className="w-3 h-3 text-[#999]" /></td>
+      <td><input type="checkbox" className="forti-checkbox" checked={isSelected} onChange={() => onSelect(pool.id)} /></td>
+      <td><FortiToggle enabled={pool.enabled} onToggle={() => onToggle(pool.id)} size="sm" /></td>
+      <td>
+        <div className="flex items-center gap-2">
+          <Database className="w-3 h-3 text-purple-600" />
+          <div><div className="text-[11px] font-medium">{pool.name}</div><div className="text-[10px] text-[#999]">{pool.comments}</div></div>
+        </div>
+      </td>
+      <td>
+        <span className={cn("text-[10px] px-1.5 py-0.5 border",
+          pool.type === 'overload' && "bg-blue-100 text-blue-700 border-blue-200",
+          pool.type === 'one-to-one' && "bg-green-100 text-green-700 border-green-200",
+          pool.type === 'fixed-port-range' && "bg-purple-100 text-purple-700 border-purple-200",
+          pool.type === 'port-block-allocation' && "bg-orange-100 text-orange-700 border-orange-200"
+        )}>{getTypeLabel(pool.type)}</span>
+      </td>
+      <td className="mono text-[11px]">{pool.startIP}</td>
+      <td className="mono text-[11px]">{pool.endIP}</td>
+      <td><span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">{pool.associatedInterface}</span></td>
+      <td>{pool.arpReply ? <span className="text-[10px] text-green-600">Enable</span> : <span className="text-[10px] text-[#999]">Disable</span>}</td>
+      <td>
+        <div className="flex items-center gap-2">
+          <div className="w-16 h-1.5 bg-[#e0e0e0] rounded-full overflow-hidden"><div className="h-full bg-blue-500 rounded-full" style={{ width: `${(pool.usedIPs / pool.totalIPs) * 100}%` }} /></div>
+          <span className="text-[10px] text-[#666]">{pool.usedIPs}/{pool.totalIPs}</span>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 const IPPools = () => {
   const [pools, setPools] = useState<IPPool[]>(initialPools);
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,7 +182,6 @@ const IPPools = () => {
   const [editingItem, setEditingItem] = useState<IPPool | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Form state
   const [formName, setFormName] = useState('');
   const [formComments, setFormComments] = useState('');
   const [formType, setFormType] = useState<IPPool['type']>('overload');
@@ -126,6 +189,29 @@ const IPPools = () => {
   const [formEndIP, setFormEndIP] = useState('');
   const [formInterface, setFormInterface] = useState('wan1');
   const [formArpReply, setFormArpReply] = useState(true);
+
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setPools((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      toast.success('Order updated');
+    }
+  };
+
+  const getTypeLabel = (type: IPPool['type']) => {
+    switch (type) {
+      case 'overload': return 'Overload';
+      case 'one-to-one': return 'One-to-One';
+      case 'fixed-port-range': return 'Fixed Port Range';
+      case 'port-block-allocation': return 'Port Block';
+    }
+  };
 
   const togglePool = (id: string) => {
     setPools(prev => prev.map(pool => 
@@ -153,9 +239,6 @@ const IPPools = () => {
     pool.startIP.includes(searchQuery) ||
     pool.endIP.includes(searchQuery)
   );
-
-  const getTypeLabel = (type: IPPool['type']) => {
-    switch (type) {
       case 'overload': return 'Overload';
       case 'one-to-one': return 'One-to-One';
       case 'fixed-port-range': return 'Fixed Port Range';

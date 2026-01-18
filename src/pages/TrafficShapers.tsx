@@ -10,7 +10,10 @@ import {
   Search,
   ChevronDown,
   Gauge,
-  X
+  X,
+  Download,
+  Upload,
+  GripVertical
 } from 'lucide-react';
 import {
   Dialog,
@@ -18,7 +21,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { exportToJSON, exportToCSV, importFromJSON, createFileInput } from '@/lib/exportImport';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TrafficShaper {
   id: string;
@@ -115,6 +152,103 @@ const initialShapers: TrafficShaper[] = [
   },
 ];
 
+interface SortableShaperRowProps {
+  shaper: TrafficShaper;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onToggle: (id: string) => void;
+  onDoubleClick: () => void;
+  formatBandwidth: (kbps: number) => string;
+}
+
+const SortableShaperRow = ({ shaper, isSelected, onSelect, onToggle, onDoubleClick, formatBandwidth }: SortableShaperRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: shaper.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr 
+      ref={setNodeRef}
+      style={style}
+      className={cn(!shaper.enabled && "opacity-60", isSelected && "selected")}
+      onDoubleClick={onDoubleClick}
+    >
+      <td className="w-6 cursor-grab" {...attributes} {...listeners}>
+        <GripVertical className="w-3 h-3 text-[#999]" />
+      </td>
+      <td>
+        <input 
+          type="checkbox" 
+          className="forti-checkbox"
+          checked={isSelected}
+          onChange={() => onSelect(shaper.id)}
+        />
+      </td>
+      <td>
+        <FortiToggle 
+          enabled={shaper.enabled} 
+          onToggle={() => onToggle(shaper.id)}
+          size="sm"
+        />
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          <Gauge className="w-3 h-3 text-orange-600" />
+          <span className="text-[11px] font-medium">{shaper.name}</span>
+        </div>
+      </td>
+      <td>
+        <span className={cn(
+          "text-[10px] px-1.5 py-0.5 border",
+          shaper.type === 'shared' && "bg-blue-100 text-blue-700 border-blue-200",
+          shaper.type === 'per-ip' && "bg-purple-100 text-purple-700 border-purple-200"
+        )}>
+          {shaper.type === 'shared' ? 'Shared' : 'Per-IP'}
+        </span>
+      </td>
+      <td className="mono text-[11px]">{formatBandwidth(shaper.guaranteedBandwidth)}</td>
+      <td className="mono text-[11px]">{formatBandwidth(shaper.maximumBandwidth)}</td>
+      <td className="mono text-[11px]">{formatBandwidth(shaper.burstBandwidth)}</td>
+      <td>
+        <span className={cn(
+          "text-[10px] px-1.5 py-0.5 border",
+          shaper.priority === 'high' && "bg-red-100 text-red-700 border-red-200",
+          shaper.priority === 'medium' && "bg-yellow-100 text-yellow-700 border-yellow-200",
+          shaper.priority === 'low' && "bg-blue-100 text-blue-700 border-blue-200"
+        )}>
+          {shaper.priority.charAt(0).toUpperCase() + shaper.priority.slice(1)}
+        </span>
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          <div className="w-16 h-1.5 bg-[#e0e0e0] rounded-full overflow-hidden">
+            <div 
+              className={cn(
+                "h-full rounded-full",
+                shaper.currentUsage / shaper.maximumBandwidth > 0.8 ? "bg-red-500" :
+                shaper.currentUsage / shaper.maximumBandwidth > 0.5 ? "bg-yellow-500" : "bg-green-500"
+              )}
+              style={{ width: `${Math.min((shaper.currentUsage / shaper.maximumBandwidth) * 100, 100)}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-[#666]">{formatBandwidth(shaper.currentUsage)}</span>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 const TrafficShapers = () => {
   const [shapers, setShapers] = useState<TrafficShaper[]>(initialShapers);
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,6 +256,7 @@ const TrafficShapers = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TrafficShaper | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -130,6 +265,13 @@ const TrafficShapers = () => {
   const [formMaximum, setFormMaximum] = useState(500);
   const [formBurst, setFormBurst] = useState(600);
   const [formPriority, setFormPriority] = useState<TrafficShaper['priority']>('medium');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const toggleShaper = (id: string) => {
     setShapers(prev => prev.map(shaper => 
@@ -224,11 +366,11 @@ const TrafficShapers = () => {
     setSelectedIds([]);
   };
 
-  const handleDelete = () => {
-    if (selectedIds.length === 0) return;
+  const handleDeleteConfirm = () => {
     setShapers(prev => prev.filter(s => !selectedIds.includes(s.id)));
     toast.success(`Deleted ${selectedIds.length} shaper(s) successfully`);
     setSelectedIds([]);
+    setDeleteDialogOpen(false);
   };
 
   const handleRefresh = () => {
@@ -236,6 +378,55 @@ const TrafficShapers = () => {
     setSelectedIds([]);
     setSearchQuery('');
     toast.success('Data refreshed');
+  };
+
+  const handleExportJSON = () => {
+    exportToJSON(shapers, 'traffic-shapers-config.json');
+    toast.success(`Exported ${shapers.length} traffic shapers to JSON`);
+  };
+
+  const handleExportCSV = () => {
+    const csvData = shapers.map(s => ({
+      name: s.name,
+      type: s.type,
+      guaranteed: s.guaranteedBandwidth,
+      maximum: s.maximumBandwidth,
+      burst: s.burstBandwidth,
+      priority: s.priority,
+      enabled: s.enabled,
+    }));
+    exportToCSV(csvData, 'traffic-shapers-config.csv');
+    toast.success(`Exported ${shapers.length} traffic shapers to CSV`);
+  };
+
+  const handleImport = () => {
+    createFileInput('.json', (file) => {
+      importFromJSON<TrafficShaper>(
+        file,
+        (data) => {
+          const newShapers = data.map(s => ({
+            ...s,
+            id: `shaper-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            currentUsage: 0,
+          }));
+          setShapers(prev => [...prev, ...newShapers]);
+          toast.success(`Imported ${newShapers.length} traffic shapers`);
+        },
+        (error) => toast.error(error)
+      );
+    });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setShapers((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      toast.success('Order updated');
+    }
   };
 
   return (
@@ -282,7 +473,7 @@ const TrafficShapers = () => {
           <button 
             className="forti-toolbar-btn" 
             disabled={selectedIds.length === 0}
-            onClick={handleDelete}
+            onClick={() => setDeleteDialogOpen(true)}
           >
             <Trash2 className="w-3 h-3" />
             Delete
@@ -293,6 +484,27 @@ const TrafficShapers = () => {
             Refresh
           </button>
           <div className="flex-1" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="forti-toolbar-btn">
+                <Download className="w-3 h-3" />
+                Export
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
+              <DropdownMenuItem onClick={handleExportJSON} className="cursor-pointer text-[11px]">
+                Export as JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer text-[11px]">
+                Export as CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button className="forti-toolbar-btn" onClick={handleImport}>
+            <Upload className="w-3 h-3" />
+            Import
+          </button>
           <div className="forti-search">
             <Search className="w-3 h-3 text-[#999]" />
             <input 
@@ -312,106 +524,56 @@ const TrafficShapers = () => {
 
         {/* Table */}
         <div className="p-4">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="w-8">
-                  <input 
-                    type="checkbox" 
-                    className="forti-checkbox"
-                    checked={selectedIds.length === filteredShapers.length && filteredShapers.length > 0}
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                <th className="w-16">Status</th>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Guaranteed</th>
-                <th>Maximum</th>
-                <th>Burst</th>
-                <th>Priority</th>
-                <th>Current Usage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredShapers.map((shaper) => (
-                <tr 
-                  key={shaper.id} 
-                  className={cn(!shaper.enabled && "opacity-60", selectedIds.includes(shaper.id) && "selected")}
-                  onDoubleClick={() => {
-                    setSelectedIds([shaper.id]);
-                    setTimeout(openEditModal, 0);
-                  }}
-                >
-                  <td>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-6"></th>
+                  <th className="w-8">
                     <input 
                       type="checkbox" 
                       className="forti-checkbox"
-                      checked={selectedIds.includes(shaper.id)}
-                      onChange={() => handleSelect(shaper.id)}
+                      checked={selectedIds.length === filteredShapers.length && filteredShapers.length > 0}
+                      onChange={handleSelectAll}
                     />
-                  </td>
-                  <td>
-                    <FortiToggle 
-                      enabled={shaper.enabled} 
-                      onToggle={() => toggleShaper(shaper.id)}
-                      size="sm"
+                  </th>
+                  <th className="w-16">Status</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Guaranteed</th>
+                  <th>Maximum</th>
+                  <th>Burst</th>
+                  <th>Priority</th>
+                  <th>Current Usage</th>
+                </tr>
+              </thead>
+              <SortableContext items={filteredShapers.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <tbody>
+                  {filteredShapers.map((shaper) => (
+                    <SortableShaperRow
+                      key={shaper.id}
+                      shaper={shaper}
+                      isSelected={selectedIds.includes(shaper.id)}
+                      onSelect={handleSelect}
+                      onToggle={toggleShaper}
+                      onDoubleClick={() => {
+                        setSelectedIds([shaper.id]);
+                        setTimeout(openEditModal, 0);
+                      }}
+                      formatBandwidth={formatBandwidth}
                     />
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <Gauge className="w-3 h-3 text-orange-600" />
-                      <span className="text-[11px] font-medium">{shaper.name}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={cn(
-                      "text-[10px] px-1.5 py-0.5 border",
-                      shaper.type === 'shared' && "bg-blue-100 text-blue-700 border-blue-200",
-                      shaper.type === 'per-ip' && "bg-purple-100 text-purple-700 border-purple-200"
-                    )}>
-                      {shaper.type === 'shared' ? 'Shared' : 'Per-IP'}
-                    </span>
-                  </td>
-                  <td className="mono text-[11px]">{formatBandwidth(shaper.guaranteedBandwidth)}</td>
-                  <td className="mono text-[11px]">{formatBandwidth(shaper.maximumBandwidth)}</td>
-                  <td className="mono text-[11px]">{formatBandwidth(shaper.burstBandwidth)}</td>
-                  <td>
-                    <span className={cn(
-                      "text-[10px] px-1.5 py-0.5 border",
-                      shaper.priority === 'high' && "bg-red-100 text-red-700 border-red-200",
-                      shaper.priority === 'medium' && "bg-yellow-100 text-yellow-700 border-yellow-200",
-                      shaper.priority === 'low' && "bg-blue-100 text-blue-700 border-blue-200"
-                    )}>
-                      {shaper.priority.charAt(0).toUpperCase() + shaper.priority.slice(1)}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-[#e0e0e0] rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full rounded-full",
-                            shaper.currentUsage / shaper.maximumBandwidth > 0.8 ? "bg-red-500" :
-                            shaper.currentUsage / shaper.maximumBandwidth > 0.5 ? "bg-yellow-500" : "bg-green-500"
-                          )}
-                          style={{ width: `${Math.min((shaper.currentUsage / shaper.maximumBandwidth) * 100, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] text-[#666]">{formatBandwidth(shaper.currentUsage)}</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredShapers.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="text-center text-[11px] text-[#999] py-8">
-                    {searchQuery ? 'No matching shapers found' : 'No traffic shapers configured'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  ))}
+                  {filteredShapers.length === 0 && (
+                    <tr>
+                      <td colSpan={10} className="text-center text-[11px] text-[#999] py-8">
+                        {searchQuery ? 'No matching shapers found' : 'No traffic shapers configured'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </SortableContext>
+            </table>
+          </DndContext>
           <div className="text-[11px] text-[#666] mt-2 px-1">
             {filteredShapers.length} traffic shapers
             {selectedIds.length > 0 && ` (${selectedIds.length} selected)`}
@@ -505,6 +667,24 @@ const TrafficShapers = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Traffic Shaper(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} traffic shaper(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };

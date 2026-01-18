@@ -3,10 +3,44 @@ import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
-  Plus, Edit2, Trash2, RefreshCw, Search, ChevronDown, Globe, ArrowRightLeft, Server, X
+  Plus, Edit2, Trash2, RefreshCw, Search, ChevronDown, Globe, ArrowRightLeft, Server, X, Download, Upload, GripVertical
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { exportToJSON, exportToCSV, importFromJSON, createFileInput } from '@/lib/exportImport';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface VirtualIP {
   id: string;
@@ -30,6 +64,78 @@ const initialVIPs: VirtualIP[] = [
   { id: '4', name: 'LoadBalancer-VIP', comments: 'Load balanced web servers', type: 'load-balance', externalIP: '203.0.113.20', mappedIP: '192.168.1.110-115', interface: 'wan1', protocol: 'TCP', externalPort: '80,443', mappedPort: '80,443', enabled: true, sessions: 3521 },
 ];
 
+interface SortableVIPRowProps {
+  vip: VirtualIP;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onToggle: (id: string) => void;
+  onDoubleClick: () => void;
+  getTypeLabel: (type: VirtualIP['type']) => string;
+}
+
+const SortableVIPRow = ({ vip, isSelected, onSelect, onToggle, onDoubleClick, getTypeLabel }: SortableVIPRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: vip.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr 
+      ref={setNodeRef}
+      style={style}
+      className={cn(!vip.enabled && "opacity-60", isSelected && "selected")}
+      onDoubleClick={onDoubleClick}
+    >
+      <td className="w-6 cursor-grab" {...attributes} {...listeners}>
+        <GripVertical className="w-3 h-3 text-[#999]" />
+      </td>
+      <td>
+        <input type="checkbox" className="forti-checkbox" checked={isSelected} onChange={() => onSelect(vip.id)} />
+      </td>
+      <td>
+        <FortiToggle enabled={vip.enabled} onToggle={() => onToggle(vip.id)} size="sm" />
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          <Globe className="w-3 h-3 text-blue-600" />
+          <div>
+            <div className="text-[11px] font-medium">{vip.name}</div>
+            <div className="text-[10px] text-[#999]">{vip.comments}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <span className={cn(
+          "text-[10px] px-1.5 py-0.5 border",
+          vip.type === 'static-nat' && "bg-blue-100 text-blue-700 border-blue-200",
+          vip.type === 'load-balance' && "bg-purple-100 text-purple-700 border-purple-200",
+          vip.type === 'server-load-balance' && "bg-green-100 text-green-700 border-green-200",
+          vip.type === 'access-proxy' && "bg-orange-100 text-orange-700 border-orange-200"
+        )}>
+          {getTypeLabel(vip.type)}
+        </span>
+      </td>
+      <td className="mono text-[11px]">{vip.externalIP}</td>
+      <td className="mono text-[11px]">{vip.mappedIP}</td>
+      <td>
+        <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">{vip.interface}</span>
+      </td>
+      <td className="mono text-[11px]">{vip.protocol}:{vip.externalPort}</td>
+      <td className="text-right text-[11px] text-[#666]">{vip.sessions.toLocaleString()}</td>
+    </tr>
+  );
+};
+
 const VirtualIPs = () => {
   const [vips, setVips] = useState<VirtualIP[]>(initialVIPs);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +143,7 @@ const VirtualIPs = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<VirtualIP | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [formName, setFormName] = useState('');
   const [formType, setFormType] = useState<VirtualIP['type']>('static-nat');
   const [formExternalIP, setFormExternalIP] = useState('');
@@ -45,70 +152,293 @@ const VirtualIPs = () => {
   const [formPort, setFormPort] = useState('');
   const [formComments, setFormComments] = useState('');
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const toggleVIP = (id: string) => setVips(prev => prev.map(vip => vip.id === id ? { ...vip, enabled: !vip.enabled } : vip));
   const handleSelect = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   const handleSelectAll = () => setSelectedIds(selectedIds.length === filteredVIPs.length ? [] : filteredVIPs.map(v => v.id));
   const filteredVIPs = vips.filter(vip => searchQuery === '' || vip.name.toLowerCase().includes(searchQuery.toLowerCase()) || vip.externalIP.includes(searchQuery));
   const getTypeLabel = (type: VirtualIP['type']) => ({ 'static-nat': 'Static NAT', 'load-balance': 'Load Balance', 'server-load-balance': 'Server LB', 'access-proxy': 'Access Proxy' }[type]);
 
-  const openCreateModal = (type: VirtualIP['type']) => { setEditingItem(null); setFormName(''); setFormType(type); setFormExternalIP(''); setFormMappedIP(''); setFormInterface('wan1'); setFormPort(''); setFormComments(''); setModalOpen(true); setShowCreateMenu(false); };
-  const openEditModal = () => { if (selectedIds.length !== 1) return; const item = vips.find(v => v.id === selectedIds[0]); if (item) { setEditingItem(item); setFormName(item.name); setFormType(item.type); setFormExternalIP(item.externalIP); setFormMappedIP(item.mappedIP); setFormInterface(item.interface); setFormPort(item.externalPort); setFormComments(item.comments); setModalOpen(true); } };
-  const handleSave = () => { if (!formName.trim() || !formExternalIP.trim() || !formMappedIP.trim()) { toast.error('Name, External IP, and Mapped IP are required'); return; } if (editingItem) { setVips(prev => prev.map(v => v.id === editingItem.id ? { ...v, name: formName, type: formType, externalIP: formExternalIP, mappedIP: formMappedIP, interface: formInterface, externalPort: formPort, mappedPort: formPort, comments: formComments } : v)); toast.success(`Updated "${formName}"`); } else { setVips(prev => [...prev, { id: Date.now().toString(), name: formName, type: formType, externalIP: formExternalIP, mappedIP: formMappedIP, interface: formInterface, protocol: 'TCP', externalPort: formPort, mappedPort: formPort, comments: formComments, enabled: true, sessions: 0 }]); toast.success(`Created "${formName}"`); } setModalOpen(false); setSelectedIds([]); };
-  const handleDelete = () => { if (selectedIds.length === 0) return; setVips(prev => prev.filter(v => !selectedIds.includes(v.id))); toast.success(`Deleted ${selectedIds.length} item(s)`); setSelectedIds([]); };
-  const handleRefresh = () => { setVips([...initialVIPs]); setSelectedIds([]); setSearchQuery(''); toast.success('Data refreshed'); };
+  const openCreateModal = (type: VirtualIP['type']) => { 
+    setEditingItem(null); 
+    setFormName(''); 
+    setFormType(type); 
+    setFormExternalIP(''); 
+    setFormMappedIP(''); 
+    setFormInterface('wan1'); 
+    setFormPort(''); 
+    setFormComments(''); 
+    setModalOpen(true); 
+    setShowCreateMenu(false); 
+  };
+
+  const openEditModal = () => { 
+    if (selectedIds.length !== 1) return; 
+    const item = vips.find(v => v.id === selectedIds[0]); 
+    if (item) { 
+      setEditingItem(item); 
+      setFormName(item.name); 
+      setFormType(item.type); 
+      setFormExternalIP(item.externalIP); 
+      setFormMappedIP(item.mappedIP); 
+      setFormInterface(item.interface); 
+      setFormPort(item.externalPort); 
+      setFormComments(item.comments); 
+      setModalOpen(true); 
+    } 
+  };
+
+  const handleSave = () => { 
+    if (!formName.trim() || !formExternalIP.trim() || !formMappedIP.trim()) { 
+      toast.error('Name, External IP, and Mapped IP are required'); 
+      return; 
+    } 
+    if (editingItem) { 
+      setVips(prev => prev.map(v => v.id === editingItem.id ? { ...v, name: formName, type: formType, externalIP: formExternalIP, mappedIP: formMappedIP, interface: formInterface, externalPort: formPort, mappedPort: formPort, comments: formComments } : v)); 
+      toast.success(`Updated "${formName}"`); 
+    } else { 
+      setVips(prev => [...prev, { id: Date.now().toString(), name: formName, type: formType, externalIP: formExternalIP, mappedIP: formMappedIP, interface: formInterface, protocol: 'TCP', externalPort: formPort, mappedPort: formPort, comments: formComments, enabled: true, sessions: 0 }]); 
+      toast.success(`Created "${formName}"`); 
+    } 
+    setModalOpen(false); 
+    setSelectedIds([]); 
+  };
+
+  const handleDeleteConfirm = () => { 
+    setVips(prev => prev.filter(v => !selectedIds.includes(v.id))); 
+    toast.success(`Deleted ${selectedIds.length} item(s)`); 
+    setSelectedIds([]); 
+    setDeleteDialogOpen(false);
+  };
+
+  const handleRefresh = () => { 
+    setVips([...initialVIPs]); 
+    setSelectedIds([]); 
+    setSearchQuery(''); 
+    toast.success('Data refreshed'); 
+  };
+
+  const handleExportJSON = () => {
+    exportToJSON(vips, 'virtual-ips-config.json');
+    toast.success(`Exported ${vips.length} virtual IPs to JSON`);
+  };
+
+  const handleExportCSV = () => {
+    const csvData = vips.map(v => ({
+      name: v.name,
+      type: v.type,
+      externalIP: v.externalIP,
+      mappedIP: v.mappedIP,
+      interface: v.interface,
+      protocol: v.protocol,
+      port: v.externalPort,
+      enabled: v.enabled,
+      sessions: v.sessions,
+    }));
+    exportToCSV(csvData, 'virtual-ips-config.csv');
+    toast.success(`Exported ${vips.length} virtual IPs to CSV`);
+  };
+
+  const handleImport = () => {
+    createFileInput('.json', (file) => {
+      importFromJSON<VirtualIP>(
+        file,
+        (data) => {
+          const newVIPs = data.map(v => ({
+            ...v,
+            id: `vip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            sessions: 0,
+          }));
+          setVips(prev => [...prev, ...newVIPs]);
+          toast.success(`Imported ${newVIPs.length} virtual IPs`);
+        },
+        (error) => toast.error(error)
+      );
+    });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setVips((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      toast.success('Order updated');
+    }
+  };
 
   return (
     <Shell>
       <div className="space-y-0 animate-slide-in">
         <div className="forti-toolbar">
           <div className="relative">
-            <button className="forti-toolbar-btn primary" onClick={() => setShowCreateMenu(!showCreateMenu)}><Plus className="w-3 h-3" />Create New<ChevronDown className="w-3 h-3" /></button>
-            {showCreateMenu && (<div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
-              <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2" onClick={() => openCreateModal('static-nat')}><Globe className="w-3 h-3" />Static NAT</button>
-              <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2" onClick={() => openCreateModal('load-balance')}><ArrowRightLeft className="w-3 h-3" />Load Balance</button>
-              <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2" onClick={() => openCreateModal('server-load-balance')}><Server className="w-3 h-3" />Server Load Balance</button>
-            </div>)}
+            <button className="forti-toolbar-btn primary" onClick={() => setShowCreateMenu(!showCreateMenu)}>
+              <Plus className="w-3 h-3" />Create New<ChevronDown className="w-3 h-3" />
+            </button>
+            {showCreateMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-[#ccc] shadow-lg z-50 min-w-[180px]">
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2" onClick={() => openCreateModal('static-nat')}>
+                  <Globe className="w-3 h-3" />Static NAT
+                </button>
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2" onClick={() => openCreateModal('load-balance')}>
+                  <ArrowRightLeft className="w-3 h-3" />Load Balance
+                </button>
+                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2" onClick={() => openCreateModal('server-load-balance')}>
+                  <Server className="w-3 h-3" />Server Load Balance
+                </button>
+              </div>
+            )}
           </div>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1} onClick={openEditModal}><Edit2 className="w-3 h-3" />Edit</button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0} onClick={handleDelete}><Trash2 className="w-3 h-3" />Delete</button>
+          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1} onClick={openEditModal}>
+            <Edit2 className="w-3 h-3" />Edit
+          </button>
+          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0} onClick={() => setDeleteDialogOpen(true)}>
+            <Trash2 className="w-3 h-3" />Delete
+          </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn" onClick={handleRefresh}><RefreshCw className="w-3 h-3" />Refresh</button>
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
+            <RefreshCw className="w-3 h-3" />Refresh
+          </button>
           <div className="flex-1" />
-          <div className="forti-search"><Search className="w-3 h-3 text-[#999]" /><input type="text" placeholder="Search..." className="w-40" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />{searchQuery && <button onClick={() => setSearchQuery('')}><X className="w-3 h-3 text-[#999]" /></button>}</div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="forti-toolbar-btn">
+                <Download className="w-3 h-3" />Export<ChevronDown className="w-3 h-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
+              <DropdownMenuItem onClick={handleExportJSON} className="cursor-pointer text-[11px]">Export as JSON</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer text-[11px]">Export as CSV</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button className="forti-toolbar-btn" onClick={handleImport}>
+            <Upload className="w-3 h-3" />Import
+          </button>
+          <div className="forti-search">
+            <Search className="w-3 h-3 text-[#999]" />
+            <input type="text" placeholder="Search..." className="w-40" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            {searchQuery && <button onClick={() => setSearchQuery('')}><X className="w-3 h-3 text-[#999]" /></button>}
+          </div>
         </div>
         <div className="p-4">
-          <table className="data-table">
-            <thead><tr><th className="w-8"><input type="checkbox" className="forti-checkbox" checked={selectedIds.length === filteredVIPs.length && filteredVIPs.length > 0} onChange={handleSelectAll} /></th><th className="w-16">Status</th><th>Name</th><th>Type</th><th>External IP</th><th>Mapped IP</th><th>Interface</th><th>Protocol/Port</th><th className="text-right">Sessions</th></tr></thead>
-            <tbody>
-              {filteredVIPs.map((vip) => (<tr key={vip.id} className={cn(!vip.enabled && "opacity-60", selectedIds.includes(vip.id) && "selected")} onDoubleClick={() => { setSelectedIds([vip.id]); setTimeout(openEditModal, 0); }}>
-                <td><input type="checkbox" className="forti-checkbox" checked={selectedIds.includes(vip.id)} onChange={() => handleSelect(vip.id)} /></td>
-                <td><FortiToggle enabled={vip.enabled} onToggle={() => toggleVIP(vip.id)} size="sm" /></td>
-                <td><div className="flex items-center gap-2"><Globe className="w-3 h-3 text-blue-600" /><div><div className="text-[11px] font-medium">{vip.name}</div><div className="text-[10px] text-[#999]">{vip.comments}</div></div></div></td>
-                <td><span className={cn("text-[10px] px-1.5 py-0.5 border", vip.type === 'static-nat' && "bg-blue-100 text-blue-700 border-blue-200", vip.type === 'load-balance' && "bg-purple-100 text-purple-700 border-purple-200")}>{getTypeLabel(vip.type)}</span></td>
-                <td className="mono text-[11px]">{vip.externalIP}</td><td className="mono text-[11px]">{vip.mappedIP}</td>
-                <td><span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">{vip.interface}</span></td>
-                <td className="mono text-[11px]">{vip.protocol}:{vip.externalPort}</td><td className="text-right text-[11px] text-[#666]">{vip.sessions.toLocaleString()}</td>
-              </tr>))}
-            </tbody>
-          </table>
-          <div className="text-[11px] text-[#666] mt-2 px-1">{filteredVIPs.length} virtual IPs{selectedIds.length > 0 && ` (${selectedIds.length} selected)`}</div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-6"></th>
+                  <th className="w-8">
+                    <input type="checkbox" className="forti-checkbox" checked={selectedIds.length === filteredVIPs.length && filteredVIPs.length > 0} onChange={handleSelectAll} />
+                  </th>
+                  <th className="w-16">Status</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>External IP</th>
+                  <th>Mapped IP</th>
+                  <th>Interface</th>
+                  <th>Protocol/Port</th>
+                  <th className="text-right">Sessions</th>
+                </tr>
+              </thead>
+              <SortableContext items={filteredVIPs.map(v => v.id)} strategy={verticalListSortingStrategy}>
+                <tbody>
+                  {filteredVIPs.map((vip) => (
+                    <SortableVIPRow
+                      key={vip.id}
+                      vip={vip}
+                      isSelected={selectedIds.includes(vip.id)}
+                      onSelect={handleSelect}
+                      onToggle={toggleVIP}
+                      onDoubleClick={() => {
+                        setSelectedIds([vip.id]);
+                        setTimeout(openEditModal, 0);
+                      }}
+                      getTypeLabel={getTypeLabel}
+                    />
+                  ))}
+                </tbody>
+              </SortableContext>
+            </table>
+          </DndContext>
+          <div className="text-[11px] text-[#666] mt-2 px-1">
+            {filteredVIPs.length} virtual IPs{selectedIds.length > 0 && ` (${selectedIds.length} selected)`}
+          </div>
         </div>
       </div>
+
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader><DialogTitle className="text-sm font-semibold">{editingItem ? 'Edit Virtual IP' : 'New Virtual IP'}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">{editingItem ? 'Edit Virtual IP' : 'New Virtual IP'}</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3 py-4">
-            <div className="grid grid-cols-4 items-center gap-3"><label className="text-xs text-right">Name</label><input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5" /></div>
-            <div className="grid grid-cols-4 items-center gap-3"><label className="text-xs text-right">Type</label><select value={formType} onChange={(e) => setFormType(e.target.value as VirtualIP['type'])} className="col-span-3 text-xs border rounded px-2 py-1.5"><option value="static-nat">Static NAT</option><option value="load-balance">Load Balance</option></select></div>
-            <div className="grid grid-cols-4 items-center gap-3"><label className="text-xs text-right">External IP</label><input type="text" value={formExternalIP} onChange={(e) => setFormExternalIP(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5 font-mono" /></div>
-            <div className="grid grid-cols-4 items-center gap-3"><label className="text-xs text-right">Mapped IP</label><input type="text" value={formMappedIP} onChange={(e) => setFormMappedIP(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5 font-mono" /></div>
-            <div className="grid grid-cols-4 items-center gap-3"><label className="text-xs text-right">Interface</label><select value={formInterface} onChange={(e) => setFormInterface(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5"><option value="wan1">wan1</option><option value="wan2">wan2</option></select></div>
-            <div className="grid grid-cols-4 items-center gap-3"><label className="text-xs text-right">Port</label><input type="text" value={formPort} onChange={(e) => setFormPort(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5 font-mono" placeholder="e.g., 443" /></div>
-            <div className="grid grid-cols-4 items-center gap-3"><label className="text-xs text-right">Comments</label><input type="text" value={formComments} onChange={(e) => setFormComments(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5" /></div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right">Name</label>
+              <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right">Type</label>
+              <select value={formType} onChange={(e) => setFormType(e.target.value as VirtualIP['type'])} className="col-span-3 text-xs border rounded px-2 py-1.5">
+                <option value="static-nat">Static NAT</option>
+                <option value="load-balance">Load Balance</option>
+                <option value="server-load-balance">Server Load Balance</option>
+                <option value="access-proxy">Access Proxy</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right">External IP</label>
+              <input type="text" value={formExternalIP} onChange={(e) => setFormExternalIP(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5 font-mono" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right">Mapped IP</label>
+              <input type="text" value={formMappedIP} onChange={(e) => setFormMappedIP(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5 font-mono" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right">Interface</label>
+              <select value={formInterface} onChange={(e) => setFormInterface(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5">
+                <option value="wan1">wan1</option>
+                <option value="wan2">wan2</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right">Port</label>
+              <input type="text" value={formPort} onChange={(e) => setFormPort(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5 font-mono" placeholder="e.g., 443" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <label className="text-xs text-right">Comments</label>
+              <input type="text" value={formComments} onChange={(e) => setFormComments(e.target.value)} className="col-span-3 text-xs border rounded px-2 py-1.5" />
+            </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2 border-t"><button onClick={() => setModalOpen(false)} className="px-3 py-1.5 text-xs border rounded hover:bg-muted">Cancel</button><button onClick={handleSave} className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded">{editingItem ? 'Save' : 'Create'}</button></div>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <button onClick={() => setModalOpen(false)} className="px-3 py-1.5 text-xs border rounded hover:bg-muted">Cancel</button>
+            <button onClick={handleSave} className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded">{editingItem ? 'Save' : 'Create'}</button>
+          </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Virtual IP(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} virtual IP(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };

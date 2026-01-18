@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
-import { Plus, Pencil, Trash2, Search, Network, Server, Hash, ChevronDown, Download, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Network, Server, Hash, ChevronDown, Download, Upload, GripVertical } from 'lucide-react';
 import { exportToJSON, exportToCSV, importFromJSON, createFileInput } from '@/lib/exportImport';
 import {
   Dialog,
@@ -41,6 +41,23 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Alias {
   id: string;
@@ -148,6 +165,88 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface SortableAliasRowProps {
+  alias: Alias;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  getTypeIcon: (type: Alias['type']) => JSX.Element;
+  getTypeColor: (type: Alias['type']) => string;
+}
+
+const SortableAliasRow = ({ alias, isSelected, onSelect, getTypeIcon, getTypeColor }: SortableAliasRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: alias.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr 
+      ref={setNodeRef}
+      style={style}
+      className={cn(isSelected && "data-table-row-selected")}
+      onClick={() => onSelect(alias.id)}
+    >
+      <td className="w-6 cursor-grab" {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}>
+        <GripVertical className="w-3 h-3 text-[#999]" />
+      </td>
+      <td onClick={(e) => e.stopPropagation()}>
+        <input 
+          type="checkbox" 
+          checked={isSelected}
+          onChange={() => onSelect(alias.id)}
+          className="rounded border-gray-300"
+        />
+      </td>
+      <td>
+        <div className="flex items-center gap-2">
+          <span className={cn("p-1 rounded", getTypeColor(alias.type))}>
+            {getTypeIcon(alias.type)}
+          </span>
+          <span className="font-mono font-medium text-sm">{alias.name}</span>
+        </div>
+      </td>
+      <td>
+        <span className={cn("forti-tag", getTypeColor(alias.type))}>
+          {alias.type.toUpperCase()}
+        </span>
+      </td>
+      <td>
+        <div className="flex flex-wrap gap-1">
+          {alias.values.slice(0, 3).map((value, idx) => (
+            <span key={idx} className="px-1.5 py-0.5 text-[11px] font-mono bg-muted rounded">
+              {value}
+            </span>
+          ))}
+          {alias.values.length > 3 && (
+            <span className="px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              +{alias.values.length - 3} more
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="text-muted-foreground text-sm">{alias.description}</td>
+      <td className="text-center">
+        <span className={cn(
+          "text-xs font-medium",
+          alias.usageCount > 0 ? "text-blue-600" : "text-muted-foreground"
+        )}>
+          {alias.usageCount}
+        </span>
+      </td>
+    </tr>
+  );
+};
+
 const Aliases = () => {
   const [aliases, setAliases] = useState<Alias[]>(mockAliases);
   const [filter, setFilter] = useState<'all' | 'host' | 'network' | 'port'>('all');
@@ -156,6 +255,13 @@ const Aliases = () => {
   const [editingAlias, setEditingAlias] = useState<Alias | null>(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -325,6 +431,18 @@ const Aliases = () => {
     }
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setAliases((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      toast.success('Order updated');
+    }
+  };
+
   return (
     <Shell>
       <div className="space-y-4">
@@ -443,81 +561,42 @@ const Aliases = () => {
 
         {/* Data Table */}
         <div className="section">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="w-10">
-                  <input 
-                    type="checkbox" 
-                    checked={selectedRows.length === filtered.length && filtered.length > 0}
-                    onChange={toggleAllRows}
-                    className="rounded border-gray-300"
-                  />
-                </th>
-                <th>Name</th>
-                <th className="w-24">Type</th>
-                <th>Members</th>
-                <th>Description</th>
-                <th className="w-20 text-center">Ref.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((alias) => (
-                <tr 
-                  key={alias.id}
-                  className={cn(
-                    selectedRows.includes(alias.id) && "data-table-row-selected"
-                  )}
-                  onClick={() => toggleRowSelection(alias.id)}
-                >
-                  <td onClick={(e) => e.stopPropagation()}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-6"></th>
+                  <th className="w-10">
                     <input 
                       type="checkbox" 
-                      checked={selectedRows.includes(alias.id)}
-                      onChange={() => toggleRowSelection(alias.id)}
+                      checked={selectedRows.length === filtered.length && filtered.length > 0}
+                      onChange={toggleAllRows}
                       className="rounded border-gray-300"
                     />
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("p-1 rounded", getTypeColor(alias.type))}>
-                        {getTypeIcon(alias.type)}
-                      </span>
-                      <span className="font-mono font-medium text-sm">{alias.name}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={cn("forti-tag", getTypeColor(alias.type))}>
-                      {alias.type.toUpperCase()}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex flex-wrap gap-1">
-                      {alias.values.slice(0, 3).map((value, idx) => (
-                        <span key={idx} className="px-1.5 py-0.5 text-[11px] font-mono bg-muted rounded">
-                          {value}
-                        </span>
-                      ))}
-                      {alias.values.length > 3 && (
-                        <span className="px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                          +{alias.values.length - 3} more
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="text-muted-foreground text-sm">{alias.description}</td>
-                  <td className="text-center">
-                    <span className={cn(
-                      "text-xs font-medium",
-                      alias.usageCount > 0 ? "text-blue-600" : "text-muted-foreground"
-                    )}>
-                      {alias.usageCount}
-                    </span>
-                  </td>
+                  </th>
+                  <th>Name</th>
+                  <th className="w-24">Type</th>
+                  <th>Members</th>
+                  <th>Description</th>
+                  <th className="w-20 text-center">Ref.</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <SortableContext items={filtered.map(a => a.id)} strategy={verticalListSortingStrategy}>
+                <tbody>
+                  {filtered.map((alias) => (
+                    <SortableAliasRow
+                      key={alias.id}
+                      alias={alias}
+                      isSelected={selectedRows.includes(alias.id)}
+                      onSelect={toggleRowSelection}
+                      getTypeIcon={getTypeIcon}
+                      getTypeColor={getTypeColor}
+                    />
+                  ))}
+                </tbody>
+              </SortableContext>
+            </table>
+          </DndContext>
 
           {filtered.length === 0 && (
             <div className="p-12 text-center">
