@@ -38,6 +38,10 @@ import WiFiController from "./pages/WiFiController";
 import FirmwareManagement from "./pages/FirmwareManagement";
 import AdminProfiles from "./pages/AdminProfiles";
 import NetworkTopology from "./pages/NetworkTopology";
+import VirtualIPs from "./pages/VirtualIPs";
+import IPPools from "./pages/IPPools";
+import TrafficShapers from "./pages/TrafficShapers";
+import TrafficShapingPolicy from "./pages/TrafficShapingPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +60,10 @@ const App = () => (
           <Route path="/firewall/rules" element={<FirewallRules />} />
           <Route path="/firewall/aliases" element={<Aliases />} />
           <Route path="/firewall/nat" element={<NATConfig />} />
+          <Route path="/firewall/virtual-ips" element={<VirtualIPs />} />
+          <Route path="/firewall/ip-pools" element={<IPPools />} />
+          <Route path="/firewall/traffic-shapers" element={<TrafficShapers />} />
+          <Route path="/firewall/traffic-shaping-policy" element={<TrafficShapingPolicy />} />
           <Route path="/firewall/schedules" element={<Schedules />} />
           <Route path="/firewall/services" element={<Aliases />} />
           <Route path="/security/ids" element={<IDSSettings />} />
