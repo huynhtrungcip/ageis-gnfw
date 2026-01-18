@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Bell, 
   User, 
@@ -9,7 +9,8 @@ import {
   HelpCircle,
   Terminal,
   Maximize2,
-  Shield
+  ChevronRight,
+  Home
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -21,7 +22,73 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+// Breadcrumb mapping
+const pathToLabel: Record<string, string> = {
+  '/': 'Dashboard',
+  '/threats': 'Threats',
+  '/incidents': 'Incidents',
+  '/firewall': 'Policy & Objects',
+  '/firewall/rules': 'IPv4 Policy',
+  '/firewall/aliases': 'Addresses',
+  '/firewall/wildcard-fqdn': 'Wildcard FQDN',
+  '/firewall/internet-service': 'Internet Service DB',
+  '/firewall/services': 'Services',
+  '/firewall/schedules': 'Schedules',
+  '/firewall/virtual-ips': 'Virtual IPs',
+  '/firewall/ip-pools': 'IP Pools',
+  '/firewall/traffic-shapers': 'Traffic Shapers',
+  '/firewall/traffic-shaping-policy': 'Traffic Shaping Policy',
+  '/firewall/nat': 'NAT',
+  '/security': 'Security Profiles',
+  '/security/ids': 'IPS',
+  '/security/antivirus': 'AntiVirus',
+  '/security/webfilter': 'Web Filter',
+  '/security/dnsfilter': 'DNS Filter',
+  '/security/appcontrol': 'Application Control',
+  '/security/ssl': 'SSL Inspection',
+  '/vpn': 'VPN',
+  '/vpn/ipsec': 'IPsec Tunnels',
+  '/vpn/ssl': 'SSL-VPN',
+  '/system': 'System',
+  '/system/general': 'Settings',
+  '/system/admins': 'Administrators',
+  '/system/firmware': 'Firmware',
+  '/system/ha': 'High Availability',
+  '/system/certificates': 'Certificates',
+  '/system/feature-visibility': 'Feature Visibility',
+  '/system/users': 'User Definition',
+  '/system/backup': 'Config Backup',
+  '/users': 'User & Device',
+  '/users/groups': 'User Groups',
+  '/users/ldap': 'LDAP/RADIUS Servers',
+  '/interfaces': 'Interfaces',
+  '/routing': 'Routing',
+  '/dns': 'DNS',
+  '/dhcp': 'DHCP',
+  '/sdwan': 'SD-WAN',
+  '/topology': 'Network Topology',
+  '/packet-flow': 'Packet Flow',
+  '/connectors': 'Fabric Connectors',
+  '/wifi': 'WiFi Controller',
+  '/logs': 'Log Viewer',
+  '/reports': 'Reports',
+  '/monitoring': 'Monitoring',
+  '/monitoring/traffic': 'Traffic Analysis',
+  '/monitoring/logs': 'System Logs',
+};
+
+const sectionMap: Record<string, string> = {
+  'firewall': 'Policy & Objects',
+  'security': 'Security Profiles',
+  'vpn': 'VPN',
+  'system': 'System',
+  'users': 'User & Device',
+  'monitoring': 'Monitor',
+  'insights': 'AI Insights',
+};
+
 export function Header() {
+  const location = useLocation();
   const [alerts, setAlerts] = useState([
     { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago' },
     { id: 2, type: 'high', message: 'New firmware available', time: '1h ago' },
@@ -35,17 +102,59 @@ export function Header() {
     setAlerts(prev => prev.filter(a => a.id !== id));
   };
 
+  // Generate breadcrumbs
+  const getBreadcrumbs = () => {
+    const path = location.pathname;
+    if (path === '/') {
+      return [{ label: 'Dashboard', path: '/' }];
+    }
+
+    const segments = path.split('/').filter(Boolean);
+    const breadcrumbs: { label: string; path: string }[] = [];
+
+    // Add section
+    if (segments.length > 0) {
+      const section = sectionMap[segments[0]];
+      if (section) {
+        breadcrumbs.push({ label: section, path: `/${segments[0]}` });
+      }
+    }
+
+    // Add page
+    const pageLabel = pathToLabel[path];
+    if (pageLabel) {
+      breadcrumbs.push({ label: pageLabel, path });
+    }
+
+    return breadcrumbs.length > 0 ? breadcrumbs : [{ label: 'Dashboard', path: '/' }];
+  };
+
+  const breadcrumbs = getBreadcrumbs();
+
   return (
     <header className="h-9 flex items-center justify-between px-3" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
-      {/* Left: Page breadcrumb / Status */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-[11px] text-gray-300">System Status: <span className="text-green-400 font-medium">Online</span></span>
+      {/* Left: Breadcrumb Navigation */}
+      <div className="flex items-center gap-2">
+        <Link to="/" className="text-gray-400 hover:text-white transition-colors">
+          <Home size={14} />
+        </Link>
+        {breadcrumbs.map((crumb, index) => (
+          <div key={crumb.path} className="flex items-center gap-2">
+            <ChevronRight size={12} className="text-gray-600" />
+            {index === breadcrumbs.length - 1 ? (
+              <span className="text-[11px] text-white font-medium">{crumb.label}</span>
+            ) : (
+              <Link to={crumb.path} className="text-[11px] text-gray-400 hover:text-white transition-colors">
+                {crumb.label}
+              </Link>
+            )}
+          </div>
+        ))}
+        <div className="w-px h-4 bg-gray-600 ml-2" />
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+          <span className="text-[10px] text-gray-400">AEGIS-PRIMARY</span>
         </div>
-        <div className="w-px h-4 bg-gray-600" />
-        <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">AEGIS-PRIMARY</span>
-        <span className="text-[10px] text-gray-500">Uptime: 45d 12h 34m</span>
       </div>
 
       {/* Right: Actions */}
