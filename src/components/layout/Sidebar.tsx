@@ -206,15 +206,23 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-screen w-[200px] flex flex-col z-40" style={{ background: '#1e2d3d' }}>
       {/* Logo Header */}
-      <div className="h-9 flex items-center gap-2 px-3" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
-        <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 bg-[#4caf50] rounded flex items-center justify-center">
-            <Shield size={12} className="text-white" />
+      <div className="h-10 flex items-center gap-2 px-3 border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
+        <div className="flex items-center gap-2">
+          {/* Professional Shield Logo */}
+          <div className="relative w-7 h-7">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg shadow-lg" />
+            <div className="absolute inset-0.5 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-md flex items-center justify-center">
+              <Shield size={16} className="text-white drop-shadow-md" strokeWidth={2.5} />
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full border border-emerald-600 shadow-sm" />
           </div>
-          <span className="text-white text-xs font-bold">Aegis NGFW</span>
+          <div className="flex flex-col">
+            <span className="text-white text-[13px] font-bold tracking-wide">AEGIS</span>
+            <span className="text-emerald-400 text-[8px] font-semibold tracking-widest -mt-0.5">NGFW</span>
+          </div>
         </div>
         <div className="flex-1" />
-        <span className="text-[10px] text-gray-400 px-2 py-0.5 bg-white/10 rounded">v1.0</span>
+        <span className="text-[9px] text-emerald-400/80 px-1.5 py-0.5 bg-emerald-500/20 rounded border border-emerald-500/30 font-medium">v1.0</span>
       </div>
 
       {/* Navigation */}
