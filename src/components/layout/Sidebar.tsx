@@ -59,7 +59,7 @@ const navigation: NavSection[] = [
     ],
   },
   {
-    title: 'FortiView',
+    title: 'AegisView',
     icon: Monitor,
     defaultOpen: false,
     items: [
