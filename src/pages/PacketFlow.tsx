@@ -67,7 +67,7 @@ const egressFlow: FlowStep[] = [
   { id: 'shaping', label: 'Traffic Shaping', description: 'QoS and bandwidth control', type: 'process' },
   { id: 'tcpip-out', label: 'TCP/IP Stack', description: 'Outgoing packet processing', type: 'process' },
   { id: 'net-iface-out', label: 'Network Interface', description: 'Transmit packet', type: 'process' },
-  { id: 'packet-out', label: 'Egressing Packet', description: 'Packet exits FortiGate', type: 'terminal' },
+  { id: 'packet-out', label: 'Egressing Packet', description: 'Packet exits Aegis NGFW', type: 'terminal' },
 ];
 
 const PacketFlow = () => {

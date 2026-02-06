@@ -61,7 +61,7 @@ const licenses = [
   { name: 'AntiVirus', status: 'Valid', expiry: '2025-12-31' },
   { name: 'Web Filtering', status: 'Valid', expiry: '2025-12-31' },
   { name: 'Email Filtering', status: 'Valid', expiry: '2025-12-31' },
-  { name: 'FortiSandbox Cloud', status: 'Valid', expiry: '2025-12-31' },
+  { name: 'Aegis Sandbox Cloud', status: 'Valid', expiry: '2025-12-31' },
 ];
 
 // Widget Component

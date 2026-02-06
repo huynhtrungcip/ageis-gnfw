@@ -54,11 +54,11 @@ const initialFeatures: Feature[] = [
   { id: 'sdwan', name: 'SD-WAN', description: 'Software-defined WAN', enabled: true, category: 'additional', requiresLicense: true },
   { id: 'wifi', name: 'WiFi Controller', description: 'Wireless AP management', enabled: false, category: 'additional' },
   { id: 'switch', name: 'Switch Controller', description: 'Managed switch integration', enabled: false, category: 'additional' },
-  { id: 'fortitoken', name: 'FortiToken', description: 'Two-factor authentication', enabled: true, category: 'additional' },
-  { id: 'fortiguard', name: 'FortiGuard', description: 'Cloud security services', enabled: true, category: 'additional', requiresLicense: true },
+  { id: 'aegistoken', name: 'Aegis Token', description: 'Two-factor authentication', enabled: true, category: 'additional' },
+  { id: 'aegisguard', name: 'Aegis Guard', description: 'Cloud security services', enabled: true, category: 'additional', requiresLicense: true },
   { id: 'explicit-proxy', name: 'Explicit Proxy', description: 'Web proxy server', enabled: false, category: 'additional' },
   { id: 'wan-opt', name: 'WAN Optimization', description: 'Traffic optimization', enabled: false, category: 'additional', requiresLicense: true },
-  { id: 'endpoint', name: 'Endpoint Control', description: 'FortiClient integration', enabled: false, category: 'additional' },
+  { id: 'endpoint', name: 'Endpoint Control', description: 'Aegis Client integration', enabled: false, category: 'additional' },
 ];
 
 const FeatureVisibility = () => {
