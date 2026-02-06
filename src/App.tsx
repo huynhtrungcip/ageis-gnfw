@@ -3,6 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import ThreatMonitor from "./pages/ThreatMonitor";
 import ThreatDetail from "./pages/ThreatDetail";
@@ -61,88 +64,99 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Helper to wrap pages with ProtectedRoute
+const P = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>{children}</ProtectedRoute>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
+        <AuthProvider>
+          <Routes>
+            {/* Public */}
+            <Route path="/auth" element={<Auth />} />
 
-          {/* Base section routes (avoid 404 when clicking breadcrumb section) */}
-          <Route path="/firewall" element={<Navigate to="/firewall/rules" replace />} />
-          <Route path="/security" element={<Navigate to="/security/ids" replace />} />
-          <Route path="/vpn" element={<Navigate to="/vpn/ipsec" replace />} />
-          <Route path="/users" element={<Navigate to="/users/groups" replace />} />
-          <Route path="/monitoring" element={<Navigate to="/monitoring/traffic" replace />} />
-          <Route path="/system" element={<Navigate to="/system/general" replace />} />
-          <Route path="/insights" element={<Navigate to="/ai-security" replace />} />
-          <Route path="/threats" element={<ThreatMonitor />} />
-          <Route path="/threats/:id" element={<ThreatDetail />} />
-          <Route path="/incidents" element={<Incidents />} />
-          <Route path="/firewall/rules" element={<FirewallRules />} />
-          <Route path="/firewall/aliases" element={<Aliases />} />
-          <Route path="/firewall/wildcard-fqdn" element={<WildcardFQDN />} />
-          <Route path="/firewall/internet-service" element={<InternetServiceDatabase />} />
-          <Route path="/firewall/nat" element={<NATConfig />} />
-          <Route path="/firewall/virtual-ips" element={<VirtualIPs />} />
-          <Route path="/firewall/ip-pools" element={<IPPools />} />
-          <Route path="/firewall/traffic-shapers" element={<TrafficShapers />} />
-          <Route path="/firewall/traffic-shaping-policy" element={<TrafficShapingPolicy />} />
-          <Route path="/firewall/schedules" element={<Schedules />} />
-          <Route path="/firewall/services" element={<Services />} />
-          <Route path="/security/ids" element={<IDSSettings />} />
-          <Route path="/security/antivirus" element={<SecurityProfiles />} />
-          <Route path="/security/webfilter" element={<SecurityProfiles />} />
-          <Route path="/security/dnsfilter" element={<DNSFilter />} />
-          <Route path="/security/appcontrol" element={<ApplicationControl />} />
-          <Route path="/security/ssl" element={<SSLInspection />} />
-          <Route path="/security/ssl" element={<SSLInspection />} />
-          <Route path="/sdwan" element={<SDWAN />} />
-          <Route path="/interfaces" element={<Interfaces />} />
-          <Route path="/routing" element={<Routing />} />
-          <Route path="/routing/static" element={<StaticRoutes />} />
-          <Route path="/routing/policy" element={<PolicyRoutes />} />
-          <Route path="/routing/rip" element={<RIPConfig />} />
-          <Route path="/routing/ospf" element={<OSPFConfig />} />
-          <Route path="/routing/bgp" element={<BGPConfig />} />
-          <Route path="/routing/multicast" element={<MulticastConfig />} />
-          <Route path="/packet-capture" element={<PacketCapture />} />
-          <Route path="/dns" element={<DNSServer />} />
-          <Route path="/topology" element={<NetworkTopology />} />
-          <Route path="/packet-flow" element={<PacketFlow />} />
-          <Route path="/connectors" element={<FabricConnectors />} />
-          <Route path="/ai-security" element={<AISecurity />} />
-          <Route path="/insights/behavioral" element={<AISecurity />} />
-          <Route path="/insights/recommendations" element={<AISecurity />} />
-          <Route path="/insights/trends" element={<AISecurity />} />
-          <Route path="/dhcp" element={<DHCP />} />
-          <Route path="/vpn/ipsec" element={<VPN />} />
-          <Route path="/vpn/ssl" element={<SSLVPNConfig />} />
-          <Route path="/vpn/openvpn" element={<VPN />} />
-          <Route path="/vpn/wireguard" element={<VPN />} />
-          <Route path="/users/groups" element={<UserManagement />} />
-          <Route path="/users/ldap" element={<LDAPServers />} />
-          <Route path="/monitoring/logs" element={<SystemLogs />} />
-          <Route path="/monitoring/traffic" element={<TrafficAnalysis />} />
-          <Route path="/monitor/ipsec" element={<VPN />} />
-          <Route path="/monitor/routing" element={<Routing />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/logs" element={<LogReport />} />
-          <Route path="/system/general" element={<SystemSettings />} />
-          <Route path="/system/backup" element={<ConfigBackup />} />
-          <Route path="/system/full-backup" element={<SystemBackup />} />
-          <Route path="/system/users" element={<UserManagement />} />
-          <Route path="/system/admins" element={<AdminProfiles />} />
-          <Route path="/system/admin-profiles" element={<AdminProfiles />} />
-          <Route path="/system/firmware" element={<FirmwareManagement />} />
-          <Route path="/system/feature-visibility" element={<FeatureVisibility />} />
-          <Route path="/system/ha" element={<HighAvailability />} />
-          <Route path="/system/certificates" element={<CertificateManagement />} />
-          <Route path="/wifi" element={<WiFiController />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            {/* Protected */}
+            <Route path="/" element={<P><Index /></P>} />
+
+            {/* Base section routes */}
+            <Route path="/firewall" element={<Navigate to="/firewall/rules" replace />} />
+            <Route path="/security" element={<Navigate to="/security/ids" replace />} />
+            <Route path="/vpn" element={<Navigate to="/vpn/ipsec" replace />} />
+            <Route path="/users" element={<Navigate to="/users/groups" replace />} />
+            <Route path="/monitoring" element={<Navigate to="/monitoring/traffic" replace />} />
+            <Route path="/system" element={<Navigate to="/system/general" replace />} />
+            <Route path="/insights" element={<Navigate to="/ai-security" replace />} />
+
+            <Route path="/threats" element={<P><ThreatMonitor /></P>} />
+            <Route path="/threats/:id" element={<P><ThreatDetail /></P>} />
+            <Route path="/incidents" element={<P><Incidents /></P>} />
+            <Route path="/firewall/rules" element={<P><FirewallRules /></P>} />
+            <Route path="/firewall/aliases" element={<P><Aliases /></P>} />
+            <Route path="/firewall/wildcard-fqdn" element={<P><WildcardFQDN /></P>} />
+            <Route path="/firewall/internet-service" element={<P><InternetServiceDatabase /></P>} />
+            <Route path="/firewall/nat" element={<P><NATConfig /></P>} />
+            <Route path="/firewall/virtual-ips" element={<P><VirtualIPs /></P>} />
+            <Route path="/firewall/ip-pools" element={<P><IPPools /></P>} />
+            <Route path="/firewall/traffic-shapers" element={<P><TrafficShapers /></P>} />
+            <Route path="/firewall/traffic-shaping-policy" element={<P><TrafficShapingPolicy /></P>} />
+            <Route path="/firewall/schedules" element={<P><Schedules /></P>} />
+            <Route path="/firewall/services" element={<P><Services /></P>} />
+            <Route path="/security/ids" element={<P><IDSSettings /></P>} />
+            <Route path="/security/antivirus" element={<P><SecurityProfiles /></P>} />
+            <Route path="/security/webfilter" element={<P><SecurityProfiles /></P>} />
+            <Route path="/security/dnsfilter" element={<P><DNSFilter /></P>} />
+            <Route path="/security/appcontrol" element={<P><ApplicationControl /></P>} />
+            <Route path="/security/ssl" element={<P><SSLInspection /></P>} />
+            <Route path="/sdwan" element={<P><SDWAN /></P>} />
+            <Route path="/interfaces" element={<P><Interfaces /></P>} />
+            <Route path="/routing" element={<P><Routing /></P>} />
+            <Route path="/routing/static" element={<P><StaticRoutes /></P>} />
+            <Route path="/routing/policy" element={<P><PolicyRoutes /></P>} />
+            <Route path="/routing/rip" element={<P><RIPConfig /></P>} />
+            <Route path="/routing/ospf" element={<P><OSPFConfig /></P>} />
+            <Route path="/routing/bgp" element={<P><BGPConfig /></P>} />
+            <Route path="/routing/multicast" element={<P><MulticastConfig /></P>} />
+            <Route path="/packet-capture" element={<P><PacketCapture /></P>} />
+            <Route path="/dns" element={<P><DNSServer /></P>} />
+            <Route path="/topology" element={<P><NetworkTopology /></P>} />
+            <Route path="/packet-flow" element={<P><PacketFlow /></P>} />
+            <Route path="/connectors" element={<P><FabricConnectors /></P>} />
+            <Route path="/ai-security" element={<P><AISecurity /></P>} />
+            <Route path="/insights/behavioral" element={<P><AISecurity /></P>} />
+            <Route path="/insights/recommendations" element={<P><AISecurity /></P>} />
+            <Route path="/insights/trends" element={<P><AISecurity /></P>} />
+            <Route path="/dhcp" element={<P><DHCP /></P>} />
+            <Route path="/vpn/ipsec" element={<P><VPN /></P>} />
+            <Route path="/vpn/ssl" element={<P><SSLVPNConfig /></P>} />
+            <Route path="/vpn/openvpn" element={<P><VPN /></P>} />
+            <Route path="/vpn/wireguard" element={<P><VPN /></P>} />
+            <Route path="/users/groups" element={<P><UserManagement /></P>} />
+            <Route path="/users/ldap" element={<P><LDAPServers /></P>} />
+            <Route path="/monitoring/logs" element={<P><SystemLogs /></P>} />
+            <Route path="/monitoring/traffic" element={<P><TrafficAnalysis /></P>} />
+            <Route path="/monitor/ipsec" element={<P><VPN /></P>} />
+            <Route path="/monitor/routing" element={<P><Routing /></P>} />
+            <Route path="/reports" element={<P><Reports /></P>} />
+            <Route path="/logs" element={<P><LogReport /></P>} />
+            <Route path="/system/general" element={<P><SystemSettings /></P>} />
+            <Route path="/system/backup" element={<P><ConfigBackup /></P>} />
+            <Route path="/system/full-backup" element={<P><SystemBackup /></P>} />
+            <Route path="/system/users" element={<P><UserManagement /></P>} />
+            <Route path="/system/admins" element={<P><AdminProfiles /></P>} />
+            <Route path="/system/admin-profiles" element={<P><AdminProfiles /></P>} />
+            <Route path="/system/firmware" element={<P><FirmwareManagement /></P>} />
+            <Route path="/system/feature-visibility" element={<P><FeatureVisibility /></P>} />
+            <Route path="/system/ha" element={<P><HighAvailability /></P>} />
+            <Route path="/system/certificates" element={<P><CertificateManagement /></P>} />
+            <Route path="/wifi" element={<P><WiFiController /></P>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
