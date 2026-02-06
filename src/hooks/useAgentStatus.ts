@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { db, isApiConfigured } from '@/lib/postgrest';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 
 export interface AgentStatus {
   connected: boolean;
@@ -16,11 +17,13 @@ export interface AgentStatus {
 
 export function useAgentStatus() {
   const { user } = useAuth();
+  const { demoMode } = useDemoMode();
+  const shouldMock = demoMode || !isApiConfigured();
 
   return useQuery<AgentStatus>({
-    queryKey: ['agent-status', !!user],
+    queryKey: ['agent-status', !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         // Mock mode — simulate a connected agent
         return {
           connected: true,

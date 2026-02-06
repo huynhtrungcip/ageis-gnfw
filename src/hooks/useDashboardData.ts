@@ -1,16 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { db, isApiConfigured } from '@/lib/postgrest';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { mockSystemStatus, mockInterfaces, mockVPNTunnels, mockThreats, mockTrafficStats, mockAIAnalysis, mockFirewallRules } from '@/data/mockData';
 import type { SystemMetric, TrafficStat, NetworkInterface, VPNTunnel, ThreatEvent, AIAnalysis } from '@/lib/api';
+
+function useShouldMock(): boolean {
+  const { demoMode } = useDemoMode();
+  return demoMode || !isApiConfigured();
+}
 
 /** Latest system metrics (1 row) */
 export function useLatestMetrics() {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<SystemMetric | null>({
-    queryKey: ['latest-metrics', !!user],
+    queryKey: ['latest-metrics', !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         const s = mockSystemStatus;
         return {
           id: 'mock', hostname: s.hostname, uptime: s.uptime,
@@ -35,10 +42,11 @@ export function useLatestMetrics() {
 /** Traffic stats for the last N hours */
 export function useTrafficHistory(hours = 24) {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<TrafficStat[]>({
-    queryKey: ['traffic-history', !!user, hours],
+    queryKey: ['traffic-history', !!user, hours, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return mockTrafficStats.map(t => ({
           id: 'mock-' + t.timestamp.getTime(), interface: t.interface,
           inbound: t.inbound, outbound: t.outbound, blocked: t.blocked,
@@ -59,10 +67,11 @@ export function useTrafficHistory(hours = 24) {
 /** Network interfaces */
 export function useInterfaces() {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<NetworkInterface[]>({
-    queryKey: ['dashboard-interfaces', !!user],
+    queryKey: ['dashboard-interfaces', !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return mockInterfaces.map(i => ({
           id: i.id, name: i.name, type: i.type, status: i.status,
           ip_address: i.ipAddress, subnet: i.subnet ?? null, gateway: i.gateway ?? null,
@@ -85,10 +94,11 @@ export function useInterfaces() {
 /** VPN tunnels */
 export function useVPN() {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<VPNTunnel[]>({
-    queryKey: ['dashboard-vpn', !!user],
+    queryKey: ['dashboard-vpn', !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return mockVPNTunnels.map(v => ({
           id: v.id, name: v.name, type: v.type, status: v.status,
           remote_gateway: v.remoteGateway, local_network: v.localNetwork,
@@ -109,10 +119,11 @@ export function useVPN() {
 /** Threat events from the last 24h */
 export function useRecentThreats() {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<ThreatEvent[]>({
-    queryKey: ['dashboard-threats', !!user],
+    queryKey: ['dashboard-threats', !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return mockThreats.map(t => ({
           id: t.id, severity: t.severity, category: t.category,
           source_ip: t.sourceIp, destination_ip: t.destinationIp,
@@ -135,10 +146,11 @@ export function useRecentThreats() {
 /** AI analysis (latest) */
 export function useLatestAIAnalysis() {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<AIAnalysis | null>({
-    queryKey: ['dashboard-ai', !!user],
+    queryKey: ['dashboard-ai', !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return {
           id: 'mock', risk_score: mockAIAnalysis.riskScore,
           anomalies_detected: mockAIAnalysis.anomaliesDetected,
@@ -161,10 +173,11 @@ export function useLatestAIAnalysis() {
 /** Firewall rules count */
 export function useFirewallStats() {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery({
-    queryKey: ['dashboard-fw-stats', !!user],
+    queryKey: ['dashboard-fw-stats', !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return {
           total: mockFirewallRules.length,
           active: mockFirewallRules.filter(r => r.enabled).length,
