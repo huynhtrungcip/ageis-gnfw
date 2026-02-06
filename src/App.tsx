@@ -26,7 +26,7 @@ import SystemBackup from "./pages/SystemBackup";
 import IDSSettings from "./pages/IDSSettings";
 import SecurityProfiles from "./pages/SecurityProfiles";
 import SSLInspection from "./pages/SSLInspection";
-import SDWAN from "./pages/SDWAN";
+
 import Routing from "./pages/Routing";
 import StaticRoutes from "./pages/StaticRoutes";
 import PolicyRoutes from "./pages/PolicyRoutes";
@@ -45,7 +45,7 @@ import ApplicationControl from "./pages/ApplicationControl";
 import HighAvailability from "./pages/HighAvailability";
 import CertificateManagement from "./pages/CertificateManagement";
 import LogReport from "./pages/LogReport";
-import WiFiController from "./pages/WiFiController";
+
 import FirmwareManagement from "./pages/FirmwareManagement";
 import AdminProfiles from "./pages/AdminProfiles";
 import NetworkTopology from "./pages/NetworkTopology";
@@ -54,12 +54,9 @@ import IPPools from "./pages/IPPools";
 import TrafficShapers from "./pages/TrafficShapers";
 import TrafficShapingPolicy from "./pages/TrafficShapingPolicy";
 import WildcardFQDN from "./pages/WildcardFQDN";
-import InternetServiceDatabase from "./pages/InternetServiceDatabase";
+
 import Services from "./pages/Services";
 import DNSFilter from "./pages/DNSFilter";
-import FabricConnectors from "./pages/FabricConnectors";
-import LDAPServers from "./pages/LDAPServers";
-import SSLVPNConfig from "./pages/SSLVPNConfig";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -98,7 +95,7 @@ const App = () => (
             <Route path="/firewall/rules" element={<P><FirewallRules /></P>} />
             <Route path="/firewall/aliases" element={<P><Aliases /></P>} />
             <Route path="/firewall/wildcard-fqdn" element={<P><WildcardFQDN /></P>} />
-            <Route path="/firewall/internet-service" element={<P><InternetServiceDatabase /></P>} />
+            
             <Route path="/firewall/nat" element={<P><NATConfig /></P>} />
             <Route path="/firewall/virtual-ips" element={<P><VirtualIPs /></P>} />
             <Route path="/firewall/ip-pools" element={<P><IPPools /></P>} />
@@ -112,7 +109,7 @@ const App = () => (
             <Route path="/security/dnsfilter" element={<P><DNSFilter /></P>} />
             <Route path="/security/appcontrol" element={<P><ApplicationControl /></P>} />
             <Route path="/security/ssl" element={<P><SSLInspection /></P>} />
-            <Route path="/sdwan" element={<P><SDWAN /></P>} />
+            
             <Route path="/interfaces" element={<P><Interfaces /></P>} />
             <Route path="/routing" element={<P><Routing /></P>} />
             <Route path="/routing/static" element={<P><StaticRoutes /></P>} />
@@ -125,18 +122,18 @@ const App = () => (
             <Route path="/dns" element={<P><DNSServer /></P>} />
             <Route path="/topology" element={<P><NetworkTopology /></P>} />
             <Route path="/packet-flow" element={<P><PacketFlow /></P>} />
-            <Route path="/connectors" element={<P><FabricConnectors /></P>} />
+            
             <Route path="/ai-security" element={<P><AISecurity /></P>} />
             <Route path="/insights/behavioral" element={<P><AISecurity /></P>} />
             <Route path="/insights/recommendations" element={<P><AISecurity /></P>} />
             <Route path="/insights/trends" element={<P><AISecurity /></P>} />
             <Route path="/dhcp" element={<P><DHCP /></P>} />
             <Route path="/vpn/ipsec" element={<P><VPN /></P>} />
-            <Route path="/vpn/ssl" element={<P><SSLVPNConfig /></P>} />
+            
             <Route path="/vpn/openvpn" element={<P><VPN /></P>} />
             <Route path="/vpn/wireguard" element={<P><VPN /></P>} />
             <Route path="/users/groups" element={<P><UserManagement /></P>} />
-            <Route path="/users/ldap" element={<P><LDAPServers /></P>} />
+            
             <Route path="/monitoring/logs" element={<P><SystemLogs /></P>} />
             <Route path="/monitoring/traffic" element={<P><TrafficAnalysis /></P>} />
             <Route path="/monitor/ipsec" element={<P><VPN /></P>} />
@@ -153,7 +150,7 @@ const App = () => (
             <Route path="/system/feature-visibility" element={<P><FeatureVisibility /></P>} />
             <Route path="/system/ha" element={<P><HighAvailability /></P>} />
             <Route path="/system/certificates" element={<P><CertificateManagement /></P>} />
-            <Route path="/wifi" element={<P><WiFiController /></P>} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

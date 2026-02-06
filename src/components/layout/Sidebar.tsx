@@ -55,7 +55,6 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Network Topology', path: '/topology', starred: true },
       { label: 'Packet Flow', path: '/packet-flow' },
-      { label: 'Fabric Connectors', path: '/connectors' },
     ],
   },
   {
@@ -75,7 +74,6 @@ const navigation: NavSection[] = [
       { label: 'Interfaces', path: '/interfaces', starred: true },
       { label: 'DNS', path: '/dns' },
       { label: 'Packet Capture', path: '/packet-capture' },
-      { label: 'SD-WAN', path: '/sdwan', starred: true },
       { label: 'Static Routes', path: '/routing/static' },
       { label: 'Policy Routes', path: '/routing/policy' },
       { label: 'RIP', path: '/routing/rip' },
@@ -108,7 +106,6 @@ const navigation: NavSection[] = [
       { label: 'IPv4 Policy', path: '/firewall/rules', starred: true },
       { label: 'Addresses', path: '/firewall/aliases' },
       { label: 'Wildcard FQDN Addresses', path: '/firewall/wildcard-fqdn' },
-      { label: 'Internet Service Database', path: '/firewall/internet-service' },
       { label: 'Services', path: '/firewall/services' },
       { label: 'Schedules', path: '/firewall/schedules' },
       { label: 'Virtual IPs', path: '/firewall/virtual-ips' },
@@ -136,7 +133,6 @@ const navigation: NavSection[] = [
     defaultOpen: false,
     items: [
       { label: 'IPsec Tunnels', path: '/vpn/ipsec' },
-      { label: 'SSL-VPN Settings', path: '/vpn/ssl' },
     ],
   },
   {
@@ -146,16 +142,6 @@ const navigation: NavSection[] = [
     items: [
       { label: 'User Definition', path: '/system/users' },
       { label: 'User Groups', path: '/users/groups' },
-      { label: 'LDAP Servers', path: '/users/ldap' },
-    ],
-  },
-  {
-    title: 'WiFi & Switch Controller',
-    icon: Wifi,
-    defaultOpen: false,
-    items: [
-      { label: 'Managed FortiAPs', path: '/wifi', starred: true },
-      { label: 'Managed FortiSwitches', path: '/interfaces' },
     ],
   },
   {
