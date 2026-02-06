@@ -3,6 +3,7 @@ import { Shell } from '@/components/layout/Shell';
 import { mockSystemStatus, mockTrafficStats } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from 'recharts';
+import { AgentStatus } from '@/components/monitoring/AgentStatus';
 
 const SystemMonitoring = () => {
   const [cpuHistory, setCpuHistory] = useState<{ time: string; value: number }[]>([]);
@@ -53,6 +54,9 @@ const SystemMonitoring = () => {
             <button className="btn-secondary text-xs">Export Data</button>
           </div>
         </div>
+
+        {/* Agent Status */}
+        <AgentStatus />
 
         {/* System Info */}
         <div className="grid grid-cols-4 gap-4">
