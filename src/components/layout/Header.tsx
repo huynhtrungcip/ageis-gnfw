@@ -11,8 +11,14 @@ import {
   Terminal,
   Maximize2,
   ChevronRight,
-  Home
+  Home,
+  Menu
 } from 'lucide-react';
+
+interface HeaderProps {
+  onToggleSidebar: () => void;
+  sidebarCollapsed: boolean;
+}
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +39,7 @@ const pathToLabel: Record<string, string> = {
   '/firewall/rules': 'IPv4 Policy',
   '/firewall/aliases': 'Addresses',
   '/firewall/wildcard-fqdn': 'Wildcard FQDN',
-  '/firewall/internet-service': 'Internet Service DB',
+  
   '/firewall/services': 'Services',
   '/firewall/schedules': 'Schedules',
   '/firewall/virtual-ips': 'Virtual IPs',
@@ -50,7 +56,7 @@ const pathToLabel: Record<string, string> = {
   '/security/ssl': 'SSL Inspection',
   '/vpn': 'VPN',
   '/vpn/ipsec': 'IPsec Tunnels',
-  '/vpn/ssl': 'SSL-VPN',
+  
   '/system': 'System',
   '/system/general': 'Settings',
   '/system/admins': 'Administrators',
@@ -63,16 +69,13 @@ const pathToLabel: Record<string, string> = {
   '/system/full-backup': 'Full System Backup',
   '/users': 'User & Device',
   '/users/groups': 'User Groups',
-  '/users/ldap': 'LDAP/RADIUS Servers',
+  
   '/interfaces': 'Interfaces',
   '/routing': 'Routing',
   '/dns': 'DNS',
   '/dhcp': 'DHCP',
-  '/sdwan': 'SD-WAN',
   '/topology': 'Network Topology',
   '/packet-flow': 'Packet Flow',
-  '/connectors': 'Fabric Connectors',
-  '/wifi': 'WiFi Controller',
   '/logs': 'Log Viewer',
   '/reports': 'Reports',
   '/monitoring': 'Monitoring',
@@ -90,7 +93,7 @@ const sectionMap: Record<string, string> = {
   'insights': 'AI Insights',
 };
 
-export function Header() {
+export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
   const location = useLocation();
   const [alerts, setAlerts] = useState([
     { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago', link: '/monitoring/traffic' },
@@ -143,8 +146,15 @@ export function Header() {
 
   return (
     <header className="h-9 flex items-center justify-between px-3" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
-      {/* Left: Breadcrumb Navigation */}
+      {/* Left: Toggle + Breadcrumb Navigation */}
       <div className="flex items-center gap-2">
+        <button
+          onClick={onToggleSidebar}
+          className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <Menu size={14} />
+        </button>
         <Link to="/" className="text-gray-400 hover:text-white transition-colors">
           <Home size={14} />
         </Link>

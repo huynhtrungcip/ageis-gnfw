@@ -6,24 +6,26 @@ import {
   Network, 
   Settings,
   Globe,
-  Router,
-  Lock,
   BarChart3,
   Users,
-  Database,
   ChevronDown,
   ChevronRight,
-  Server,
   Star,
   Search,
   Layers,
   Monitor,
   ShieldAlert,
-  FileText,
-  Wifi,
+  ChevronsLeft,
+  ChevronsRight,
   LucideIcon
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
 
 interface NavItem {
   label: string;
@@ -165,7 +167,7 @@ const navigation: NavSection[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
   
   // Initialize with defaultOpen sections
@@ -208,21 +210,29 @@ export function Sidebar() {
     section.items.some(item => location.pathname === item.path);
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-[200px] flex flex-col z-40" style={{ background: '#1e2d3d' }}>
+    <aside className={cn(
+      "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-300",
+      collapsed ? "w-[48px]" : "w-[200px]"
+    )} style={{ background: '#1e2d3d' }}>
       {/* Logo Header */}
       <div className="h-10 flex items-center gap-2 px-3 border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
         <div className="flex items-center gap-2">
-          {/* Simple A Logo */}
-          <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center shadow-lg">
+          <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center shadow-lg shrink-0">
             <span className="text-white text-base font-bold">A</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-white text-[13px] font-bold tracking-wide">AEGIS</span>
-            <span className="text-emerald-400 text-[8px] font-semibold tracking-widest -mt-0.5">NGFW</span>
-          </div>
+          {!collapsed && (
+            <div className="flex flex-col">
+              <span className="text-white text-[13px] font-bold tracking-wide">AEGIS</span>
+              <span className="text-emerald-400 text-[8px] font-semibold tracking-widest -mt-0.5">NGFW</span>
+            </div>
+          )}
         </div>
-        <div className="flex-1" />
-        <span className="text-[9px] text-emerald-400/80 px-1.5 py-0.5 bg-emerald-500/20 rounded border border-emerald-500/30 font-medium">v1.0</span>
+        {!collapsed && (
+          <>
+            <div className="flex-1" />
+            <span className="text-[9px] text-emerald-400/80 px-1.5 py-0.5 bg-emerald-500/20 rounded border border-emerald-500/30 font-medium">v1.0</span>
+          </>
+        )}
       </div>
 
       {/* Navigation */}
@@ -234,46 +244,71 @@ export function Sidebar() {
 
           // Direct link sections (like Dashboard)
           if (section.directPath) {
-            return (
+            const linkContent = (
               <Link
                 key={section.title}
                 to={section.directPath}
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors border-l-2",
+                  collapsed && "justify-center px-0",
                   isActive(section.directPath)
                     ? "bg-[#4caf50] text-white border-[#4caf50]"
                     : "text-gray-300 hover:bg-[#2a3f54] hover:text-white border-transparent"
                 )}
               >
-                <SectionIcon size={14} />
-                <span>{section.title}</span>
+                <SectionIcon size={14} className="shrink-0" />
+                {!collapsed && <span>{section.title}</span>}
               </Link>
             );
+
+            if (collapsed) {
+              return (
+                <Tooltip key={section.title}>
+                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">{section.title}</TooltipContent>
+                </Tooltip>
+              );
+            }
+            return linkContent;
           }
 
-          return (
-            <div key={section.title}>
-              <button
-                onClick={() => toggleSection(section.title)}
-                className={cn(
-                  "w-full flex items-center justify-between px-3 py-1.5 text-[11px] transition-colors border-l-2",
-                  hasActiveItem 
-                    ? "text-[#4caf50] border-[#4caf50]" 
-                    : "text-gray-300 hover:text-white border-transparent"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <SectionIcon size={14} />
-                  <span>{section.title}</span>
-                </div>
-                {isExpanded ? (
+          const sectionButton = (
+            <button
+              onClick={() => collapsed ? onToggle() : toggleSection(section.title)}
+              className={cn(
+                "w-full flex items-center justify-between px-3 py-1.5 text-[11px] transition-colors border-l-2",
+                collapsed && "justify-center px-0",
+                hasActiveItem 
+                  ? "text-[#4caf50] border-[#4caf50]" 
+                  : "text-gray-300 hover:text-white border-transparent"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <SectionIcon size={14} className="shrink-0" />
+                {!collapsed && <span>{section.title}</span>}
+              </div>
+              {!collapsed && (
+                isExpanded ? (
                   <ChevronDown size={10} className="text-gray-500" />
                 ) : (
                   <ChevronRight size={10} className="text-gray-500" />
-                )}
-              </button>
+                )
+              )}
+            </button>
+          );
 
-              {section.items.length > 0 && (
+          return (
+            <div key={section.title}>
+              {collapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>{sectionButton}</TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">{section.title}</TooltipContent>
+                </Tooltip>
+              ) : (
+                sectionButton
+              )}
+
+              {!collapsed && section.items.length > 0 && (
                 <ul 
                   className={cn(
                     "bg-[#16232f] overflow-hidden transition-all duration-300 ease-out",
@@ -314,16 +349,28 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer Search */}
+      {/* Footer: Toggle button */}
       <div className="px-2 py-2 border-t border-[#16232f]">
-        <div className="flex items-center gap-2 px-2 py-1.5 bg-[#16232f] rounded text-gray-400">
-          <Search size={12} />
-          <input 
-            type="text"
-            placeholder="Search"
-            className="bg-transparent text-[11px] outline-none flex-1 text-gray-300 placeholder-gray-500"
-          />
-        </div>
+        {!collapsed && (
+          <div className="flex items-center gap-2 px-2 py-1.5 bg-[#16232f] rounded text-gray-400 mb-2">
+            <Search size={12} />
+            <input 
+              type="text"
+              placeholder="Search"
+              className="bg-transparent text-[11px] outline-none flex-1 text-gray-300 placeholder-gray-500"
+            />
+          </div>
+        )}
+        <button
+          onClick={onToggle}
+          className={cn(
+            "w-full flex items-center gap-2 px-2 py-1.5 text-gray-400 hover:text-white hover:bg-[#2a3f54] rounded transition-colors text-[11px]",
+            collapsed && "justify-center"
+          )}
+        >
+          {collapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
+          {!collapsed && <span>Collapse</span>}
+        </button>
       </div>
     </aside>
   );
