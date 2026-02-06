@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useWildcardFQDNs } from '@/hooks/useDbData';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { Plus, Edit2, Trash2, Search, Globe, RefreshCw, ChevronDown, ExternalLink, X } from 'lucide-react';
@@ -20,53 +21,7 @@ interface WildcardFQDNItem {
   references: number;
 }
 
-const initialFQDNs: WildcardFQDNItem[] = [
-  {
-    id: '1',
-    name: 'google-services',
-    fqdn: '*.google.com',
-    interface: 'any',
-    comment: 'All Google services',
-    visibility: true,
-    references: 5
-  },
-  {
-    id: '2',
-    name: 'microsoft-update',
-    fqdn: '*.update.microsoft.com',
-    interface: 'any',
-    comment: 'Windows Update servers',
-    visibility: true,
-    references: 3
-  },
-  {
-    id: '3',
-    name: 'office365',
-    fqdn: '*.office365.com',
-    interface: 'any',
-    comment: 'Microsoft Office 365',
-    visibility: true,
-    references: 4
-  },
-  {
-    id: '4',
-    name: 'aws-services',
-    fqdn: '*.amazonaws.com',
-    interface: 'wan1',
-    comment: 'Amazon Web Services',
-    visibility: true,
-    references: 2
-  },
-  {
-    id: '5',
-    name: 'github',
-    fqdn: '*.github.com',
-    interface: 'any',
-    comment: 'GitHub repositories',
-    visibility: true,
-    references: 1
-  },
-];
+// Data loaded from database via useWildcardFQDNs hook
 
 const WildcardFQDN = () => {
   const [fqdns, setFqdns] = useState<WildcardFQDNItem[]>(initialFQDNs);
