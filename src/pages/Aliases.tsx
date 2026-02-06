@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useAliases } from '@/hooks/useDbData';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { Plus, Pencil, Trash2, Search, Network, Server, Hash, ChevronDown, Download, Upload, GripVertical } from 'lucide-react';
@@ -70,88 +71,7 @@ interface Alias {
   updated: Date;
 }
 
-const mockAliases: Alias[] = [
-  {
-    id: 'alias-1',
-    name: 'LAN_NETWORK',
-    type: 'network',
-    values: ['192.168.1.0/24'],
-    description: 'Internal LAN network segment',
-    usageCount: 12,
-    created: new Date('2024-01-01'),
-    updated: new Date('2024-01-15'),
-  },
-  {
-    id: 'alias-2',
-    name: 'DMZ_NETWORK',
-    type: 'network',
-    values: ['10.0.0.0/24'],
-    description: 'DMZ network for public services',
-    usageCount: 8,
-    created: new Date('2024-01-01'),
-    updated: new Date('2024-01-10'),
-  },
-  {
-    id: 'alias-3',
-    name: 'WEB_SERVERS',
-    type: 'host',
-    values: ['192.168.1.10', '192.168.1.11', '192.168.1.12'],
-    description: 'Production web server cluster',
-    usageCount: 5,
-    created: new Date('2024-01-05'),
-    updated: new Date('2024-01-20'),
-  },
-  {
-    id: 'alias-4',
-    name: 'DB_SERVERS',
-    type: 'host',
-    values: ['192.168.1.20', '192.168.1.21'],
-    description: 'Database server pool',
-    usageCount: 4,
-    created: new Date('2024-01-05'),
-    updated: new Date('2024-01-18'),
-  },
-  {
-    id: 'alias-5',
-    name: 'BLOCKED_IPS',
-    type: 'host',
-    values: ['45.33.32.156', '89.248.167.131', '91.121.160.168'],
-    description: 'Known malicious IP addresses',
-    usageCount: 3,
-    created: new Date('2024-01-10'),
-    updated: new Date('2024-01-25'),
-  },
-  {
-    id: 'alias-6',
-    name: 'DNS_SERVERS',
-    type: 'host',
-    values: ['8.8.8.8', '8.8.4.4', '1.1.1.1'],
-    description: 'Public DNS servers',
-    usageCount: 2,
-    created: new Date('2024-01-01'),
-    updated: new Date('2024-01-01'),
-  },
-  {
-    id: 'alias-7',
-    name: 'WEB_PORTS',
-    type: 'port',
-    values: ['80', '443', '8080', '8443'],
-    description: 'Common web service ports',
-    usageCount: 15,
-    created: new Date('2024-01-01'),
-    updated: new Date('2024-01-01'),
-  },
-  {
-    id: 'alias-8',
-    name: 'MAIL_PORTS',
-    type: 'port',
-    values: ['25', '465', '587', '993', '995'],
-    description: 'Email service ports (SMTP, IMAP, POP3)',
-    usageCount: 6,
-    created: new Date('2024-01-02'),
-    updated: new Date('2024-01-02'),
-  },
-];
+// Data loaded from database via useAliases hook
 
 const formSchema = z.object({
   name: z.string()

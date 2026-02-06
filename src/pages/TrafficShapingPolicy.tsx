@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useTrafficShapingPolicies } from '@/hooks/useDbData';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
@@ -29,88 +30,7 @@ interface ShapingPolicy {
   bytes: number;
 }
 
-const mockPolicies: ShapingPolicy[] = [
-  {
-    id: '1',
-    name: 'VoIP-Priority',
-    srcInterface: 'lan',
-    dstInterface: 'wan1',
-    source: 'all',
-    destination: 'all',
-    service: 'SIP, RTP',
-    application: 'VoIP',
-    trafficShaper: 'high-priority',
-    reverseShaper: 'high-priority',
-    perIPShaper: 'voip-shaper',
-    enabled: true,
-    matches: 145892,
-    bytes: 2147483648
-  },
-  {
-    id: '2',
-    name: 'Video-Streaming',
-    srcInterface: 'lan',
-    dstInterface: 'wan1',
-    source: 'all',
-    destination: 'all',
-    service: 'HTTPS',
-    application: 'YouTube, Netflix',
-    trafficShaper: 'medium-priority',
-    reverseShaper: 'medium-priority',
-    perIPShaper: '',
-    enabled: true,
-    matches: 89234,
-    bytes: 10737418240
-  },
-  {
-    id: '3',
-    name: 'Guest-Limit',
-    srcInterface: 'guest',
-    dstInterface: 'wan1',
-    source: 'Guest-Network',
-    destination: 'all',
-    service: 'ALL',
-    application: 'all',
-    trafficShaper: 'low-priority',
-    reverseShaper: 'low-priority',
-    perIPShaper: 'guest-limit',
-    enabled: true,
-    matches: 234521,
-    bytes: 5368709120
-  },
-  {
-    id: '4',
-    name: 'Backup-Traffic',
-    srcInterface: 'dmz',
-    dstInterface: 'wan2',
-    source: 'Backup-Servers',
-    destination: 'Cloud-Backup',
-    service: 'HTTPS, SSH',
-    application: 'all',
-    trafficShaper: 'backup-shaper',
-    reverseShaper: '',
-    perIPShaper: '',
-    enabled: true,
-    matches: 12456,
-    bytes: 21474836480
-  },
-  {
-    id: '5',
-    name: 'P2P-Block',
-    srcInterface: 'lan',
-    dstInterface: 'wan1',
-    source: 'all',
-    destination: 'all',
-    service: 'ALL',
-    application: 'BitTorrent, P2P',
-    trafficShaper: '',
-    reverseShaper: '',
-    perIPShaper: '',
-    enabled: false,
-    matches: 0,
-    bytes: 0
-  },
-];
+// Data loaded from database via useTrafficShapingPolicies hook
 
 const TrafficShapingPolicy = () => {
   const [policies, setPolicies] = useState<ShapingPolicy[]>(mockPolicies);

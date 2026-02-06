@@ -1,6 +1,7 @@
 import { Shell } from '@/components/layout/Shell';
 import { Plus, Edit2, Trash2, RefreshCw, Search, Route, Copy, Download, Upload, X, GripVertical } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { usePolicyRoutes } from '@/hooks/useDbData';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -28,11 +29,7 @@ interface PolicyRoute {
   comment: string;
 }
 
-const mockPolicyRoutes: PolicyRoute[] = [
-  { id: '1', seq: 1, incoming: 'internal', source: '10.0.1.0/24', destination: '0.0.0.0/0', protocol: 'any', gateway: '192.168.1.1', outInterface: 'wan1', status: 'enabled', comment: 'Force WAN1 for subnet' },
-  { id: '2', seq: 2, incoming: 'internal', source: '10.0.2.0/24', destination: '0.0.0.0/0', protocol: 'any', gateway: '192.168.2.1', outInterface: 'wan2', status: 'enabled', comment: 'Force WAN2 for subnet' },
-  { id: '3', seq: 3, incoming: 'dmz', source: '0.0.0.0/0', destination: '10.10.10.0/24', protocol: 'TCP/443', gateway: '192.168.100.1', outInterface: 'internal', status: 'disabled', comment: 'HTTPS to internal' },
-];
+// Data loaded from database via usePolicyRoutes hook
 
 const interfaces = ['wan1', 'wan2', 'internal', 'dmz', 'port1', 'port2', 'port3', 'port4'];
 const protocols = ['any', 'TCP', 'UDP', 'ICMP', 'TCP/80', 'TCP/443', 'TCP/22', 'UDP/53'];
