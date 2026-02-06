@@ -50,7 +50,7 @@ const initialFeatures: Feature[] = [
   
   // Additional Features
   { id: 'ipsec-vpn', name: 'IPsec VPN', description: 'Site-to-site VPN tunnels', enabled: true, category: 'additional' },
-  { id: 'ssl-vpn', name: 'SSL-VPN', description: 'Remote access VPN', enabled: true, category: 'additional' },
+  { id: 'wireguard-vpn', name: 'WireGuard VPN', description: 'Modern VPN protocol', enabled: true, category: 'additional' },
   { id: 'sdwan', name: 'SD-WAN', description: 'Software-defined WAN', enabled: true, category: 'additional', requiresLicense: true },
   { id: 'wifi', name: 'WiFi Controller', description: 'Wireless AP management', enabled: false, category: 'additional' },
   { id: 'switch', name: 'Switch Controller', description: 'Managed switch integration', enabled: false, category: 'additional' },

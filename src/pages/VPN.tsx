@@ -14,8 +14,6 @@ import {
   Shield,
   Key,
   Globe,
-  Users,
-  Download,
   Edit2,
   GripVertical
 } from 'lucide-react';
@@ -58,26 +56,6 @@ interface VPNTunnel {
   phase1: string;
   phase2: string;
 }
-
-interface SSLVPNUser {
-  id: string;
-  username: string;
-  group: string;
-  status: 'online' | 'offline';
-  sourceIp: string;
-  assignedIp: string;
-  loginTime: Date | null;
-  bytesIn: number;
-  bytesOut: number;
-}
-
-const mockSSLUsers: SSLVPNUser[] = [
-  { id: 'ssl-1', username: 'john.doe', group: 'Remote-Workers', status: 'online', sourceIp: '103.45.67.89', assignedIp: '10.212.134.5', loginTime: new Date(Date.now() - 3600000), bytesIn: 125000000, bytesOut: 45000000 },
-  { id: 'ssl-2', username: 'jane.smith', group: 'Remote-Workers', status: 'online', sourceIp: '42.118.92.45', assignedIp: '10.212.134.6', loginTime: new Date(Date.now() - 7200000), bytesIn: 89000000, bytesOut: 23000000 },
-  { id: 'ssl-3', username: 'bob.wilson', group: 'IT-Admin', status: 'online', sourceIp: '183.91.12.78', assignedIp: '10.212.134.7', loginTime: new Date(Date.now() - 1800000), bytesIn: 234000000, bytesOut: 156000000 },
-  { id: 'ssl-4', username: 'alice.jones', group: 'Remote-Workers', status: 'offline', sourceIp: '', assignedIp: '', loginTime: null, bytesIn: 0, bytesOut: 0 },
-  { id: 'ssl-5', username: 'charlie.brown', group: 'Contractors', status: 'offline', sourceIp: '', assignedIp: '', loginTime: null, bytesIn: 0, bytesOut: 0 },
-];
 
 // Sortable VPN Tunnel Row
 interface SortableTunnelRowProps {
@@ -171,8 +149,7 @@ const VPN = () => {
     phase1: 'aes256-sha256-modp2048',
     phase2: 'aes256-sha256',
   })));
-  const [sslUsers] = useState<SSLVPNUser[]>(mockSSLUsers);
-  const [activeTab, setActiveTab] = useState<'ipsec' | 'ssl' | 'monitor'>('ipsec');
+  const [activeTab, setActiveTab] = useState<'ipsec' | 'monitor'>('ipsec');
   const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -205,25 +182,13 @@ const VPN = () => {
     return `${hours}h ${mins}m`;
   };
 
-  const formatLoginTime = (date: Date | null) => {
-    if (!date) return '--';
-    const diff = Date.now() - date.getTime();
-    const mins = Math.floor(diff / 60000);
-    const hours = Math.floor(mins / 60);
-    if (hours > 0) return `${hours}h ${mins % 60}m ago`;
-    return `${mins}m ago`;
-  };
+
 
   const filteredTunnels = tunnels.filter(t => {
     if (activeTab === 'ipsec') return t.type === 'ipsec';
-    if (activeTab === 'ssl') return false;
     return true;
   }).filter(t => 
     search === '' || t.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const filteredSSLUsers = sslUsers.filter(u =>
-    search === '' || u.username.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleConnect = (tunnelId: string) => {
@@ -300,8 +265,6 @@ const VPN = () => {
   const stats = {
     ipsecTotal: tunnels.filter(t => t.type === 'ipsec').length,
     ipsecUp: tunnels.filter(t => t.type === 'ipsec' && t.status === 'connected').length,
-    sslTotal: sslUsers.length,
-    sslOnline: sslUsers.filter(u => u.status === 'online').length,
   };
 
   return (
@@ -327,13 +290,12 @@ const VPN = () => {
                   <Shield className="w-3 h-3" />
                   IPsec Tunnel
                 </button>
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
+                <button 
+                  onClick={() => { setNewTunnel({ ...newTunnel, type: 'wireguard' }); setModalOpen(true); setShowCreateMenu(false); }}
+                  className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2"
+                >
                   <Key className="w-3 h-3" />
-                  SSL-VPN Portal
-                </button>
-                <button className="w-full px-3 py-2 text-left text-[11px] hover:bg-[#f0f0f0] flex items-center gap-2">
-                  <Users className="w-3 h-3" />
-                  SSL-VPN User
+                  WireGuard Tunnel
                 </button>
               </div>
             )}
@@ -377,25 +339,12 @@ const VPN = () => {
             <span className="text-lg font-bold text-green-600">{stats.ipsecUp}</span>
             <span className="text-[11px] text-[#666]">Up</span>
           </div>
-          <div className="w-px h-6 bg-[#ddd]" />
-          <div className="flex items-center gap-2">
-            <Key className="w-4 h-4 text-blue-600" />
-            <span className="text-lg font-bold">{stats.sslTotal}</span>
-            <span className="text-[11px] text-[#666]">SSL-VPN Users</span>
-          </div>
-          <div className="w-px h-6 bg-[#ddd]" />
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-green-600" />
-            <span className="text-lg font-bold text-green-600">{stats.sslOnline}</span>
-            <span className="text-[11px] text-[#666]">Online</span>
-          </div>
         </div>
 
         {/* Tabs */}
         <div className="flex items-center bg-[#e8e8e8] border-b border-[#ccc]">
           {[
             { id: 'ipsec', label: 'IPsec Tunnels', icon: Shield },
-            { id: 'ssl', label: 'SSL-VPN', icon: Key },
             { id: 'monitor', label: 'VPN Monitor', icon: Globe },
           ].map((tab) => (
             <button
@@ -459,66 +408,6 @@ const VPN = () => {
           </div>
         )}
 
-        {/* SSL-VPN Tab */}
-        {activeTab === 'ssl' && (
-          <div className="p-4">
-            <div className="section">
-              <div className="section-header">
-                <span>SSL-VPN Users</span>
-                <button className="text-[10px] text-white/80 hover:text-white flex items-center gap-1">
-                  <Download size={10} />
-                  Export
-                </button>
-              </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th className="w-16">Status</th>
-                    <th>Username</th>
-                    <th>Group</th>
-                    <th>Source IP</th>
-                    <th>Assigned IP</th>
-                    <th>Login Time</th>
-                    <th>Traffic</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSSLUsers.map((user) => (
-                    <tr key={user.id}>
-                      <td>
-                        <span className={cn(
-                          "text-[10px] px-1.5 py-0.5 border",
-                          user.status === 'online' 
-                            ? "bg-green-100 text-green-700 border-green-200" 
-                            : "bg-gray-100 text-gray-500 border-gray-200"
-                        )}>
-                          {user.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="text-[11px] font-medium text-[#111]">{user.username}</td>
-                      <td className="text-[11px] text-[#333]">{user.group}</td>
-                      <td className="mono text-[10px] text-[#333]">{user.sourceIp || '--'}</td>
-                      <td className="mono text-[10px] text-[#333]">{user.assignedIp || '--'}</td>
-                      <td className="text-[11px] text-[#333]">{formatLoginTime(user.loginTime)}</td>
-                      <td>
-                        {user.status === 'online' ? (
-                          <div className="text-[10px]">
-                            <span className="text-green-600">↓{formatBytes(user.bytesIn)}</span>
-                            <span className="text-[#999] mx-1">/</span>
-                            <span className="text-blue-600">↑{formatBytes(user.bytesOut)}</span>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-[#999]">--</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
         {/* VPN Monitor Tab */}
         {activeTab === 'monitor' && (
           <div className="p-4">
@@ -549,32 +438,22 @@ const VPN = () => {
 
               <div className="section">
                 <div className="section-header">
-                  <span>SSL-VPN Statistics</span>
+                  <span>VPN Summary</span>
                 </div>
                 <div className="section-body">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="p-3 bg-[#f5f5f5] border border-[#ddd] text-center">
-                      <div className="text-2xl font-bold text-green-600">{stats.sslOnline}</div>
-                      <div className="text-[10px] text-[#666]">Online Users</div>
-                    </div>
-                    <div className="p-3 bg-[#f5f5f5] border border-[#ddd] text-center">
-                      <div className="text-2xl font-bold">{stats.sslTotal}</div>
-                      <div className="text-[10px] text-[#666]">Total Users</div>
-                    </div>
-                  </div>
                   <table className="widget-table">
                     <tbody>
                       <tr>
-                        <td className="widget-label">Max Concurrent</td>
-                        <td className="widget-value">100</td>
+                        <td className="widget-label">Total Tunnels</td>
+                        <td className="widget-value">{tunnels.length}</td>
                       </tr>
                       <tr>
-                        <td className="widget-label">Current Sessions</td>
-                        <td className="widget-value">{stats.sslOnline}</td>
+                        <td className="widget-label">Connected</td>
+                        <td className="widget-value text-green-600">{tunnels.filter(t => t.status === 'connected').length}</td>
                       </tr>
                       <tr>
-                        <td className="widget-label">Available Licenses</td>
-                        <td className="widget-value">{100 - stats.sslOnline}</td>
+                        <td className="widget-label">Disconnected</td>
+                        <td className="widget-value text-red-600">{tunnels.filter(t => t.status === 'disconnected').length}</td>
                       </tr>
                     </tbody>
                   </table>

@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS public.network_interfaces (
 CREATE TABLE IF NOT EXISTS public.vpn_tunnels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'ipsec' CHECK (type IN ('ipsec', 'openvpn', 'wireguard', 'ssl')),
+  type TEXT NOT NULL DEFAULT 'ipsec' CHECK (type IN ('ipsec', 'openvpn', 'wireguard')),
   status TEXT NOT NULL DEFAULT 'disconnected' CHECK (status IN ('connected', 'disconnected', 'connecting')),
   remote_gateway TEXT,
   local_network TEXT,
@@ -536,10 +536,101 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
+-- ── Enable pgcrypto for password hashing ──
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- ── JWT authenticate function ──
+-- Called by the frontend via PostgREST: POST /rpc/authenticate
+-- Verifies email+password, returns a JWT signed with PGRST_JWT_SECRET
+CREATE OR REPLACE FUNCTION public.authenticate(p_email TEXT, p_password TEXT)
+RETURNS JSON AS $$
+DECLARE
+  v_user   public.users%ROWTYPE;
+  v_roles  TEXT[];
+  v_token  TEXT;
+  v_secret TEXT;
+  v_header TEXT;
+  v_payload TEXT;
+  v_claims JSON;
+BEGIN
+  -- Find user
+  SELECT * INTO v_user FROM public.users WHERE email = p_email;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invalid login credentials';
+  END IF;
+
+  -- Verify password (bcrypt)
+  IF NOT (v_user.password_hash = crypt(p_password, v_user.password_hash)) THEN
+    RAISE EXCEPTION 'Invalid login credentials';
+  END IF;
+
+  -- Get roles
+  SELECT array_agg(role::TEXT) INTO v_roles
+  FROM public.user_roles WHERE user_id = v_user.id;
+
+  -- Read JWT secret from GUC (set by PostgREST via PGRST_JWT_SECRET)
+  v_secret := current_setting('pgrst.jwt_secret', true);
+  IF v_secret IS NULL OR v_secret = '' THEN
+    v_secret := current_setting('app.jwt_secret', true);
+  END IF;
+  IF v_secret IS NULL OR v_secret = '' THEN
+    RAISE EXCEPTION 'JWT secret not configured';
+  END IF;
+
+  -- Build JWT manually (HS256)
+  v_header := encode(convert_to('{"alg":"HS256","typ":"JWT"}', 'UTF8'), 'base64');
+  v_header := replace(replace(rtrim(v_header, '='), '+', '-'), '/', '_');
+
+  v_claims := json_build_object(
+    'role', 'authenticated',
+    'sub', v_user.id,
+    'email', v_user.email,
+    'full_name', v_user.full_name,
+    'roles', COALESCE(v_roles, ARRAY[]::TEXT[]),
+    'iat', extract(epoch from now())::int,
+    'exp', extract(epoch from now() + interval '24 hours')::int
+  );
+
+  v_payload := encode(convert_to(v_claims::TEXT, 'UTF8'), 'base64');
+  v_payload := replace(replace(rtrim(v_payload, '='), '+', '-'), '/', '_');
+
+  v_token := v_header || '.' || v_payload || '.' ||
+    replace(replace(rtrim(
+      encode(hmac(v_header || '.' || v_payload, v_secret, 'sha256'), 'base64'),
+    '='), '+', '-'), '/', '_');
+
+  RETURN json_build_object(
+    'token', v_token,
+    'user_id', v_user.id,
+    'email', v_user.email,
+    'full_name', v_user.full_name,
+    'roles', COALESCE(v_roles, ARRAY[]::TEXT[])
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- ── Role check functions ──
+CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role);
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.is_admin_or_super_admin(_user_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role IN ('super_admin', 'admin'));
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.is_operator_or_higher(_user_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role IN ('super_admin', 'admin', 'operator'));
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
+
 -- ── Grant permissions ──
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated, anon;
+-- Allow anon to call authenticate
+GRANT EXECUTE ON FUNCTION public.authenticate(TEXT, TEXT) TO anon;
 
 -- ── Seed default admin user ──
 -- Password: Admin123! (bcrypt hash)
@@ -609,7 +700,7 @@ INSERT INTO public.schedules (name, description, enabled, days, start_time, end_
   ('always', 'Always active', true, ARRAY[0,1,2,3,4,5,6], '00:00', '23:59', 15);
 
 INSERT INTO public.certificates (name, type, subject, issuer, serial_number, valid_from, valid_to, status, key_type, key_size, in_use, used_by, fingerprint) VALUES
-  ('Aegis_Local_CA', 'ca', 'CN=Aegis Local CA, O=Aegis Security, C=VN', 'CN=Aegis Local CA, O=Aegis Security, C=VN', '01:23:45:67:89:AB:CD:EF', '2024-01-01', '2034-01-01', 'valid', 'RSA', 4096, true, ARRAY['SSL Inspection', 'SSL-VPN'], 'AB:CD:EF:12:34:56:78:90');
+  ('Aegis_Local_CA', 'ca', 'CN=Aegis Local CA, O=Aegis Security, C=VN', 'CN=Aegis Local CA, O=Aegis Security, C=VN', '01:23:45:67:89:AB:CD:EF', '2024-01-01', '2034-01-01', 'valid', 'RSA', 4096, true, ARRAY['SSL Inspection'], 'AB:CD:EF:12:34:56:78:90');
 
 INSERT INTO public.ids_signatures (sid, name, category, severity, action, enabled, hits, description) VALUES
   (2001219, 'ET SCAN SSH Brute Force Attempt', 'Attempted Administrator', 'high', 'drop', true, 1250, 'Detects SSH brute force login attempts'),

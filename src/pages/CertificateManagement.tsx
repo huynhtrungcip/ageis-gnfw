@@ -56,7 +56,7 @@ const mockCertificates: Certificate[] = [
     keyType: 'RSA',
     keySize: 4096,
     inUse: true,
-    usedBy: ['SSL Inspection', 'SSL-VPN'],
+    usedBy: ['SSL Inspection'],
   },
   {
     id: 'cert-2',
@@ -86,7 +86,7 @@ const mockCertificates: Certificate[] = [
     keyType: 'ECDSA',
     keySize: 256,
     inUse: true,
-    usedBy: ['SSL-VPN Portal'],
+    usedBy: ['VPN Portal'],
   },
   {
     id: 'cert-4',

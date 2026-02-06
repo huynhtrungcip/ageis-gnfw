@@ -85,10 +85,9 @@ const mockSystemConfig = {
     ipsec: [
       { id: 'vpn-1', name: 'Site-to-Site-HQ', remoteGateway: '198.51.100.1', status: 'up' },
     ],
-    sslvpn: {
+    wireguard: {
       enabled: true,
-      port: 10443,
-      users: 50,
+      peers: 5,
     },
   },
   dns: {

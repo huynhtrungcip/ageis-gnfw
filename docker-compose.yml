@@ -52,13 +52,13 @@ services:
     networks:
       - aegis-net
 
-  # ── Frontend (Nginx) ────────────────────────
+  # ── Frontend (Nginx + API Proxy) ─────────────
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:${API_PORT:-3000}
+        VITE_API_URL: /api
     container_name: aegis-frontend
     restart: unless-stopped
     depends_on:

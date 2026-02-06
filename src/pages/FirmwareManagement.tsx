@@ -71,7 +71,7 @@ interface FirmwareVersion {
 const initialFirmware: FirmwareVersion[] = [
   { id: 'fw-1', version: '7.4.3', buildNumber: '2620', releaseDate: '2024-02-01', type: 'maintenance', size: '245 MB', releaseNotes: 'Security fixes and performance improvements', recommended: true },
   { id: 'fw-2', version: '7.4.2', buildNumber: '2571', releaseDate: '2024-01-15', type: 'stable', size: '242 MB', releaseNotes: 'Current installed version', recommended: false },
-  { id: 'fw-3', version: '7.4.1', buildNumber: '2463', releaseDate: '2023-12-10', type: 'stable', size: '238 MB', releaseNotes: 'SSL-VPN improvements', recommended: false },
+  { id: 'fw-3', version: '7.4.1', buildNumber: '2463', releaseDate: '2023-12-10', type: 'stable', size: '238 MB', releaseNotes: 'VPN and routing improvements', recommended: false },
   { id: 'fw-4', version: '7.6.0', buildNumber: '3001', releaseDate: '2024-02-15', type: 'feature', size: '280 MB', releaseNotes: 'New AI-powered threat detection', recommended: false },
 ];
 
