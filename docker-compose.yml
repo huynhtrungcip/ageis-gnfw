@@ -1,0 +1,77 @@
+# ============================================
+# Aegis NGFW - Self-Host Stack
+# Ubuntu 24.04 LTS Compatible
+# ============================================
+# Usage:
+#   docker compose up -d          # Start all services
+#   docker compose down           # Stop all services
+#   docker compose logs -f        # View logs
+#   docker compose up -d --build  # Rebuild and start
+# ============================================
+
+services:
+  # ── PostgreSQL Database ──────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: aegis-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aegis_ngfw}
+      POSTGRES_USER: ${POSTGRES_USER:-aegis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production!}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aegis} -d ${POSTGRES_DB:-aegis_ngfw}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aegis-net
+
+  # ── Backend API (PostgREST) ──────────────────
+  api:
+    image: postgrest/postgrest:v12.2.3
+    container_name: aegis-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://${POSTGRES_USER:-aegis}:${POSTGRES_PASSWORD:-changeme_in_production!}@db:5432/${POSTGRES_DB:-aegis_ngfw}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-key-change-in-production-min-32-chars!}
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_LOG_LEVEL: warn
+    ports:
+      - "${API_PORT:-3000}:3000"
+    networks:
+      - aegis-net
+
+  # ── Frontend (Nginx) ────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:${API_PORT:-3000}
+    container_name: aegis-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - aegis-net
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  aegis-net:
+    driver: bridge
