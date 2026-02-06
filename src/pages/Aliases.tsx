@@ -168,7 +168,23 @@ const SortableAliasRow = ({ alias, isSelected, onSelect, getTypeIcon, getTypeCol
 };
 
 const Aliases = () => {
-  const [aliases, setAliases] = useState<Alias[]>(mockAliases);
+  const { data: dbAliases } = useAliases();
+  const [aliases, setAliases] = useState<Alias[]>([]);
+
+  useEffect(() => {
+    if (dbAliases) {
+      setAliases(dbAliases.map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type as 'host' | 'network' | 'port',
+        values: a.values || [],
+        description: a.description || '',
+        usageCount: a.usage_count || 0,
+        created: new Date(a.created_at),
+        updated: new Date(a.updated_at),
+      })));
+    }
+  }, [dbAliases]);
   const [filter, setFilter] = useState<'all' | 'host' | 'network' | 'port'>('all');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);

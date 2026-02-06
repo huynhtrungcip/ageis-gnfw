@@ -35,7 +35,25 @@ const interfaces = ['wan1', 'wan2', 'internal', 'dmz', 'port1', 'port2', 'port3'
 const protocols = ['any', 'TCP', 'UDP', 'ICMP', 'TCP/80', 'TCP/443', 'TCP/22', 'UDP/53'];
 
 const PolicyRoutes = () => {
-  const [routes, setRoutes] = useState<PolicyRoute[]>(mockPolicyRoutes);
+  const { data: dbRoutes } = usePolicyRoutes();
+  const [routes, setRoutes] = useState<PolicyRoute[]>([]);
+
+  useEffect(() => {
+    if (dbRoutes) {
+      setRoutes(dbRoutes.map((r: any) => ({
+        id: r.id,
+        seq: r.seq,
+        incoming: r.incoming,
+        source: r.source,
+        destination: r.destination,
+        protocol: r.protocol,
+        gateway: r.gateway,
+        outInterface: r.out_interface,
+        status: r.status as 'enabled' | 'disabled',
+        comment: r.comment || '',
+      })));
+    }
+  }, [dbRoutes]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   

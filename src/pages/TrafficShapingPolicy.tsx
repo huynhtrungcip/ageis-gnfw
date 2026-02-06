@@ -33,7 +33,29 @@ interface ShapingPolicy {
 // Data loaded from database via useTrafficShapingPolicies hook
 
 const TrafficShapingPolicy = () => {
-  const [policies, setPolicies] = useState<ShapingPolicy[]>(mockPolicies);
+  const { data: dbPolicies } = useTrafficShapingPolicies();
+  const [policies, setPolicies] = useState<ShapingPolicy[]>([]);
+
+  useEffect(() => {
+    if (dbPolicies) {
+      setPolicies(dbPolicies.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        srcInterface: p.src_interface,
+        dstInterface: p.dst_interface,
+        source: p.source,
+        destination: p.destination,
+        service: p.service,
+        application: p.application,
+        trafficShaper: p.traffic_shaper,
+        reverseShaper: p.reverse_shaper,
+        perIPShaper: p.per_ip_shaper,
+        enabled: p.enabled,
+        matches: p.matches,
+        bytes: p.bytes,
+      })));
+    }
+  }, [dbPolicies]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
