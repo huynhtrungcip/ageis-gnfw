@@ -142,13 +142,407 @@ CREATE TABLE IF NOT EXISTS public.system_settings (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- ── Static Routes ──
+CREATE TABLE IF NOT EXISTS public.static_routes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  destination TEXT NOT NULL,
+  gateway TEXT NOT NULL,
+  interface TEXT NOT NULL DEFAULT 'wan1',
+  distance INT NOT NULL DEFAULT 10,
+  priority INT NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'enabled' CHECK (status IN ('enabled', 'disabled')),
+  comment TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Policy Routes ──
+CREATE TABLE IF NOT EXISTS public.policy_routes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seq INT NOT NULL DEFAULT 1,
+  incoming TEXT NOT NULL DEFAULT 'internal',
+  source TEXT NOT NULL DEFAULT '0.0.0.0/0',
+  destination TEXT NOT NULL DEFAULT '0.0.0.0/0',
+  protocol TEXT NOT NULL DEFAULT 'any',
+  gateway TEXT NOT NULL DEFAULT '',
+  out_interface TEXT NOT NULL DEFAULT 'wan1',
+  status TEXT NOT NULL DEFAULT 'enabled' CHECK (status IN ('enabled', 'disabled')),
+  comment TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Aliases ──
+CREATE TABLE IF NOT EXISTS public.aliases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'host' CHECK (type IN ('host', 'network', 'port')),
+  values TEXT[] NOT NULL DEFAULT '{}',
+  description TEXT NOT NULL DEFAULT '',
+  usage_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Services ──
+CREATE TABLE IF NOT EXISTS public.services (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'Custom',
+  protocol TEXT NOT NULL DEFAULT 'TCP' CHECK (protocol IN ('TCP', 'UDP', 'TCP/UDP', 'ICMP', 'IP')),
+  dest_ports TEXT NOT NULL DEFAULT '',
+  source_ports TEXT NOT NULL DEFAULT '1-65535',
+  comment TEXT NOT NULL DEFAULT '',
+  references_count INT NOT NULL DEFAULT 0,
+  is_system BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Schedules ──
+CREATE TABLE IF NOT EXISTS public.schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  days INT[] NOT NULL DEFAULT '{}',
+  start_time TEXT NOT NULL DEFAULT '00:00',
+  end_time TEXT NOT NULL DEFAULT '23:59',
+  usage_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Certificates ──
+CREATE TABLE IF NOT EXISTS public.certificates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'local' CHECK (type IN ('local', 'remote', 'ca', 'crl')),
+  subject TEXT NOT NULL DEFAULT '',
+  issuer TEXT NOT NULL DEFAULT '',
+  serial_number TEXT NOT NULL DEFAULT '',
+  valid_from TIMESTAMPTZ NOT NULL DEFAULT now(),
+  valid_to TIMESTAMPTZ NOT NULL DEFAULT now() + interval '1 year',
+  status TEXT NOT NULL DEFAULT 'valid' CHECK (status IN ('valid', 'expired', 'expiring', 'revoked', 'pending')),
+  key_type TEXT NOT NULL DEFAULT 'RSA',
+  key_size INT NOT NULL DEFAULT 2048,
+  in_use BOOLEAN NOT NULL DEFAULT false,
+  used_by TEXT[] NOT NULL DEFAULT '{}',
+  signature_algorithm TEXT NOT NULL DEFAULT 'SHA256withRSA',
+  fingerprint TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── IDS/IPS Signatures ──
+CREATE TABLE IF NOT EXISTS public.ids_signatures (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sid INT NOT NULL,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT '',
+  severity TEXT NOT NULL DEFAULT 'medium' CHECK (severity IN ('critical', 'high', 'medium', 'low', 'info')),
+  action TEXT NOT NULL DEFAULT 'alert' CHECK (action IN ('alert', 'drop', 'reject', 'pass', 'default', 'block', 'reset', 'monitor')),
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  hits BIGINT NOT NULL DEFAULT 0,
+  last_hit TIMESTAMPTZ,
+  description TEXT NOT NULL DEFAULT '',
+  cve TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── DHCP Servers ──
+CREATE TABLE IF NOT EXISTS public.dhcp_servers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  interface TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  range_start TEXT NOT NULL DEFAULT '',
+  range_end TEXT NOT NULL DEFAULT '',
+  gateway TEXT NOT NULL DEFAULT '',
+  netmask TEXT NOT NULL DEFAULT '255.255.255.0',
+  dns1 TEXT NOT NULL DEFAULT '8.8.8.8',
+  dns2 TEXT NOT NULL DEFAULT '8.8.4.4',
+  domain TEXT NOT NULL DEFAULT '',
+  lease_time INT NOT NULL DEFAULT 86400,
+  active_leases INT NOT NULL DEFAULT 0,
+  total_pool INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── DHCP Static Mappings ──
+CREATE TABLE IF NOT EXISTS public.dhcp_static_mappings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  mac TEXT NOT NULL,
+  ip TEXT NOT NULL,
+  interface TEXT NOT NULL DEFAULT 'LAN',
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  description TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── DHCP Leases ──
+CREATE TABLE IF NOT EXISTS public.dhcp_leases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ip TEXT NOT NULL,
+  mac TEXT NOT NULL,
+  hostname TEXT NOT NULL DEFAULT '',
+  lease_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+  lease_end TIMESTAMPTZ NOT NULL DEFAULT now() + interval '1 day',
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'expired', 'static')),
+  interface TEXT NOT NULL DEFAULT 'LAN',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── DNS Filter Profiles ──
+CREATE TABLE IF NOT EXISTS public.dns_filter_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  comment TEXT NOT NULL DEFAULT '',
+  domain_filter BOOLEAN NOT NULL DEFAULT true,
+  fortiguard_category BOOLEAN NOT NULL DEFAULT true,
+  safe_search BOOLEAN NOT NULL DEFAULT true,
+  youtube_restrict BOOLEAN NOT NULL DEFAULT false,
+  log_all_domains BOOLEAN NOT NULL DEFAULT true,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  blocked_categories INT NOT NULL DEFAULT 0,
+  references_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── DNS Forward Zones ──
+CREATE TABLE IF NOT EXISTS public.dns_forward_zones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'forward',
+  servers TEXT[] NOT NULL DEFAULT '{}',
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── DNS Local Records ──
+CREATE TABLE IF NOT EXISTS public.dns_local_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hostname TEXT NOT NULL,
+  domain TEXT NOT NULL DEFAULT '',
+  type TEXT NOT NULL DEFAULT 'A',
+  address TEXT NOT NULL DEFAULT '',
+  ttl INT NOT NULL DEFAULT 3600,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── IP Pools ──
+CREATE TABLE IF NOT EXISTS public.ip_pools (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  comments TEXT NOT NULL DEFAULT '',
+  type TEXT NOT NULL DEFAULT 'overload' CHECK (type IN ('overload', 'one-to-one', 'fixed-port-range', 'port-block-allocation')),
+  start_ip TEXT NOT NULL DEFAULT '',
+  end_ip TEXT NOT NULL DEFAULT '',
+  associated_interface TEXT NOT NULL DEFAULT 'wan1',
+  arp_reply BOOLEAN NOT NULL DEFAULT true,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  used_ips INT NOT NULL DEFAULT 0,
+  total_ips INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Virtual IPs ──
+CREATE TABLE IF NOT EXISTS public.virtual_ips (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  comments TEXT NOT NULL DEFAULT '',
+  type TEXT NOT NULL DEFAULT 'static-nat' CHECK (type IN ('static-nat', 'load-balance', 'server-load-balance', 'access-proxy')),
+  external_ip TEXT NOT NULL DEFAULT '',
+  mapped_ip TEXT NOT NULL DEFAULT '',
+  interface TEXT NOT NULL DEFAULT 'wan1',
+  protocol TEXT NOT NULL DEFAULT 'TCP',
+  external_port TEXT NOT NULL DEFAULT '',
+  mapped_port TEXT NOT NULL DEFAULT '',
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  sessions INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Wildcard FQDNs ──
+CREATE TABLE IF NOT EXISTS public.wildcard_fqdns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  fqdn TEXT NOT NULL,
+  interface TEXT NOT NULL DEFAULT 'any',
+  comment TEXT NOT NULL DEFAULT '',
+  visibility BOOLEAN NOT NULL DEFAULT true,
+  references_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Traffic Shapers ──
+CREATE TABLE IF NOT EXISTS public.traffic_shapers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'shared' CHECK (type IN ('shared', 'per-ip')),
+  guaranteed_bandwidth INT NOT NULL DEFAULT 0,
+  maximum_bandwidth INT NOT NULL DEFAULT 0,
+  burst_bandwidth INT NOT NULL DEFAULT 0,
+  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('high', 'medium', 'low')),
+  per_policy BOOLEAN NOT NULL DEFAULT true,
+  diffserv_forward BOOLEAN NOT NULL DEFAULT false,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  current_usage INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Traffic Shaping Policies ──
+CREATE TABLE IF NOT EXISTS public.traffic_shaping_policies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  src_interface TEXT NOT NULL DEFAULT 'lan',
+  dst_interface TEXT NOT NULL DEFAULT 'wan1',
+  source TEXT NOT NULL DEFAULT 'all',
+  destination TEXT NOT NULL DEFAULT 'all',
+  service TEXT NOT NULL DEFAULT 'ALL',
+  application TEXT NOT NULL DEFAULT '',
+  traffic_shaper TEXT NOT NULL DEFAULT '',
+  reverse_shaper TEXT NOT NULL DEFAULT '',
+  per_ip_shaper TEXT NOT NULL DEFAULT '',
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  matches BIGINT NOT NULL DEFAULT 0,
+  bytes BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── SSL Inspection Profiles ──
+CREATE TABLE IF NOT EXISTS public.ssl_inspection_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  comment TEXT NOT NULL DEFAULT '',
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  inspection_mode TEXT NOT NULL DEFAULT 'certificate-inspection',
+  https_enabled BOOLEAN NOT NULL DEFAULT true,
+  smtps_enabled BOOLEAN NOT NULL DEFAULT false,
+  pop3s_enabled BOOLEAN NOT NULL DEFAULT false,
+  imaps_enabled BOOLEAN NOT NULL DEFAULT false,
+  ftps_enabled BOOLEAN NOT NULL DEFAULT false,
+  ca_certificate TEXT NOT NULL DEFAULT '',
+  untrusted_cert_action TEXT NOT NULL DEFAULT 'allow',
+  expired_cert_action TEXT NOT NULL DEFAULT 'allow',
+  references_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── AV Profiles ──
+CREATE TABLE IF NOT EXISTS public.av_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  comment TEXT NOT NULL DEFAULT '',
+  http_scan BOOLEAN NOT NULL DEFAULT true,
+  ftp_scan BOOLEAN NOT NULL DEFAULT true,
+  imap_scan BOOLEAN NOT NULL DEFAULT true,
+  pop3_scan BOOLEAN NOT NULL DEFAULT true,
+  smtp_scan BOOLEAN NOT NULL DEFAULT true,
+  action TEXT NOT NULL DEFAULT 'block' CHECK (action IN ('block', 'monitor', 'quarantine')),
+  emulator_enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Web Filter Profiles ──
+CREATE TABLE IF NOT EXISTS public.web_filter_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  comment TEXT NOT NULL DEFAULT '',
+  mode TEXT NOT NULL DEFAULT 'proxy' CHECK (mode IN ('proxy', 'flow', 'dns')),
+  action TEXT NOT NULL DEFAULT 'block' CHECK (action IN ('block', 'warning', 'monitor')),
+  url_filtering BOOLEAN NOT NULL DEFAULT true,
+  safe_search BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Traffic Stats ──
+CREATE TABLE IF NOT EXISTS public.traffic_stats (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  interface TEXT NOT NULL DEFAULT 'WAN',
+  inbound INT NOT NULL DEFAULT 0,
+  outbound INT NOT NULL DEFAULT 0,
+  blocked INT NOT NULL DEFAULT 0,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_traffic_stats_recorded_at ON public.traffic_stats(recorded_at DESC);
+
+-- ── System Metrics ──
+CREATE TABLE IF NOT EXISTS public.system_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hostname TEXT NOT NULL DEFAULT '',
+  uptime BIGINT NOT NULL DEFAULT 0,
+  cpu_usage INT NOT NULL DEFAULT 0,
+  cpu_cores INT NOT NULL DEFAULT 1,
+  cpu_temperature INT NOT NULL DEFAULT 0,
+  memory_total INT NOT NULL DEFAULT 0,
+  memory_used INT NOT NULL DEFAULT 0,
+  memory_free INT NOT NULL DEFAULT 0,
+  memory_cached INT NOT NULL DEFAULT 0,
+  disk_total INT NOT NULL DEFAULT 0,
+  disk_used INT NOT NULL DEFAULT 0,
+  disk_free INT NOT NULL DEFAULT 0,
+  load_1m DECIMAL(5,2) NOT NULL DEFAULT 0,
+  load_5m DECIMAL(5,2) NOT NULL DEFAULT 0,
+  load_15m DECIMAL(5,2) NOT NULL DEFAULT 0,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_system_metrics_recorded_at ON public.system_metrics(recorded_at DESC);
+
+-- ── AI Analysis ──
+CREATE TABLE IF NOT EXISTS public.ai_analysis (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  risk_score INT NOT NULL DEFAULT 0,
+  anomalies_detected INT NOT NULL DEFAULT 0,
+  threats_blocked INT NOT NULL DEFAULT 0,
+  predictions JSONB NOT NULL DEFAULT '[]',
+  recommendations JSONB NOT NULL DEFAULT '[]',
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Audit Logs ──
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  resource_type TEXT NOT NULL DEFAULT '',
+  resource_id TEXT,
+  details JSONB,
+  ip_address TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── updated_at trigger function ──
+CREATE OR REPLACE FUNCTION public.update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
 -- ── Grant permissions ──
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated, anon;
 
 -- ── Seed default admin user ──
--- Password: admin123 (bcrypt hash)
+-- Password: Admin123! (bcrypt hash)
 INSERT INTO public.users (id, email, password_hash, full_name) VALUES
   ('00000000-0000-0000-0000-000000000001', 'admin@aegis.local', '$2a$10$PwGnMmH1aQBQwAJPqjrFe.xMSMPG/0QVUKxC6O5Jx6XwVy5KjWjW2', 'Super Admin')
 ON CONFLICT (email) DO NOTHING;
@@ -157,7 +551,7 @@ INSERT INTO public.user_roles (user_id, role) VALUES
   ('00000000-0000-0000-0000-000000000001', 'super_admin')
 ON CONFLICT (user_id, role) DO NOTHING;
 
--- ── Seed mock data ──
+-- ── Seed data for all tables ──
 INSERT INTO public.network_interfaces (name, type, status, ip_address, subnet, gateway, mac, speed, mtu) VALUES
   ('WAN', 'WAN', 'up', '203.113.152.45', '255.255.255.0', '203.113.152.1', '00:1A:2B:3C:4D:5E', '1 Gbps', 1500),
   ('LAN', 'LAN', 'up', '192.168.1.1', '255.255.255.0', NULL, '00:1A:2B:3C:4D:5F', '1 Gbps', 1500),
@@ -185,3 +579,74 @@ INSERT INTO public.system_settings (key, value, description, is_auditable) VALUE
   ('dns_primary', '8.8.8.8', 'Primary DNS server', false),
   ('dns_secondary', '8.8.4.4', 'Secondary DNS server', false)
 ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO public.static_routes (destination, gateway, interface, distance, priority, status, comment) VALUES
+  ('0.0.0.0/0', '192.168.1.1', 'wan1', 10, 0, 'enabled', 'Default Gateway'),
+  ('10.0.0.0/8', '192.168.100.1', 'internal', 10, 0, 'enabled', 'Internal Network'),
+  ('172.16.0.0/12', '192.168.100.254', 'dmz', 10, 0, 'enabled', 'DMZ Route'),
+  ('192.168.50.0/24', '192.168.1.254', 'wan2', 20, 5, 'disabled', 'Backup Route');
+
+INSERT INTO public.policy_routes (seq, incoming, source, destination, protocol, gateway, out_interface, status, comment) VALUES
+  (1, 'internal', '10.0.1.0/24', '0.0.0.0/0', 'any', '192.168.1.1', 'wan1', 'enabled', 'Force WAN1 for subnet'),
+  (2, 'internal', '10.0.2.0/24', '0.0.0.0/0', 'any', '192.168.2.1', 'wan2', 'enabled', 'Force WAN2 for subnet');
+
+INSERT INTO public.aliases (name, type, values, description, usage_count) VALUES
+  ('LAN_NETWORK', 'network', ARRAY['192.168.1.0/24'], 'Internal LAN network segment', 12),
+  ('DMZ_NETWORK', 'network', ARRAY['10.0.0.0/24'], 'DMZ network for public services', 8),
+  ('WEB_SERVERS', 'host', ARRAY['192.168.1.10', '192.168.1.11', '192.168.1.12'], 'Production web server cluster', 5),
+  ('MANAGEMENT_PORTS', 'port', ARRAY['22', '443', '8443'], 'Management access ports', 6);
+
+INSERT INTO public.services (name, category, protocol, dest_ports, source_ports, comment, references_count, is_system) VALUES
+  ('HTTP', 'Web Access', 'TCP', '80', '1-65535', 'Hypertext Transfer Protocol', 12, true),
+  ('HTTPS', 'Web Access', 'TCP', '443', '1-65535', 'HTTP Secure', 15, true),
+  ('SSH', 'Remote Access', 'TCP', '22', '1-65535', 'Secure Shell', 8, true),
+  ('DNS', 'Network Services', 'TCP/UDP', '53', '1-65535', 'Domain Name System', 10, true),
+  ('PING', 'Network Services', 'ICMP', '-', '-', 'ICMP Echo Request', 7, true);
+
+INSERT INTO public.schedules (name, description, enabled, days, start_time, end_time, usage_count) VALUES
+  ('business_hours', 'Standard business hours', true, ARRAY[1,2,3,4,5], '08:00', '18:00', 8),
+  ('weekends', 'Weekend access', true, ARRAY[0,6], '00:00', '23:59', 2),
+  ('always', 'Always active', true, ARRAY[0,1,2,3,4,5,6], '00:00', '23:59', 15);
+
+INSERT INTO public.certificates (name, type, subject, issuer, serial_number, valid_from, valid_to, status, key_type, key_size, in_use, used_by, fingerprint) VALUES
+  ('Aegis_Local_CA', 'ca', 'CN=Aegis Local CA, O=Aegis Security, C=VN', 'CN=Aegis Local CA, O=Aegis Security, C=VN', '01:23:45:67:89:AB:CD:EF', '2024-01-01', '2034-01-01', 'valid', 'RSA', 4096, true, ARRAY['SSL Inspection', 'SSL-VPN'], 'AB:CD:EF:12:34:56:78:90');
+
+INSERT INTO public.ids_signatures (sid, name, category, severity, action, enabled, hits, description) VALUES
+  (2001219, 'ET SCAN SSH Brute Force Attempt', 'Attempted Administrator', 'high', 'drop', true, 1250, 'Detects SSH brute force login attempts'),
+  (2003068, 'ET MALWARE Trojan.GenericKD C2', 'Malware Command and Control', 'critical', 'drop', true, 85, 'Detects communication with known C2 servers'),
+  (2019401, 'ET SQL Injection UNION SELECT', 'Web Application Attack', 'critical', 'drop', true, 156, 'Detects SQL injection attempts');
+
+INSERT INTO public.dhcp_servers (interface, enabled, range_start, range_end, gateway, netmask, dns1, dns2, domain, lease_time, active_leases, total_pool) VALUES
+  ('LAN', true, '192.168.1.100', '192.168.1.200', '192.168.1.1', '255.255.255.0', '8.8.8.8', '8.8.4.4', 'local.lan', 86400, 45, 101);
+
+INSERT INTO public.dhcp_leases (ip, mac, hostname, status) VALUES
+  ('192.168.1.100', '00:11:22:33:44:55', 'workstation-01', 'active'),
+  ('192.168.1.101', '00:11:22:33:44:56', 'laptop-finance', 'active'),
+  ('192.168.1.102', '00:11:22:33:44:57', 'printer-main', 'static');
+
+INSERT INTO public.dns_forward_zones (name, type, servers, enabled) VALUES
+  ('Default', 'forward', ARRAY['8.8.8.8', '8.8.4.4'], true);
+
+INSERT INTO public.ip_pools (name, comments, type, start_ip, end_ip, associated_interface, enabled, used_ips, total_ips) VALUES
+  ('SNAT-Pool-1', 'Primary outbound NAT pool', 'overload', '203.0.113.100', '203.0.113.110', 'wan1', true, 8, 11);
+
+INSERT INTO public.virtual_ips (name, comments, type, external_ip, mapped_ip, interface, protocol, external_port, mapped_port, enabled, sessions) VALUES
+  ('WebServer-VIP', 'Main web server virtual IP', 'static-nat', '203.0.113.10', '192.168.1.100', 'wan1', 'TCP', '443', '443', true, 1247);
+
+INSERT INTO public.traffic_shapers (name, type, guaranteed_bandwidth, maximum_bandwidth, burst_bandwidth, priority, enabled, current_usage) VALUES
+  ('high-priority', 'shared', 500, 1000, 1200, 'high', true, 456),
+  ('medium-priority', 'shared', 200, 500, 600, 'medium', true, 312);
+
+INSERT INTO public.av_profiles (name, comment, action, emulator_enabled) VALUES
+  ('default', 'Default antivirus profile', 'block', true);
+
+INSERT INTO public.web_filter_profiles (name, comment, mode, action) VALUES
+  ('default', 'Default web filter', 'proxy', 'block');
+
+INSERT INTO public.system_metrics (hostname, uptime, cpu_usage, cpu_cores, cpu_temperature, memory_total, memory_used, memory_free, memory_cached, disk_total, disk_used, disk_free, load_1m, load_5m, load_15m) VALUES
+  ('AEGIS-PRIMARY', 2592000, 23, 8, 45, 32768, 12288, 16384, 4096, 512000, 128000, 384000, 1.25, 1.42, 1.38);
+
+INSERT INTO public.ai_analysis (risk_score, anomalies_detected, threats_blocked, predictions, recommendations) VALUES
+  (72, 15, 1247,
+   '[{"id":"pred-1","type":"DDoS Attack","probability":35,"description":"Unusual traffic pattern detected"}]'::jsonb,
+   '[{"id":"rec-1","priority":"high","category":"Security","title":"Enable GeoIP Blocking","description":"Block traffic from high-risk countries","action":"Configure GeoIP rules"}]'::jsonb);
