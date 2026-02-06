@@ -14,16 +14,378 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      firewall_rules: {
+        Row: {
+          action: string
+          created_at: string
+          created_by: string | null
+          description: string
+          destination_port: string | null
+          destination_type: string
+          destination_value: string
+          direction: string
+          enabled: boolean
+          hits: number
+          id: string
+          interface: string
+          last_hit: string | null
+          logging: boolean
+          protocol: string
+          rule_order: number
+          source_port: string | null
+          source_type: string
+          source_value: string
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          destination_port?: string | null
+          destination_type?: string
+          destination_value?: string
+          direction?: string
+          enabled?: boolean
+          hits?: number
+          id?: string
+          interface?: string
+          last_hit?: string | null
+          logging?: boolean
+          protocol?: string
+          rule_order?: number
+          source_port?: string | null
+          source_type?: string
+          source_value?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          destination_port?: string | null
+          destination_type?: string
+          destination_value?: string
+          direction?: string
+          enabled?: boolean
+          hits?: number
+          id?: string
+          interface?: string
+          last_hit?: string | null
+          logging?: boolean
+          protocol?: string
+          rule_order?: number
+          source_port?: string | null
+          source_type?: string
+          source_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nat_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          enabled: boolean
+          external_address: string | null
+          external_port: string
+          id: string
+          interface: string
+          internal_address: string
+          internal_port: string
+          protocol: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          enabled?: boolean
+          external_address?: string | null
+          external_port?: string
+          id?: string
+          interface?: string
+          internal_address?: string
+          internal_port?: string
+          protocol?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          enabled?: boolean
+          external_address?: string | null
+          external_port?: string
+          id?: string
+          interface?: string
+          internal_address?: string
+          internal_port?: string
+          protocol?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      network_interfaces: {
+        Row: {
+          created_at: string
+          duplex: string | null
+          gateway: string | null
+          id: string
+          ip_address: string | null
+          mac: string | null
+          mtu: number | null
+          name: string
+          rx_bytes: number | null
+          rx_packets: number | null
+          speed: string | null
+          status: string
+          subnet: string | null
+          tx_bytes: number | null
+          tx_packets: number | null
+          type: string
+          updated_at: string
+          vlan: number | null
+        }
+        Insert: {
+          created_at?: string
+          duplex?: string | null
+          gateway?: string | null
+          id?: string
+          ip_address?: string | null
+          mac?: string | null
+          mtu?: number | null
+          name: string
+          rx_bytes?: number | null
+          rx_packets?: number | null
+          speed?: string | null
+          status?: string
+          subnet?: string | null
+          tx_bytes?: number | null
+          tx_packets?: number | null
+          type?: string
+          updated_at?: string
+          vlan?: number | null
+        }
+        Update: {
+          created_at?: string
+          duplex?: string | null
+          gateway?: string | null
+          id?: string
+          ip_address?: string | null
+          mac?: string | null
+          mtu?: number | null
+          name?: string
+          rx_bytes?: number | null
+          rx_packets?: number | null
+          speed?: string | null
+          status?: string
+          subnet?: string | null
+          tx_bytes?: number | null
+          tx_packets?: number | null
+          type?: string
+          updated_at?: string
+          vlan?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_auditable: boolean
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_auditable?: boolean
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_auditable?: boolean
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      threat_events: {
+        Row: {
+          action: string
+          ai_confidence: number | null
+          category: string
+          created_at: string
+          description: string | null
+          destination_ip: string | null
+          destination_port: number | null
+          id: string
+          protocol: string | null
+          severity: string
+          signature: string | null
+          source_ip: string | null
+          source_port: number | null
+        }
+        Insert: {
+          action?: string
+          ai_confidence?: number | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          destination_ip?: string | null
+          destination_port?: number | null
+          id?: string
+          protocol?: string | null
+          severity?: string
+          signature?: string | null
+          source_ip?: string | null
+          source_port?: number | null
+        }
+        Update: {
+          action?: string
+          ai_confidence?: number | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          destination_ip?: string | null
+          destination_port?: number | null
+          id?: string
+          protocol?: string | null
+          severity?: string
+          signature?: string | null
+          source_ip?: string | null
+          source_port?: number | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vpn_tunnels: {
+        Row: {
+          bytes_in: number | null
+          bytes_out: number | null
+          created_at: string
+          id: string
+          local_network: string | null
+          name: string
+          remote_gateway: string | null
+          remote_network: string | null
+          status: string
+          type: string
+          updated_at: string
+          uptime: number | null
+        }
+        Insert: {
+          bytes_in?: number | null
+          bytes_out?: number | null
+          created_at?: string
+          id?: string
+          local_network?: string | null
+          name: string
+          remote_gateway?: string | null
+          remote_network?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          uptime?: number | null
+        }
+        Update: {
+          bytes_in?: number | null
+          bytes_out?: number | null
+          created_at?: string
+          id?: string
+          local_network?: string | null
+          name?: string
+          remote_gateway?: string | null
+          remote_network?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          uptime?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin_or_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_any_role: { Args: { _user_id: string }; Returns: boolean }
+      is_operator_or_higher: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "operator" | "auditor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +512,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "operator", "auditor"],
+    },
   },
 } as const
