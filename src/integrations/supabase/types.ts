@@ -14,6 +14,447 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_analysis: {
+        Row: {
+          anomalies_detected: number
+          id: string
+          predictions: Json
+          recommendations: Json
+          recorded_at: string
+          risk_score: number
+          threats_blocked: number
+        }
+        Insert: {
+          anomalies_detected?: number
+          id?: string
+          predictions?: Json
+          recommendations?: Json
+          recorded_at?: string
+          risk_score?: number
+          threats_blocked?: number
+        }
+        Update: {
+          anomalies_detected?: number
+          id?: string
+          predictions?: Json
+          recommendations?: Json
+          recorded_at?: string
+          risk_score?: number
+          threats_blocked?: number
+        }
+        Relationships: []
+      }
+      aliases: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+          type: string
+          updated_at: string
+          usage_count: number
+          values: string[]
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          type?: string
+          updated_at?: string
+          usage_count?: number
+          values?: string[]
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          type?: string
+          updated_at?: string
+          usage_count?: number
+          values?: string[]
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          resource_id: string | null
+          resource_type: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      av_profiles: {
+        Row: {
+          action: string
+          comment: string
+          created_at: string
+          emulator_enabled: boolean
+          ftp_scan: boolean
+          http_scan: boolean
+          id: string
+          imap_scan: boolean
+          name: string
+          pop3_scan: boolean
+          smtp_scan: boolean
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          comment?: string
+          created_at?: string
+          emulator_enabled?: boolean
+          ftp_scan?: boolean
+          http_scan?: boolean
+          id?: string
+          imap_scan?: boolean
+          name: string
+          pop3_scan?: boolean
+          smtp_scan?: boolean
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          comment?: string
+          created_at?: string
+          emulator_enabled?: boolean
+          ftp_scan?: boolean
+          http_scan?: boolean
+          id?: string
+          imap_scan?: boolean
+          name?: string
+          pop3_scan?: boolean
+          smtp_scan?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      certificates: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          id: string
+          in_use: boolean
+          issuer: string
+          key_size: number
+          key_type: string
+          name: string
+          serial_number: string
+          signature_algorithm: string
+          status: string
+          subject: string
+          type: string
+          updated_at: string
+          used_by: string[]
+          valid_from: string
+          valid_to: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          in_use?: boolean
+          issuer?: string
+          key_size?: number
+          key_type?: string
+          name: string
+          serial_number?: string
+          signature_algorithm?: string
+          status?: string
+          subject?: string
+          type?: string
+          updated_at?: string
+          used_by?: string[]
+          valid_from?: string
+          valid_to?: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          in_use?: boolean
+          issuer?: string
+          key_size?: number
+          key_type?: string
+          name?: string
+          serial_number?: string
+          signature_algorithm?: string
+          status?: string
+          subject?: string
+          type?: string
+          updated_at?: string
+          used_by?: string[]
+          valid_from?: string
+          valid_to?: string
+        }
+        Relationships: []
+      }
+      dhcp_leases: {
+        Row: {
+          created_at: string
+          hostname: string
+          id: string
+          interface: string
+          ip: string
+          lease_end: string
+          lease_start: string
+          mac: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          hostname?: string
+          id?: string
+          interface?: string
+          ip: string
+          lease_end?: string
+          lease_start?: string
+          mac: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          hostname?: string
+          id?: string
+          interface?: string
+          ip?: string
+          lease_end?: string
+          lease_start?: string
+          mac?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      dhcp_servers: {
+        Row: {
+          active_leases: number
+          created_at: string
+          dns1: string
+          dns2: string
+          domain: string
+          enabled: boolean
+          gateway: string
+          id: string
+          interface: string
+          lease_time: number
+          netmask: string
+          range_end: string
+          range_start: string
+          total_pool: number
+          updated_at: string
+        }
+        Insert: {
+          active_leases?: number
+          created_at?: string
+          dns1?: string
+          dns2?: string
+          domain?: string
+          enabled?: boolean
+          gateway?: string
+          id?: string
+          interface: string
+          lease_time?: number
+          netmask?: string
+          range_end?: string
+          range_start?: string
+          total_pool?: number
+          updated_at?: string
+        }
+        Update: {
+          active_leases?: number
+          created_at?: string
+          dns1?: string
+          dns2?: string
+          domain?: string
+          enabled?: boolean
+          gateway?: string
+          id?: string
+          interface?: string
+          lease_time?: number
+          netmask?: string
+          range_end?: string
+          range_start?: string
+          total_pool?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dhcp_static_mappings: {
+        Row: {
+          created_at: string
+          description: string
+          enabled: boolean
+          id: string
+          interface: string
+          ip: string
+          mac: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          interface?: string
+          ip: string
+          mac: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          interface?: string
+          ip?: string
+          mac?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dns_filter_profiles: {
+        Row: {
+          blocked_categories: number
+          comment: string
+          created_at: string
+          domain_filter: boolean
+          enabled: boolean
+          fortiguard_category: boolean
+          id: string
+          log_all_domains: boolean
+          name: string
+          references_count: number
+          safe_search: boolean
+          updated_at: string
+          youtube_restrict: boolean
+        }
+        Insert: {
+          blocked_categories?: number
+          comment?: string
+          created_at?: string
+          domain_filter?: boolean
+          enabled?: boolean
+          fortiguard_category?: boolean
+          id?: string
+          log_all_domains?: boolean
+          name: string
+          references_count?: number
+          safe_search?: boolean
+          updated_at?: string
+          youtube_restrict?: boolean
+        }
+        Update: {
+          blocked_categories?: number
+          comment?: string
+          created_at?: string
+          domain_filter?: boolean
+          enabled?: boolean
+          fortiguard_category?: boolean
+          id?: string
+          log_all_domains?: boolean
+          name?: string
+          references_count?: number
+          safe_search?: boolean
+          updated_at?: string
+          youtube_restrict?: boolean
+        }
+        Relationships: []
+      }
+      dns_forward_zones: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          name: string
+          servers: string[]
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name: string
+          servers?: string[]
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          servers?: string[]
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dns_local_records: {
+        Row: {
+          address: string
+          created_at: string
+          domain: string
+          enabled: boolean
+          hostname: string
+          id: string
+          ttl: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string
+          created_at?: string
+          domain?: string
+          enabled?: boolean
+          hostname: string
+          id?: string
+          ttl?: number
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          domain?: string
+          enabled?: boolean
+          hostname?: string
+          id?: string
+          ttl?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       firewall_rules: {
         Row: {
           action: string
@@ -80,6 +521,102 @@ export type Database = {
           source_type?: string
           source_value?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      ids_signatures: {
+        Row: {
+          action: string
+          category: string
+          created_at: string
+          cve: string | null
+          description: string
+          enabled: boolean
+          hits: number
+          id: string
+          last_hit: string | null
+          name: string
+          severity: string
+          sid: number
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          category?: string
+          created_at?: string
+          cve?: string | null
+          description?: string
+          enabled?: boolean
+          hits?: number
+          id?: string
+          last_hit?: string | null
+          name: string
+          severity?: string
+          sid: number
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          category?: string
+          created_at?: string
+          cve?: string | null
+          description?: string
+          enabled?: boolean
+          hits?: number
+          id?: string
+          last_hit?: string | null
+          name?: string
+          severity?: string
+          sid?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ip_pools: {
+        Row: {
+          arp_reply: boolean
+          associated_interface: string
+          comments: string
+          created_at: string
+          enabled: boolean
+          end_ip: string
+          id: string
+          name: string
+          start_ip: string
+          total_ips: number
+          type: string
+          updated_at: string
+          used_ips: number
+        }
+        Insert: {
+          arp_reply?: boolean
+          associated_interface?: string
+          comments?: string
+          created_at?: string
+          enabled?: boolean
+          end_ip?: string
+          id?: string
+          name: string
+          start_ip?: string
+          total_ips?: number
+          type?: string
+          updated_at?: string
+          used_ips?: number
+        }
+        Update: {
+          arp_reply?: boolean
+          associated_interface?: string
+          comments?: string
+          created_at?: string
+          enabled?: boolean
+          end_ip?: string
+          id?: string
+          name?: string
+          start_ip?: string
+          total_ips?: number
+          type?: string
+          updated_at?: string
+          used_ips?: number
         }
         Relationships: []
       }
@@ -194,6 +731,51 @@ export type Database = {
         }
         Relationships: []
       }
+      policy_routes: {
+        Row: {
+          comment: string
+          created_at: string
+          destination: string
+          gateway: string
+          id: string
+          incoming: string
+          out_interface: string
+          protocol: string
+          seq: number
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string
+          created_at?: string
+          destination?: string
+          gateway?: string
+          id?: string
+          incoming?: string
+          out_interface?: string
+          protocol?: string
+          seq?: number
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          destination?: string
+          gateway?: string
+          id?: string
+          incoming?: string
+          out_interface?: string
+          protocol?: string
+          seq?: number
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -221,6 +803,243 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      schedules: {
+        Row: {
+          created_at: string
+          days: number[]
+          description: string
+          enabled: boolean
+          end_time: string
+          id: string
+          name: string
+          start_time: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          days?: number[]
+          description?: string
+          enabled?: boolean
+          end_time?: string
+          id?: string
+          name: string
+          start_time?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          days?: number[]
+          description?: string
+          enabled?: boolean
+          end_time?: string
+          id?: string
+          name?: string
+          start_time?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          category: string
+          comment: string
+          created_at: string
+          dest_ports: string
+          id: string
+          is_system: boolean
+          name: string
+          protocol: string
+          references_count: number
+          source_ports: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          comment?: string
+          created_at?: string
+          dest_ports?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          protocol?: string
+          references_count?: number
+          source_ports?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          comment?: string
+          created_at?: string
+          dest_ports?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          protocol?: string
+          references_count?: number
+          source_ports?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ssl_inspection_profiles: {
+        Row: {
+          ca_certificate: string
+          comment: string
+          created_at: string
+          enabled: boolean
+          expired_cert_action: string
+          ftps_enabled: boolean
+          https_enabled: boolean
+          id: string
+          imaps_enabled: boolean
+          inspection_mode: string
+          name: string
+          pop3s_enabled: boolean
+          references_count: number
+          smtps_enabled: boolean
+          untrusted_cert_action: string
+          updated_at: string
+        }
+        Insert: {
+          ca_certificate?: string
+          comment?: string
+          created_at?: string
+          enabled?: boolean
+          expired_cert_action?: string
+          ftps_enabled?: boolean
+          https_enabled?: boolean
+          id?: string
+          imaps_enabled?: boolean
+          inspection_mode?: string
+          name: string
+          pop3s_enabled?: boolean
+          references_count?: number
+          smtps_enabled?: boolean
+          untrusted_cert_action?: string
+          updated_at?: string
+        }
+        Update: {
+          ca_certificate?: string
+          comment?: string
+          created_at?: string
+          enabled?: boolean
+          expired_cert_action?: string
+          ftps_enabled?: boolean
+          https_enabled?: boolean
+          id?: string
+          imaps_enabled?: boolean
+          inspection_mode?: string
+          name?: string
+          pop3s_enabled?: boolean
+          references_count?: number
+          smtps_enabled?: boolean
+          untrusted_cert_action?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      static_routes: {
+        Row: {
+          comment: string
+          created_at: string
+          destination: string
+          distance: number
+          gateway: string
+          id: string
+          interface: string
+          priority: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string
+          created_at?: string
+          destination: string
+          distance?: number
+          gateway: string
+          id?: string
+          interface?: string
+          priority?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          destination?: string
+          distance?: number
+          gateway?: string
+          id?: string
+          interface?: string
+          priority?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      system_metrics: {
+        Row: {
+          cpu_cores: number
+          cpu_temperature: number
+          cpu_usage: number
+          disk_free: number
+          disk_total: number
+          disk_used: number
+          hostname: string
+          id: string
+          load_15m: number
+          load_1m: number
+          load_5m: number
+          memory_cached: number
+          memory_free: number
+          memory_total: number
+          memory_used: number
+          recorded_at: string
+          uptime: number
+        }
+        Insert: {
+          cpu_cores?: number
+          cpu_temperature?: number
+          cpu_usage?: number
+          disk_free?: number
+          disk_total?: number
+          disk_used?: number
+          hostname?: string
+          id?: string
+          load_15m?: number
+          load_1m?: number
+          load_5m?: number
+          memory_cached?: number
+          memory_free?: number
+          memory_total?: number
+          memory_used?: number
+          recorded_at?: string
+          uptime?: number
+        }
+        Update: {
+          cpu_cores?: number
+          cpu_temperature?: number
+          cpu_usage?: number
+          disk_free?: number
+          disk_total?: number
+          disk_used?: number
+          hostname?: string
+          id?: string
+          load_15m?: number
+          load_1m?: number
+          load_5m?: number
+          memory_cached?: number
+          memory_free?: number
+          memory_total?: number
+          memory_used?: number
+          recorded_at?: string
+          uptime?: number
         }
         Relationships: []
       }
@@ -302,6 +1121,138 @@ export type Database = {
         }
         Relationships: []
       }
+      traffic_shapers: {
+        Row: {
+          burst_bandwidth: number
+          created_at: string
+          current_usage: number
+          diffserv_forward: boolean
+          enabled: boolean
+          guaranteed_bandwidth: number
+          id: string
+          maximum_bandwidth: number
+          name: string
+          per_policy: boolean
+          priority: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          burst_bandwidth?: number
+          created_at?: string
+          current_usage?: number
+          diffserv_forward?: boolean
+          enabled?: boolean
+          guaranteed_bandwidth?: number
+          id?: string
+          maximum_bandwidth?: number
+          name: string
+          per_policy?: boolean
+          priority?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          burst_bandwidth?: number
+          created_at?: string
+          current_usage?: number
+          diffserv_forward?: boolean
+          enabled?: boolean
+          guaranteed_bandwidth?: number
+          id?: string
+          maximum_bandwidth?: number
+          name?: string
+          per_policy?: boolean
+          priority?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      traffic_shaping_policies: {
+        Row: {
+          application: string
+          bytes: number
+          created_at: string
+          destination: string
+          dst_interface: string
+          enabled: boolean
+          id: string
+          matches: number
+          name: string
+          per_ip_shaper: string
+          reverse_shaper: string
+          service: string
+          source: string
+          src_interface: string
+          traffic_shaper: string
+          updated_at: string
+        }
+        Insert: {
+          application?: string
+          bytes?: number
+          created_at?: string
+          destination?: string
+          dst_interface?: string
+          enabled?: boolean
+          id?: string
+          matches?: number
+          name: string
+          per_ip_shaper?: string
+          reverse_shaper?: string
+          service?: string
+          source?: string
+          src_interface?: string
+          traffic_shaper?: string
+          updated_at?: string
+        }
+        Update: {
+          application?: string
+          bytes?: number
+          created_at?: string
+          destination?: string
+          dst_interface?: string
+          enabled?: boolean
+          id?: string
+          matches?: number
+          name?: string
+          per_ip_shaper?: string
+          reverse_shaper?: string
+          service?: string
+          source?: string
+          src_interface?: string
+          traffic_shaper?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      traffic_stats: {
+        Row: {
+          blocked: number
+          id: string
+          inbound: number
+          interface: string
+          outbound: number
+          recorded_at: string
+        }
+        Insert: {
+          blocked?: number
+          id?: string
+          inbound?: number
+          interface?: string
+          outbound?: number
+          recorded_at?: string
+        }
+        Update: {
+          blocked?: number
+          id?: string
+          inbound?: number
+          interface?: string
+          outbound?: number
+          recorded_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -320,6 +1271,57 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      virtual_ips: {
+        Row: {
+          comments: string
+          created_at: string
+          enabled: boolean
+          external_ip: string
+          external_port: string
+          id: string
+          interface: string
+          mapped_ip: string
+          mapped_port: string
+          name: string
+          protocol: string
+          sessions: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          comments?: string
+          created_at?: string
+          enabled?: boolean
+          external_ip?: string
+          external_port?: string
+          id?: string
+          interface?: string
+          mapped_ip?: string
+          mapped_port?: string
+          name: string
+          protocol?: string
+          sessions?: number
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          comments?: string
+          created_at?: string
+          enabled?: boolean
+          external_ip?: string
+          external_port?: string
+          id?: string
+          interface?: string
+          mapped_ip?: string
+          mapped_port?: string
+          name?: string
+          protocol?: string
+          sessions?: number
+          type?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -365,6 +1367,78 @@ export type Database = {
           type?: string
           updated_at?: string
           uptime?: number | null
+        }
+        Relationships: []
+      }
+      web_filter_profiles: {
+        Row: {
+          action: string
+          comment: string
+          created_at: string
+          id: string
+          mode: string
+          name: string
+          safe_search: boolean
+          updated_at: string
+          url_filtering: boolean
+        }
+        Insert: {
+          action?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          name: string
+          safe_search?: boolean
+          updated_at?: string
+          url_filtering?: boolean
+        }
+        Update: {
+          action?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          name?: string
+          safe_search?: boolean
+          updated_at?: string
+          url_filtering?: boolean
+        }
+        Relationships: []
+      }
+      wildcard_fqdns: {
+        Row: {
+          comment: string
+          created_at: string
+          fqdn: string
+          id: string
+          interface: string
+          name: string
+          references_count: number
+          updated_at: string
+          visibility: boolean
+        }
+        Insert: {
+          comment?: string
+          created_at?: string
+          fqdn: string
+          id?: string
+          interface?: string
+          name: string
+          references_count?: number
+          updated_at?: string
+          visibility?: boolean
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          fqdn?: string
+          id?: string
+          interface?: string
+          name?: string
+          references_count?: number
+          updated_at?: string
+          visibility?: boolean
         }
         Relationships: []
       }
