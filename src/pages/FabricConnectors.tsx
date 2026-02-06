@@ -59,9 +59,9 @@ const mockConnectors: FabricConnector[] = [
   },
   {
     id: '4',
-    name: 'FortiGuard-Feed',
+    name: 'Aegis Guard Feed',
     type: 'threat-feed',
-    provider: 'FortiGuard',
+    provider: 'Aegis Guard',
     status: 'connected',
     lastSync: '30 sec ago',
     enabled: true,

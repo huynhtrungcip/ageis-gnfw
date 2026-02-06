@@ -108,7 +108,7 @@ const mockPortals: SSLVPNPortal[] = [
 const mockSettings: SSLVPNSettings = {
   listenPort: 443,
   listenInterface: 'wan1',
-  serverCertificate: 'Fortinet_Factory',
+  serverCertificate: 'Aegis_Factory',
   idleTimeout: 300,
   authTimeout: 30,
   dnsServer1: '8.8.8.8',
@@ -510,7 +510,7 @@ const SSLVPNConfig = () => {
                   checked={formData.forticlientDownload}
                   onCheckedChange={(checked) => setFormData({ ...formData, forticlientDownload: !!checked })}
                 />
-                <Label htmlFor="forticlientDownload" className="text-sm">Allow FortiClient Download</Label>
+                <Label htmlFor="forticlientDownload" className="text-sm">Allow Aegis Client Download</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox

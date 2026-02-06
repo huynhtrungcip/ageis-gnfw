@@ -114,7 +114,7 @@ const mockSystemConfig = {
     { id: 'ldap-1', name: 'Corp AD', server: 'ldap.corp.local', port: 389, baseDN: 'dc=corp,dc=local' },
   ],
   certificates: [
-    { id: 'cert-1', name: 'Fortinet_Factory', type: 'local', expiry: '2025-12-31' },
+    { id: 'cert-1', name: 'Aegis_Factory', type: 'local', expiry: '2025-12-31' },
   ],
   securityProfiles: {
     antivirus: { enabled: true, action: 'block' },

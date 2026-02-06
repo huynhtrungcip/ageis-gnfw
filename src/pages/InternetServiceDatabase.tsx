@@ -52,7 +52,7 @@ const mockCategories: ServiceCategory[] = [
     count: 3,
     expanded: false,
     services: [
-      { id: '10', name: 'FortiGuard', category: 'Security', protocol: 'TCP', ports: '443,8888', ipCount: 156, icon: '🛡️', isFavorite: true },
+      { id: '10', name: 'Aegis Guard', category: 'Security', protocol: 'TCP', ports: '443,8888', ipCount: 156, icon: '🛡️', isFavorite: true },
       { id: '11', name: 'Symantec', category: 'Security', protocol: 'TCP', ports: '443', ipCount: 89, icon: '🛡️', isFavorite: false },
       { id: '12', name: 'McAfee', category: 'Security', protocol: 'TCP', ports: '443', ipCount: 67, icon: '🛡️', isFavorite: false },
     ]

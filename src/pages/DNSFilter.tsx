@@ -300,7 +300,7 @@ const DNSFilter = () => {
                 </th>
                 <th className="w-16">Status</th>
                 <th>Name</th>
-                <th>FortiGuard</th>
+                <th>Aegis Guard</th>
                 <th>Safe Search</th>
                 <th>YouTube Restrict</th>
                 <th>Blocked Categories</th>
@@ -431,7 +431,7 @@ const DNSFilter = () => {
                   checked={formData.fortiGuardCategory}
                   onCheckedChange={(checked) => setFormData({ ...formData, fortiGuardCategory: !!checked })}
                 />
-                <Label htmlFor="fortiGuardCategory" className="text-sm">FortiGuard Category Filtering</Label>
+                <Label htmlFor="fortiGuardCategory" className="text-sm">Aegis Guard Category Filtering</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
