@@ -24,7 +24,22 @@ interface WildcardFQDNItem {
 // Data loaded from database via useWildcardFQDNs hook
 
 const WildcardFQDN = () => {
-  const [fqdns, setFqdns] = useState<WildcardFQDNItem[]>(initialFQDNs);
+  const { data: dbFqdns, refetch } = useWildcardFQDNs();
+  const [fqdns, setFqdns] = useState<WildcardFQDNItem[]>([]);
+
+  useEffect(() => {
+    if (dbFqdns) {
+      setFqdns(dbFqdns.map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        fqdn: f.fqdn,
+        interface: f.interface,
+        comment: f.comment || '',
+        visibility: f.visibility,
+        references: f.references_count || 0,
+      })));
+    }
+  }, [dbFqdns]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
@@ -127,7 +142,7 @@ const WildcardFQDN = () => {
   };
 
   const handleRefresh = () => {
-    setFqdns([...initialFQDNs]);
+    refetch();
     setSelectedIds([]);
     setSearchQuery('');
     toast.success('Data refreshed');
