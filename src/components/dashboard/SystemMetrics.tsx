@@ -1,31 +1,33 @@
-import { mockSystemStatus } from '@/data/mockData';
+import { useLatestMetrics } from '@/hooks/useDashboardData';
+import { cn } from '@/lib/utils';
 
 export function SystemMetrics() {
-  const { cpu, memory, disk } = mockSystemStatus;
+  const { data: m } = useLatestMetrics();
   
-  const memoryPercent = Math.round((memory.used / memory.total) * 100);
-  const diskPercent = Math.round((disk.used / disk.total) * 100);
+  const cpuUsage = m?.cpu_usage ?? 0;
+  const memoryPercent = m ? Math.round((m.memory_used / m.memory_total) * 100) : 0;
+  const diskPercent = m ? Math.round((m.disk_used / m.disk_total) * 100) : 0;
 
   const metrics = [
     { 
       label: 'CPU Usage', 
-      value: cpu.usage, 
+      value: cpuUsage, 
       unit: '%', 
-      subtext: `${cpu.cores} Cores • ${cpu.temperature}°C`,
-      color: cpu.usage > 80 ? 'var(--status-danger)' : cpu.usage > 60 ? 'var(--status-warning)' : 'var(--status-success)'
+      subtext: m ? `${m.cpu_cores} Cores • ${m.cpu_temperature}°C` : '—',
+      color: cpuUsage > 80 ? 'var(--status-danger)' : cpuUsage > 60 ? 'var(--status-warning)' : 'var(--status-success)'
     },
     { 
       label: 'Memory', 
       value: memoryPercent, 
       unit: '%', 
-      subtext: `${(memory.used / 1024).toFixed(1)} / ${(memory.total / 1024).toFixed(1)} GB`,
+      subtext: m ? `${(m.memory_used / 1024).toFixed(1)} / ${(m.memory_total / 1024).toFixed(1)} GB` : '—',
       color: memoryPercent > 80 ? 'var(--status-danger)' : memoryPercent > 60 ? 'var(--status-warning)' : 'var(--status-success)'
     },
     { 
       label: 'Disk', 
       value: diskPercent, 
       unit: '%', 
-      subtext: `${(disk.used / 1024).toFixed(0)} / ${(disk.total / 1024).toFixed(0)} GB`,
+      subtext: m ? `${(m.disk_used / 1024).toFixed(0)} / ${(m.disk_total / 1024).toFixed(0)} GB` : '—',
       color: diskPercent > 80 ? 'var(--status-danger)' : diskPercent > 60 ? 'var(--status-warning)' : 'var(--status-success)'
     },
   ];
