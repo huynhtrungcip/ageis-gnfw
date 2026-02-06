@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AegisLogo } from '@/components/layout/AegisLogo';
-import { Eye, EyeOff, Shield, Lock, Mail, User } from 'lucide-react';
+import { Eye, EyeOff, Shield, Lock, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -11,25 +11,15 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Mật khẩu tối thiểu 6 ký tự').max(128),
 });
 
-const signupSchema = loginSchema.extend({
-  fullName: z.string().trim().min(1, 'Tên không được để trống').max(100),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: 'Mật khẩu xác nhận không khớp',
-  path: ['confirmPassword'],
-});
 
 export default function Auth() {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('admin@aegis.local');
+  const [password, setPassword] = useState('Admin123!');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
@@ -44,57 +34,31 @@ export default function Auth() {
     setSubmitting(true);
 
     try {
-      if (mode === 'login') {
-        const parsed = loginSchema.safeParse({ email, password });
-        if (!parsed.success) {
-          const fieldErrors: Record<string, string> = {};
-          parsed.error.errors.forEach(err => {
-            if (err.path[0]) fieldErrors[err.path[0] as string] = err.message;
-          });
-          setErrors(fieldErrors);
-          setSubmitting(false);
-          return;
-        }
-
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login')) {
-            toast.error('Email hoặc mật khẩu không chính xác');
-          } else if (error.message.includes('Email not confirmed')) {
-            toast.error('Vui lòng xác nhận email trước khi đăng nhập');
-          } else {
-            toast.error(error.message);
-          }
-          setSubmitting(false);
-          return;
-        }
-        toast.success('Đăng nhập thành công');
-        navigate('/', { replace: true });
-      } else {
-        const parsed = signupSchema.safeParse({ email, password, confirmPassword, fullName });
-        if (!parsed.success) {
-          const fieldErrors: Record<string, string> = {};
-          parsed.error.errors.forEach(err => {
-            if (err.path[0]) fieldErrors[err.path[0] as string] = err.message;
-          });
-          setErrors(fieldErrors);
-          setSubmitting(false);
-          return;
-        }
-
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('Email này đã được đăng ký');
-          } else {
-            toast.error(error.message);
-          }
-          setSubmitting(false);
-          return;
-        }
-        toast.success('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.');
-        setMode('login');
+      const parsed = loginSchema.safeParse({ email, password });
+      if (!parsed.success) {
+        const fieldErrors: Record<string, string> = {};
+        parsed.error.errors.forEach(err => {
+          if (err.path[0]) fieldErrors[err.path[0] as string] = err.message;
+        });
+        setErrors(fieldErrors);
+        setSubmitting(false);
+        return;
       }
+
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Invalid login')) {
+          toast.error('Email hoặc mật khẩu không chính xác');
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error('Vui lòng xác nhận email trước khi đăng nhập');
+        } else {
+          toast.error(error.message);
+        }
+        setSubmitting(false);
+        return;
+      }
+      toast.success('Đăng nhập thành công');
+      navigate('/', { replace: true });
     } catch (err) {
       toast.error('Có lỗi xảy ra, vui lòng thử lại');
     } finally {
@@ -120,51 +84,14 @@ export default function Auth() {
 
         {/* Card */}
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl overflow-hidden">
-          {/* Tab header */}
-          <div className="flex border-b border-white/10">
-            <button
-              onClick={() => { setMode('login'); setErrors({}); }}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                mode === 'login'
-                  ? 'text-emerald-400 border-b-2 border-emerald-400 bg-white/5'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              <Lock className="w-3.5 h-3.5 inline mr-1.5" />
-              Đăng nhập
-            </button>
-            <button
-              onClick={() => { setMode('signup'); setErrors({}); }}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                mode === 'signup'
-                  ? 'text-emerald-400 border-b-2 border-emerald-400 bg-white/5'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
-            >
-              <User className="w-3.5 h-3.5 inline mr-1.5" />
-              Đăng ký
-            </button>
+          {/* Header */}
+          <div className="flex items-center gap-2 px-6 py-3 border-b border-white/10 bg-white/5">
+            <Lock className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-sm font-medium text-emerald-400">Đăng nhập hệ thống</span>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {mode === 'signup' && (
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Họ và tên</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={e => setFullName(e.target.value)}
-                    placeholder="Nguyễn Văn A"
-                    className="w-full pl-10 pr-3 py-2.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
-                  />
-                </div>
-                {errors.fullName && <p className="text-xs text-red-400 mt-1">{errors.fullName}</p>}
-              </div>
-            )}
-
             <div>
               <label className="text-xs text-gray-400 mb-1 block">Email</label>
               <div className="relative">
@@ -191,7 +118,7 @@ export default function Auth() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full pl-10 pr-10 py-2.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
-                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -204,23 +131,11 @@ export default function Auth() {
               {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password}</p>}
             </div>
 
-            {mode === 'signup' && (
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">Xác nhận mật khẩu</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-3 py-2.5 bg-white/5 border border-white/10 rounded text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
-                    autoComplete="new-password"
-                  />
-                </div>
-                {errors.confirmPassword && <p className="text-xs text-red-400 mt-1">{errors.confirmPassword}</p>}
-              </div>
-            )}
+            <div className="text-xs text-gray-500 bg-white/5 border border-white/10 rounded p-3">
+              <p className="font-medium text-gray-400 mb-1">Thông tin đăng nhập mặc định:</p>
+              <p>Email: <span className="text-emerald-400 font-mono">admin@aegis.local</span></p>
+              <p>Mật khẩu: <span className="text-emerald-400 font-mono">Admin123!</span></p>
+            </div>
 
             <button
               type="submit"
@@ -232,7 +147,7 @@ export default function Auth() {
               ) : (
                 <Shield className="w-4 h-4" />
               )}
-              {mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}
+              Đăng nhập
             </button>
           </form>
         </div>
