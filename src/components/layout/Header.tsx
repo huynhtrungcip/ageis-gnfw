@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Bell, 
@@ -98,7 +99,10 @@ export function Header() {
     { id: 4, type: 'low', message: 'Backup completed successfully', time: '3h ago', link: '/system/full-backup' },
   ]);
 
-  const handleLogout = () => {
+  const { signOut, user, roles } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
     toast.success('Logged out successfully');
   };
 
@@ -255,7 +259,7 @@ export function Header() {
               <div className="w-5 h-5 rounded-full bg-[#4caf50] flex items-center justify-center">
                 <User size={10} className="text-white" />
               </div>
-              <span className="text-[11px] text-white">admin</span>
+              <span className="text-[11px] text-white">{user?.email?.split('@')[0] || 'admin'}</span>
               <ChevronDown size={10} className="text-gray-400" />
             </button>
           </DropdownMenuTrigger>
