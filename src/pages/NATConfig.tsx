@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockNATRules } from '@/data/mockData';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { NATRule } from '@/types/firewall';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { ChevronDown, Plus, Edit2, Trash2, RefreshCw, Search, ArrowRightLeft, Globe, Network } from 'lucide-react';
 
 const NATConfig = () => {
-  const [rules, setRules] = useState<NATRule[]>(mockNATRules);
+  const { demoMode } = useDemoMode();
+  const [rules, setRules] = useState<NATRule[]>(demoMode ? mockNATRules : []);
   const [activeTab, setActiveTab] = useState<'port-forward' | 'outbound' | '1:1' | 'npt'>('port-forward');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
 

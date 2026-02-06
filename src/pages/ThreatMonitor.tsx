@@ -2,24 +2,27 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Shell } from '@/components/layout/Shell';
 import { mockThreats } from '@/data/mockData';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { Download, ChevronRight, RefreshCw, Filter, Search } from 'lucide-react';
 
 const ThreatMonitor = () => {
+  const { demoMode } = useDemoMode();
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
 
+  const threats = demoMode ? mockThreats : [];
   const severities = ['all', 'critical', 'high', 'medium', 'low'];
   
   const filteredThreats = selectedSeverity === 'all' 
-    ? mockThreats 
-    : mockThreats.filter(t => t.severity === selectedSeverity);
+    ? threats 
+    : threats.filter(t => t.severity === selectedSeverity);
 
   // Summary counts
   const counts = {
-    critical: mockThreats.filter(t => t.severity === 'critical').length,
-    high: mockThreats.filter(t => t.severity === 'high').length,
-    medium: mockThreats.filter(t => t.severity === 'medium').length,
-    low: mockThreats.filter(t => t.severity === 'low').length,
+    critical: threats.filter(t => t.severity === 'critical').length,
+    high: threats.filter(t => t.severity === 'high').length,
+    medium: threats.filter(t => t.severity === 'medium').length,
+    low: threats.filter(t => t.severity === 'low').length,
   };
 
   const formatTime = (date: Date) => {
@@ -118,7 +121,7 @@ const ThreatMonitor = () => {
           </div>
           <div className="flex-1" />
           <span className="text-[11px] text-[#666]">
-            Showing {filteredThreats.length} of {mockThreats.length} events
+            Showing {filteredThreats.length} of {threats.length} events
           </span>
         </div>
 

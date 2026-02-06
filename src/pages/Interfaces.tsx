@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockInterfaces } from '@/data/mockData';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { 
   Plus, 
@@ -77,7 +78,8 @@ const extendInterfaces = (ifaces: NetworkInterface[]): ExtendedInterface[] => {
 };
 
 const Interfaces = () => {
-  const [interfaces, setInterfaces] = useState<ExtendedInterface[]>(extendInterfaces(mockInterfaces));
+  const { demoMode } = useDemoMode();
+  const [interfaces, setInterfaces] = useState<ExtendedInterface[]>(demoMode ? extendInterfaces(mockInterfaces) : []);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);

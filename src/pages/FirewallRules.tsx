@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockFirewallRules } from '@/data/mockData';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
@@ -145,7 +146,8 @@ function SortableRow({ rule, index, isSelected, onSelect, onEdit, onToggle, form
 }
 
 const FirewallRules = () => {
-  const [rules, setRules] = useState(mockFirewallRules);
+  const { demoMode } = useDemoMode();
+  const [rules, setRules] = useState(demoMode ? mockFirewallRules : []);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);

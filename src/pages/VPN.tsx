@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockVPNTunnels } from '@/data/mockData';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
@@ -144,11 +145,12 @@ const SortableTunnelRow = ({ tunnel, selectedRows, toggleRowSelection, handleCon
 };
 
 const VPN = () => {
-  const [tunnels, setTunnels] = useState<VPNTunnel[]>(mockVPNTunnels.map(t => ({
+  const { demoMode } = useDemoMode();
+  const [tunnels, setTunnels] = useState<VPNTunnel[]>(demoMode ? mockVPNTunnels.map(t => ({
     ...t,
     phase1: 'aes256-sha256-modp2048',
     phase2: 'aes256-sha256',
-  })));
+  })) : []);
   const [activeTab, setActiveTab] = useState<'ipsec' | 'monitor'>('ipsec');
   const [search, setSearch] = useState('');
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
