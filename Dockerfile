@@ -18,9 +18,7 @@ RUN npm install --frozen-lockfile
 COPY . .
 
 # Build args for backend URL (injected at build time)
-ARG VITE_SUPABASE_URL=""
-ARG VITE_SUPABASE_PUBLISHABLE_KEY=""
-ARG VITE_API_URL=""
+ARG VITE_API_URL="/api"
 
 # Build the application
 RUN npm run build
