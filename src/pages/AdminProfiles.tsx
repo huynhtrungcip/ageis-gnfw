@@ -2,169 +2,129 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { 
-  Users,
-  Plus,
-  RefreshCw,
-  Search,
-  Edit,
-  Trash2,
-  Shield,
-  Key,
-  Eye,
-  Clock,
-  CheckCircle,
-  XCircle,
-  FileText,
-  Settings,
-  Copy
+  Users, Plus, RefreshCw, Search, Edit, Trash2, Shield, Key, Eye,
+  Clock, CheckCircle, XCircle, FileText, Settings, Copy
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FortiToggle } from '@/components/ui/forti-toggle';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import type { Database } from '@/integrations/supabase/types';
 
-// Admin Profile Interface
-interface AdminProfile {
-  id: string;
-  name: string;
-  description: string;
-  scope: 'super_admin' | 'read_write' | 'read_only' | 'custom';
-  users: number;
-  permissions: {
-    dashboard: boolean;
-    network: boolean;
-    firewall: boolean;
-    vpn: boolean;
-    security: boolean;
-    users: boolean;
-    system: boolean;
-    logs: boolean;
-  };
-  createdAt: string;
-  isDefault: boolean;
+type AppRole = Database['public']['Enums']['app_role'];
+
+// Fetch all admins: profiles joined with their roles
+async function fetchAdminUsers() {
+  const { data: roles, error: rolesErr } = await supabase
+    .from('user_roles')
+    .select('user_id, role, created_at');
+  if (rolesErr) throw rolesErr;
+
+  const userIds = [...new Set(roles?.map(r => r.user_id) ?? [])];
+  if (userIds.length === 0) return [];
+
+  const { data: profiles, error: profErr } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('user_id', userIds);
+  if (profErr) throw profErr;
+
+  const profileMap = new Map((profiles ?? []).map(p => [p.user_id, p]));
+
+  // Group roles by user
+  const userMap = new Map<string, { profile: typeof profiles extends (infer T)[] ? T : never; roles: AppRole[]; createdAt: string }>();
+  for (const r of roles ?? []) {
+    if (!userMap.has(r.user_id)) {
+      userMap.set(r.user_id, {
+        profile: profileMap.get(r.user_id)!,
+        roles: [],
+        createdAt: r.created_at,
+      });
+    }
+    userMap.get(r.user_id)!.roles.push(r.role);
+  }
+
+  return Array.from(userMap.values());
 }
 
-const mockProfiles: AdminProfile[] = [
-  { 
-    id: 'prof-1', 
-    name: 'super_admin', 
-    description: 'Full administrative access to all features', 
-    scope: 'super_admin', 
-    users: 2,
-    permissions: { dashboard: true, network: true, firewall: true, vpn: true, security: true, users: true, system: true, logs: true },
-    createdAt: '2024-01-01',
-    isDefault: true
-  },
-  { 
-    id: 'prof-2', 
-    name: 'network_admin', 
-    description: 'Network configuration and monitoring', 
-    scope: 'custom', 
-    users: 3,
-    permissions: { dashboard: true, network: true, firewall: true, vpn: true, security: false, users: false, system: false, logs: true },
-    createdAt: '2024-01-05',
-    isDefault: false
-  },
-  { 
-    id: 'prof-3', 
-    name: 'security_analyst', 
-    description: 'Security monitoring and threat analysis', 
-    scope: 'custom', 
-    users: 4,
-    permissions: { dashboard: true, network: false, firewall: false, vpn: false, security: true, users: false, system: false, logs: true },
-    createdAt: '2024-01-10',
-    isDefault: false
-  },
-  { 
-    id: 'prof-4', 
-    name: 'read_only', 
-    description: 'View-only access for auditors', 
-    scope: 'read_only', 
-    users: 5,
-    permissions: { dashboard: true, network: false, firewall: false, vpn: false, security: false, users: false, system: false, logs: true },
-    createdAt: '2024-01-15',
-    isDefault: true
-  },
-];
-
-// Audit Log Interface
-interface AuditLog {
-  id: string;
-  timestamp: Date;
-  user: string;
-  action: 'login' | 'logout' | 'config_change' | 'policy_change' | 'user_create' | 'user_delete' | 'failed_login';
-  resource: string;
-  details: string;
-  ipAddress: string;
-  status: 'success' | 'failed';
+async function fetchAuditLogs(limit = 50) {
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data ?? [];
 }
 
-const mockAuditLogs: AuditLog[] = [
-  { id: 'log-1', timestamp: new Date(Date.now() - 300000), user: 'admin', action: 'config_change', resource: 'Firewall Rule #12', details: 'Modified source address', ipAddress: '192.168.1.100', status: 'success' },
-  { id: 'log-2', timestamp: new Date(Date.now() - 600000), user: 'john.doe', action: 'login', resource: 'Web UI', details: 'Successful login', ipAddress: '10.0.0.50', status: 'success' },
-  { id: 'log-3', timestamp: new Date(Date.now() - 900000), user: 'unknown', action: 'failed_login', resource: 'Web UI', details: 'Invalid credentials (3 attempts)', ipAddress: '203.0.113.45', status: 'failed' },
-  { id: 'log-4', timestamp: new Date(Date.now() - 1200000), user: 'admin', action: 'policy_change', resource: 'IPS Profile', details: 'Enabled Log4j signature', ipAddress: '192.168.1.100', status: 'success' },
-  { id: 'log-5', timestamp: new Date(Date.now() - 1800000), user: 'jane.smith', action: 'user_create', resource: 'User Management', details: 'Created user: guest_user', ipAddress: '192.168.1.105', status: 'success' },
-  { id: 'log-6', timestamp: new Date(Date.now() - 3600000), user: 'admin', action: 'logout', resource: 'Web UI', details: 'Session ended', ipAddress: '192.168.1.100', status: 'success' },
-  { id: 'log-7', timestamp: new Date(Date.now() - 7200000), user: 'network_admin', action: 'config_change', resource: 'Interface port1', details: 'Changed IP address', ipAddress: '192.168.1.110', status: 'success' },
-];
+const roleColors: Record<string, string> = {
+  super_admin: 'bg-red-100 text-red-700 border-red-200',
+  admin: 'bg-orange-100 text-orange-700 border-orange-200',
+  operator: 'bg-blue-100 text-blue-700 border-blue-200',
+  auditor: 'bg-gray-100 text-gray-600 border-gray-200',
+};
 
-// Permission categories
-const permissionCategories = [
-  { key: 'dashboard', label: 'Dashboard', icon: Eye },
-  { key: 'network', label: 'Network', icon: Settings },
-  { key: 'firewall', label: 'Firewall', icon: Shield },
-  { key: 'vpn', label: 'VPN', icon: Key },
-  { key: 'security', label: 'Security Profiles', icon: Shield },
-  { key: 'users', label: 'User Management', icon: Users },
-  { key: 'system', label: 'System', icon: Settings },
-  { key: 'logs', label: 'Logs & Reports', icon: FileText },
-];
+const actionColors: Record<string, string> = {
+  login: 'bg-green-100 text-green-700 border-green-200',
+  logout: 'bg-gray-100 text-gray-600 border-gray-200',
+  config_change: 'bg-blue-100 text-blue-700 border-blue-200',
+  policy_change: 'bg-purple-100 text-purple-700 border-purple-200',
+  user_create: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+  user_delete: 'bg-orange-100 text-orange-700 border-orange-200',
+  failed_login: 'bg-red-100 text-red-700 border-red-200',
+};
 
 const AdminProfiles = () => {
-  const [activeTab, setActiveTab] = useState('profiles');
-  const [profiles] = useState<AdminProfile[]>(mockProfiles);
-  const [auditLogs] = useState<AuditLog[]>(mockAuditLogs);
+  const [activeTab, setActiveTab] = useState('users');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const { isAdminOrSuper } = useAuth();
+  const queryClient = useQueryClient();
 
-  // Stats
+  const { data: adminUsers = [], isLoading: loadingUsers } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: fetchAdminUsers,
+  });
+
+  const { data: auditLogs = [], isLoading: loadingLogs } = useQuery({
+    queryKey: ['audit-logs'],
+    queryFn: () => fetchAuditLogs(50),
+  });
+
+  const filteredUsers = adminUsers.filter(u =>
+    !searchQuery || 
+    u.profile?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.profile?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.roles.some(r => r.includes(searchQuery.toLowerCase()))
+  );
+
+  const filteredLogs = auditLogs.filter(l =>
+    !searchQuery ||
+    l.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.resource_type?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const stats = {
-    totalProfiles: profiles.length,
-    totalUsers: profiles.reduce((a, p) => a + p.users, 0),
-    customProfiles: profiles.filter(p => p.scope === 'custom').length,
-    recentLogs: auditLogs.filter(l => l.timestamp.getTime() > Date.now() - 86400000).length,
+    totalUsers: adminUsers.length,
+    superAdmins: adminUsers.filter(u => u.roles.includes('super_admin')).length,
+    admins: adminUsers.filter(u => u.roles.includes('admin')).length,
+    recentLogs: auditLogs.filter(l => new Date(l.created_at).getTime() > Date.now() - 86400000).length,
   };
 
-  const formatTime = (date: Date) => {
-    const diff = Date.now() - date.getTime();
+  const formatTime = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 60) return `${mins}m ago`;
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}h ago`;
-    return date.toLocaleDateString();
+    return new Date(dateStr).toLocaleDateString();
   };
 
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case 'login': return 'bg-green-100 text-green-700 border-green-200';
-      case 'logout': return 'bg-gray-100 text-gray-600 border-gray-200';
-      case 'config_change': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'policy_change': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'user_create': return 'bg-cyan-100 text-cyan-700 border-cyan-200';
-      case 'user_delete': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'failed_login': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-gray-100 text-gray-600 border-gray-200';
-    }
-  };
-
-  const getScopeColor = (scope: string) => {
-    switch (scope) {
-      case 'super_admin': return 'bg-red-100 text-red-700 border-red-200';
-      case 'read_write': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'read_only': return 'bg-gray-100 text-gray-600 border-gray-200';
-      case 'custom': return 'bg-purple-100 text-purple-700 border-purple-200';
-      default: return 'bg-gray-100 text-gray-600 border-gray-200';
-    }
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
+    toast.success('Đã làm mới dữ liệu');
   };
 
   return (
@@ -181,33 +141,29 @@ const AdminProfiles = () => {
 
         {/* Toolbar */}
         <div className="forti-toolbar">
-          <button className="forti-toolbar-btn primary">
-            <Plus size={12} />
-            <span>Create New</span>
-          </button>
-          <button className="forti-toolbar-btn">
-            <Edit size={12} />
-            <span>Edit</span>
-          </button>
-          <button className="forti-toolbar-btn">
-            <Copy size={12} />
-            <span>Clone</span>
-          </button>
-          <button className="forti-toolbar-btn">
-            <Trash2 size={12} />
-            <span>Delete</span>
-          </button>
-          <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          {isAdminOrSuper && (
+            <>
+              <button className="forti-toolbar-btn primary" onClick={() => toast.info('Tạo user mới qua trang User Management')}>
+                <Plus size={12} />
+                <span>Create New</span>
+              </button>
+              <button className="forti-toolbar-btn" onClick={() => toast.info('Chọn user để chỉnh sửa')}>
+                <Edit size={12} />
+                <span>Edit</span>
+              </button>
+              <div className="forti-toolbar-separator" />
+            </>
+          )}
+          <button className="forti-toolbar-btn" onClick={handleRefresh}>
             <RefreshCw size={12} />
             <span>Refresh</span>
           </button>
           <div className="flex-1" />
           <div className="forti-search">
             <Search size={12} className="text-[#999]" />
-            <input 
-              type="text" 
-              placeholder="Search..." 
+            <input
+              type="text"
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -217,23 +173,23 @@ const AdminProfiles = () => {
         {/* Stats Bar */}
         <div className="flex items-center gap-0 border-x border-[#ddd]">
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Shield size={14} className="text-blue-600" />
-            <span className="text-lg font-bold text-blue-600">{stats.totalProfiles}</span>
-            <span className="text-[11px] text-[#666]">Profiles</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Users size={14} className="text-green-600" />
-            <span className="text-lg font-bold text-green-600">{stats.totalUsers}</span>
+            <Users size={14} className="text-blue-600" />
+            <span className="text-lg font-bold text-blue-600">{stats.totalUsers}</span>
             <span className="text-[11px] text-[#666]">Administrators</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Settings size={14} className="text-purple-600" />
-            <span className="text-lg font-bold text-purple-600">{stats.customProfiles}</span>
-            <span className="text-[11px] text-[#666]">Custom Profiles</span>
+            <Shield size={14} className="text-red-600" />
+            <span className="text-lg font-bold text-red-600">{stats.superAdmins}</span>
+            <span className="text-[11px] text-[#666]">Super Admins</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <Key size={14} className="text-orange-600" />
+            <span className="text-lg font-bold text-orange-600">{stats.admins}</span>
+            <span className="text-[11px] text-[#666]">Admins</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <Clock size={14} className="text-orange-600" />
-            <span className="text-lg font-bold text-orange-600">{stats.recentLogs}</span>
+            <Clock size={14} className="text-purple-600" />
+            <span className="text-lg font-bold text-purple-600">{stats.recentLogs}</span>
             <span className="text-[11px] text-[#666]">Events (24h)</span>
           </div>
         </div>
@@ -242,113 +198,88 @@ const AdminProfiles = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="bg-[#f0f0f0] border-x border-b border-[#ddd]">
             <TabsList className="bg-transparent h-auto p-0 rounded-none">
-              <TabsTrigger 
-                value="profiles" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
-              >
-                Admin Profiles
+              <TabsTrigger value="users" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]">
+                Admin Users
               </TabsTrigger>
-              <TabsTrigger 
-                value="permissions" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
-              >
-                Permissions Matrix
+              <TabsTrigger value="roles" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]">
+                Role Matrix
               </TabsTrigger>
-              <TabsTrigger 
-                value="audit" 
-                className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]"
-              >
+              <TabsTrigger value="audit" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]">
                 Audit Logs
               </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* Profiles Tab */}
-          <TabsContent value="profiles" className="mt-0">
+          {/* Admin Users Tab */}
+          <TabsContent value="users" className="mt-0">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Profile Name</th>
-                  <th>Description</th>
-                  <th>Scope</th>
-                  <th className="w-16">Users</th>
-                  <th>Created</th>
-                  <th className="w-20">Default</th>
-                  <th className="w-24">Actions</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Roles</th>
+                  <th>Assigned</th>
                 </tr>
               </thead>
               <tbody>
-                {profiles.map((profile) => (
-                  <tr 
-                    key={profile.id}
-                    onClick={() => setSelectedProfile(profile.id)}
-                    className={cn("cursor-pointer", selectedProfile === profile.id && "bg-[#fff8e1]")}
+                {loadingUsers ? (
+                  <tr><td colSpan={4} className="text-center text-[#999] py-4">Loading...</td></tr>
+                ) : filteredUsers.length === 0 ? (
+                  <tr><td colSpan={4} className="text-center text-[#999] py-4">No administrators found</td></tr>
+                ) : filteredUsers.map((u) => (
+                  <tr
+                    key={u.profile?.user_id}
+                    onClick={() => setSelectedUser(u.profile?.user_id ?? null)}
+                    className={cn("cursor-pointer", selectedUser === u.profile?.user_id && "bg-[#fff8e1]")}
                   >
-                    <td className="font-medium text-[#333]">{profile.name}</td>
-                    <td className="text-[#666]">{profile.description}</td>
+                    <td className="font-medium text-[#333]">{u.profile?.full_name || '—'}</td>
+                    <td className="text-[#666]">{u.profile?.email || '—'}</td>
                     <td>
-                      <span className={cn("forti-tag", getScopeColor(profile.scope))}>
-                        {profile.scope.toUpperCase().replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="text-center text-[#666]">{profile.users}</td>
-                    <td className="text-[#666]">{profile.createdAt}</td>
-                    <td className="text-center">
-                      {profile.isDefault ? (
-                        <CheckCircle size={14} className="text-green-600 mx-auto" />
-                      ) : (
-                        <XCircle size={14} className="text-gray-300 mx-auto" />
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-1">
-                        <button className="p-1 hover:bg-[#f0f0f0]">
-                          <Edit size={12} className="text-[#666]" />
-                        </button>
-                        <button className="p-1 hover:bg-[#f0f0f0]">
-                          <Copy size={12} className="text-[#666]" />
-                        </button>
-                        <button 
-                          className="p-1 hover:bg-[#f0f0f0]"
-                          disabled={profile.isDefault}
-                        >
-                          <Trash2 size={12} className={profile.isDefault ? "text-gray-300" : "text-red-500"} />
-                        </button>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {u.roles.map(role => (
+                          <span key={role} className={cn("forti-tag", roleColors[role] || 'bg-gray-100 text-gray-600 border-gray-200')}>
+                            {role.toUpperCase().replace('_', ' ')}
+                          </span>
+                        ))}
                       </div>
                     </td>
+                    <td className="text-[#666]">{new Date(u.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </TabsContent>
 
-          {/* Permissions Matrix Tab */}
-          <TabsContent value="permissions" className="mt-0">
+          {/* Role Matrix Tab */}
+          <TabsContent value="roles" className="mt-0">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Profile</th>
-                  {permissionCategories.map(cat => (
-                    <th key={cat.key} className="text-center w-24">{cat.label}</th>
-                  ))}
+                  <th>User</th>
+                  <th className="text-center w-24">Super Admin</th>
+                  <th className="text-center w-24">Admin</th>
+                  <th className="text-center w-24">Operator</th>
+                  <th className="text-center w-24">Auditor</th>
                 </tr>
               </thead>
               <tbody>
-                {profiles.map((profile) => (
-                  <tr key={profile.id}>
+                {loadingUsers ? (
+                  <tr><td colSpan={5} className="text-center text-[#999] py-4">Loading...</td></tr>
+                ) : filteredUsers.map((u) => (
+                  <tr key={u.profile?.user_id}>
                     <td className="font-medium text-[#333]">
                       <div className="flex items-center gap-2">
                         <Shield size={12} className="text-[#666]" />
-                        {profile.name}
+                        {u.profile?.full_name || u.profile?.email || '—'}
                       </div>
                     </td>
-                    {permissionCategories.map(cat => (
-                      <td key={cat.key} className="text-center">
-                        <FortiToggle 
-                          enabled={profile.permissions[cat.key as keyof typeof profile.permissions]}
-                          onChange={() => toast.info('Edit profile to modify permissions')}
-                          size="sm"
-                        />
+                    {(['super_admin', 'admin', 'operator', 'auditor'] as AppRole[]).map(role => (
+                      <td key={role} className="text-center">
+                        {u.roles.includes(role) ? (
+                          <CheckCircle size={14} className="text-green-600 mx-auto" />
+                        ) : (
+                          <XCircle size={14} className="text-gray-300 mx-auto" />
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -363,35 +294,28 @@ const AdminProfiles = () => {
               <thead>
                 <tr>
                   <th className="w-28">Time</th>
-                  <th>User</th>
                   <th>Action</th>
                   <th>Resource</th>
                   <th>Details</th>
                   <th>IP Address</th>
-                  <th className="w-20">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {auditLogs.map((log) => (
+                {loadingLogs ? (
+                  <tr><td colSpan={5} className="text-center text-[#999] py-4">Loading...</td></tr>
+                ) : filteredLogs.length === 0 ? (
+                  <tr><td colSpan={5} className="text-center text-[#999] py-4">No audit logs found</td></tr>
+                ) : filteredLogs.map((log) => (
                   <tr key={log.id}>
-                    <td className="text-[#666]">{formatTime(log.timestamp)}</td>
-                    <td className="font-medium text-[#333]">{log.user}</td>
+                    <td className="text-[#666]">{formatTime(log.created_at)}</td>
                     <td>
-                      <span className={cn("forti-tag", getActionColor(log.action))}>
-                        {log.action.toUpperCase().replace('_', ' ')}
+                      <span className={cn("forti-tag", actionColors[log.action] || 'bg-gray-100 text-gray-600 border-gray-200')}>
+                        {log.action.toUpperCase().replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="text-[#666]">{log.resource}</td>
-                    <td className="text-[#666]">{log.details}</td>
-                    <td className="mono text-[#666]">{log.ipAddress}</td>
-                    <td>
-                      <span className={cn(
-                        "forti-tag",
-                        log.status === 'success' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'
-                      )}>
-                        {log.status.toUpperCase()}
-                      </span>
-                    </td>
+                    <td className="text-[#666]">{log.resource_type}</td>
+                    <td className="text-[#666]">{typeof log.details === 'string' ? log.details : JSON.stringify(log.details) || '—'}</td>
+                    <td className="mono text-[#666]">{log.ip_address || '—'}</td>
                   </tr>
                 ))}
               </tbody>
