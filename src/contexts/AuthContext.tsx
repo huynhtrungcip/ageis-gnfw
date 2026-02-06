@@ -1,13 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
-
-type AppRole = Database['public']['Enums']['app_role'];
+import { authApi, getStoredSession, type AuthUser, type AuthSession, type AppRole } from '@/lib/postgrest';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
+  session: AuthSession | null;
   roles: AppRole[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -21,82 +17,42 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        // Defer role fetch to avoid deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            fetchRoles(session.user.id);
-          }, 0);
-        } else {
-          setRoles([]);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRoles(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    // Check for existing session
+    const stored = getStoredSession();
+    if (stored) {
+      setSession(stored);
+      setUser(stored.user);
+      setRoles(stored.roles);
+    }
+    setLoading(false);
   }, []);
 
-  const fetchRoles = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('Error fetching roles:', error);
-        setRoles([]);
-        return;
-      }
-
-      setRoles(data?.map(r => r.role) ?? []);
-    } catch (err) {
-      console.error('Error fetching roles:', err);
-      setRoles([]);
-    }
-  };
-
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error ? new Error(error.message) : null };
+    const { error, session: newSession } = await authApi.signIn(email, password);
+    if (error) return { error };
+    if (newSession) {
+      setSession(newSession);
+      setUser(newSession.user);
+      setRoles(newSession.roles);
+    }
+    return { error: null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: { full_name: fullName },
-      },
-    });
-    return { error: error ? new Error(error.message) : null };
+  const signUp = async (_email: string, _password: string, _fullName: string) => {
+    // Self-hosted: registration is done via admin panel or CLI
+    return { error: new Error('Registration is not available. Contact your administrator.') };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    authApi.signOut();
+    setSession(null);
+    setUser(null);
     setRoles([]);
   };
 
