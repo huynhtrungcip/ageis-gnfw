@@ -239,12 +239,8 @@ const IPPools = () => {
     pool.startIP.includes(searchQuery) ||
     pool.endIP.includes(searchQuery)
   );
-      case 'overload': return 'Overload';
-      case 'one-to-one': return 'One-to-One';
-      case 'fixed-port-range': return 'Fixed Port Range';
-      case 'port-block-allocation': return 'Port Block';
-    }
-  };
+
+
 
   const openCreateModal = (type: IPPool['type']) => {
     setEditingItem(null);
