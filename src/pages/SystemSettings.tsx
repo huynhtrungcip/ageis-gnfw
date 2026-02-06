@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   Settings, 
   Save,
@@ -13,11 +14,14 @@ import {
   Users,
   Database,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  Play,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SystemSettings = () => {
+  const { demoMode, setDemoMode } = useDemoMode();
   const [hostname, setHostname] = useState('NGFW-PRIMARY');
   const [domain, setDomain] = useState('local.lan');
   const [timezone, setTimezone] = useState('Asia/Ho_Chi_Minh');
@@ -99,6 +103,49 @@ const SystemSettings = () => {
         {/* General Tab */}
         {activeTab === 'general' && (
           <div className="p-4 space-y-4">
+            {/* Demo Mode */}
+            <div className={cn("section", demoMode ? "ring-2 ring-[hsl(var(--forti-green))] ring-opacity-50" : "")}>
+              <div className="section-header" style={{ background: demoMode ? 'hsl(142, 70%, 95%)' : undefined }}>
+                <div className="flex items-center gap-2">
+                  <Play className="w-3.5 h-3.5" />
+                  <span>Demo Mode</span>
+                  {demoMode && (
+                    <span className="ml-2 px-1.5 py-0.5 text-[9px] font-bold uppercase bg-[hsl(142,70%,35%)] text-white rounded">
+                      Active
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="section-body">
+                <div className="forti-feature-item">
+                  <div className="flex-1">
+                    <div className="text-[11px] font-medium">Enable Demo Mode</div>
+                    <div className="text-[10px] text-[#666]">
+                      {demoMode 
+                        ? 'Showing simulated demo data. All pages display mock firewall rules, threats, VPN tunnels, and system metrics.' 
+                        : 'Demo mode is off. System displays only real data from the database and agent. Empty tables will show no data.'}
+                    </div>
+                  </div>
+                  <FortiToggle 
+                    enabled={demoMode} 
+                    onToggle={() => {
+                      setDemoMode(!demoMode);
+                      toast.success(demoMode ? 'Demo Mode disabled — showing real data only' : 'Demo Mode enabled — showing simulated data');
+                    }} 
+                  />
+                </div>
+                {!demoMode && (
+                  <div className="mt-2 p-2 bg-[hsl(40,100%,96%)] border border-[hsl(40,80%,80%)] rounded flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[hsl(40,80%,45%)] mt-0.5 shrink-0" />
+                    <div className="text-[10px] text-[hsl(40,40%,30%)]">
+                      Without demo data, pages will be empty until the Aegis Agent is installed and sending real metrics, 
+                      or until firewall rules/VPN tunnels are configured via the API.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="section">
               <div className="section-header">
                 <div className="flex items-center gap-2">

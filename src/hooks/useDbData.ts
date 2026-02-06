@@ -1,11 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { db, isApiConfigured } from '@/lib/postgrest';
 import { mockInterfaces, mockFirewallRules, mockNATRules, mockVPNTunnels, mockThreats, mockSystemStatus, mockTrafficStats, mockAIAnalysis, mockDHCPLeases } from '@/data/mockData';
 import type {
   FirewallRule, NATRule, NetworkInterface, VPNTunnel, ThreatEvent,
   SystemMetric, TrafficStat, AIAnalysis
 } from '@/lib/api';
+
+/**
+ * Returns true when mock data should be used:
+ * - Demo mode is ON, OR
+ * - API is not configured (no VITE_API_URL)
+ */
+function useShouldMock(): boolean {
+  const { demoMode } = useDemoMode();
+  return demoMode || !isApiConfigured();
+}
 
 /**
  * Generic hook for fetching from PostgREST or falling back to mock data.
@@ -18,11 +29,12 @@ function useDbQuery<T = any>(
   mockFallback?: T[]
 ) {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
 
   return useQuery<T[]>({
-    queryKey: [key, !!user],
+    queryKey: [key, !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return mockFallback ?? [];
       }
       const { data, error } = await (db.from<T>(tableName)
@@ -91,10 +103,11 @@ export function useVPNTunnels() {
 
 export function useThreatEvents(limit = 100) {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<ThreatEvent[]>({
-    queryKey: ['threat-events', !!user, limit],
+    queryKey: ['threat-events', !!user, limit, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return mockThreats.map(t => ({
           id: t.id, severity: t.severity, category: t.category,
           source_ip: t.sourceIp, destination_ip: t.destinationIp,
@@ -184,10 +197,11 @@ export function useTrafficShapingPolicies() {
 // ── Metrics ─────────────────────────────────────
 export function useSystemMetrics(count = 1) {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<SystemMetric[]>({
-    queryKey: ['system-metrics', !!user, count],
+    queryKey: ['system-metrics', !!user, count, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return [{
           id: 'mock', hostname: mockSystemStatus.hostname, uptime: mockSystemStatus.uptime,
           cpu_usage: mockSystemStatus.cpu.usage, cpu_cores: mockSystemStatus.cpu.cores,
@@ -212,10 +226,11 @@ export function useSystemMetrics(count = 1) {
 
 export function useTrafficStats(hours = 24) {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<TrafficStat[]>({
-    queryKey: ['traffic-stats', !!user, hours],
+    queryKey: ['traffic-stats', !!user, hours, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return mockTrafficStats.map(t => ({
           id: 'mock-' + t.timestamp.getTime(),
           interface: t.interface,
@@ -236,10 +251,11 @@ export function useTrafficStats(hours = 24) {
 
 export function useAIAnalysis() {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery<AIAnalysis | null>({
-    queryKey: ['ai-analysis', !!user],
+    queryKey: ['ai-analysis', !!user, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) {
+      if (shouldMock) {
         return {
           id: 'mock', risk_score: mockAIAnalysis.riskScore,
           anomalies_detected: mockAIAnalysis.anomaliesDetected,
@@ -260,10 +276,11 @@ export function useAIAnalysis() {
 
 export function useAuditLogs(limit = 200) {
   const { user } = useAuth();
+  const shouldMock = useShouldMock();
   return useQuery({
-    queryKey: ['audit-logs', !!user, limit],
+    queryKey: ['audit-logs', !!user, limit, shouldMock],
     queryFn: async () => {
-      if (!isApiConfigured()) return [];
+      if (shouldMock) return [];
       const { data, error } = await (db.from('audit_logs')
         .select('*').order('created_at', { ascending: false }).limit(limit) as any);
       if (error) throw error;
