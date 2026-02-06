@@ -1,0 +1,27 @@
+[Unit]
+Description=Aegis NGFW Agent - Firewall Sync Daemon
+Documentation=https://github.com/aegis-ngfw
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/aegis
+EnvironmentFile=/opt/aegis/.env
+ExecStart=/opt/aegis/aegis-agent.sh daemon
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=append:/opt/aegis/agent.log
+StandardError=append:/opt/aegis/agent.log
+
+# Security hardening
+ProtectSystem=strict
+ReadWritePaths=/opt/aegis /etc/suricata/rules
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN
+
+[Install]
+WantedBy=multi-user.target
