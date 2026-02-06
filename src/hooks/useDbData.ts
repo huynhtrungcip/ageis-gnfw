@@ -1,33 +1,36 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import { db, isApiConfigured } from '@/lib/postgrest';
+import { mockInterfaces, mockFirewallRules, mockNATRules, mockVPNTunnels, mockThreats, mockSystemStatus, mockTrafficStats, mockAIAnalysis, mockDHCPLeases } from '@/data/mockData';
+import type {
+  FirewallRule, NATRule, NetworkInterface, VPNTunnel, ThreatEvent,
+  SystemMetric, TrafficStat, AIAnalysis
+} from '@/lib/api';
 
 /**
- * Generic hook factory for fetching data from any Supabase table.
- * Handles auth check and returns empty array when user has no access.
+ * Generic hook for fetching from PostgREST or falling back to mock data.
  */
 function useDbQuery<T = any>(
   key: string,
   tableName: string,
   orderBy = 'created_at',
-  options?: { ascending?: boolean; limit?: number }
+  options?: { ascending?: boolean; limit?: number },
+  mockFallback?: T[]
 ) {
-  const { user, roles } = useAuth();
-  const hasAccess = roles.length > 0;
+  const { user } = useAuth();
 
   return useQuery<T[]>({
-    queryKey: [key, hasAccess],
+    queryKey: [key, !!user],
     queryFn: async () => {
-      if (!hasAccess) return [];
-      let query = (supabase as any)
-        .from(tableName)
+      if (!isApiConfigured()) {
+        return mockFallback ?? [];
+      }
+      const { data, error } = await (db.from<T>(tableName)
         .select('*')
-        .order(orderBy, { ascending: options?.ascending ?? true });
-      if (options?.limit) query = query.limit(options.limit);
-      const { data, error } = await query;
+        .order(orderBy, { ascending: options?.ascending ?? true })
+        .limit(options?.limit ?? 1000) as any);
       if (error) throw error;
-      return data ?? [];
+      return (data as T[]) ?? [];
     },
     enabled: !!user,
   });
@@ -35,33 +38,74 @@ function useDbQuery<T = any>(
 
 // ── Core tables ─────────────────────────────────
 export function useFirewallRules() {
-  return useDbQuery<Tables<'firewall_rules'>>('firewall-rules', 'firewall_rules', 'rule_order');
+  return useDbQuery<FirewallRule>('firewall-rules', 'firewall_rules', 'rule_order', undefined,
+    mockFirewallRules.map(r => ({
+      id: r.id, rule_order: r.order, enabled: r.enabled, action: r.action,
+      interface: r.interface, direction: r.direction, protocol: r.protocol,
+      source_type: r.source.type, source_value: r.source.value,
+      source_port: null, destination_type: r.destination.type,
+      destination_value: r.destination.value, destination_port: r.destination.port ?? null,
+      description: r.description, logging: r.logging, hits: r.hits ?? 0,
+      last_hit: r.lastHit?.toISOString() ?? null, created_at: r.created.toISOString(),
+      updated_at: r.created.toISOString(), created_by: null,
+    }))
+  );
 }
 
 export function useNATRules() {
-  return useDbQuery<Tables<'nat_rules'>>('nat-rules', 'nat_rules');
+  return useDbQuery<NATRule>('nat-rules', 'nat_rules', 'created_at', undefined,
+    mockNATRules.map(r => ({
+      id: r.id, type: r.type, enabled: r.enabled, interface: r.interface,
+      protocol: r.protocol, external_address: r.externalAddress ?? null,
+      external_port: r.externalPort, internal_address: r.internalAddress,
+      internal_port: r.internalPort, description: r.description,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      created_by: null,
+    }))
+  );
 }
 
 export function useNetworkInterfaces() {
-  return useDbQuery<Tables<'network_interfaces'>>('network-interfaces', 'network_interfaces', 'name');
+  return useDbQuery<NetworkInterface>('network-interfaces', 'network_interfaces', 'name', undefined,
+    mockInterfaces.map(i => ({
+      id: i.id, name: i.name, type: i.type, status: i.status,
+      ip_address: i.ipAddress, subnet: i.subnet ?? null, gateway: i.gateway ?? null,
+      mac: i.mac, speed: i.speed, duplex: i.duplex, mtu: i.mtu,
+      vlan: i.vlan ?? null, rx_bytes: i.rxBytes, tx_bytes: i.txBytes,
+      rx_packets: i.rxPackets, tx_packets: i.txPackets,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }))
+  );
 }
 
 export function useVPNTunnels() {
-  return useDbQuery<Tables<'vpn_tunnels'>>('vpn-tunnels', 'vpn_tunnels', 'name');
+  return useDbQuery<VPNTunnel>('vpn-tunnels', 'vpn_tunnels', 'name', undefined,
+    mockVPNTunnels.map(v => ({
+      id: v.id, name: v.name, type: v.type, status: v.status,
+      remote_gateway: v.remoteGateway, local_network: v.localNetwork,
+      remote_network: v.remoteNetwork, bytes_in: v.bytesIn, bytes_out: v.bytesOut,
+      uptime: v.uptime, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }))
+  );
 }
 
 export function useThreatEvents(limit = 100) {
-  const { user, roles } = useAuth();
-  const hasAccess = roles.length > 0;
-  return useQuery<Tables<'threat_events'>[]>({
-    queryKey: ['threat-events', hasAccess, limit],
+  const { user } = useAuth();
+  return useQuery<ThreatEvent[]>({
+    queryKey: ['threat-events', !!user, limit],
     queryFn: async () => {
-      if (!hasAccess) return [];
-      const { data, error } = await supabase
-        .from('threat_events')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      if (!isApiConfigured()) {
+        return mockThreats.map(t => ({
+          id: t.id, severity: t.severity, category: t.category,
+          source_ip: t.sourceIp, destination_ip: t.destinationIp,
+          source_port: t.sourcePort, destination_port: t.destinationPort,
+          protocol: t.protocol, signature: t.signature, description: t.description,
+          action: t.action, ai_confidence: t.aiConfidence,
+          created_at: t.timestamp.toISOString(),
+        }));
+      }
+      const { data, error } = await (db.from<ThreatEvent>('threat_events')
+        .select('*').order('created_at', { ascending: false }).limit(limit) as any);
       if (error) throw error;
       return data ?? [];
     },
@@ -70,133 +114,118 @@ export function useThreatEvents(limit = 100) {
 }
 
 export function useSystemSettings() {
-  return useDbQuery<Tables<'system_settings'>>('system-settings', 'system_settings', 'key');
+  return useDbQuery('system-settings', 'system_settings', 'key');
 }
 
-// ── Routing ─────────────────────────────────────
 export function useStaticRoutes() {
-  return useDbQuery<Tables<'static_routes'>>('static-routes', 'static_routes');
+  return useDbQuery('static-routes', 'static_routes');
 }
-
 export function usePolicyRoutes() {
-  return useDbQuery<Tables<'policy_routes'>>('policy-routes', 'policy_routes', 'seq');
+  return useDbQuery('policy-routes', 'policy_routes', 'seq');
 }
-
-// ── Objects ─────────────────────────────────────
 export function useAliases() {
-  return useDbQuery<Tables<'aliases'>>('aliases', 'aliases', 'name');
+  return useDbQuery('aliases', 'aliases', 'name');
 }
-
 export function useServices() {
-  return useDbQuery<Tables<'services'>>('services', 'services', 'name');
+  return useDbQuery('services', 'services', 'name');
 }
-
 export function useSchedules() {
-  return useDbQuery<Tables<'schedules'>>('schedules', 'schedules', 'name');
+  return useDbQuery('schedules', 'schedules', 'name');
 }
-
 export function useIPPools() {
-  return useDbQuery<Tables<'ip_pools'>>('ip-pools', 'ip_pools', 'name');
+  return useDbQuery('ip-pools', 'ip_pools', 'name');
 }
-
 export function useVirtualIPs() {
-  return useDbQuery<Tables<'virtual_ips'>>('virtual-ips', 'virtual_ips', 'name');
+  return useDbQuery('virtual-ips', 'virtual_ips', 'name');
 }
-
 export function useWildcardFQDNs() {
-  return useDbQuery<Tables<'wildcard_fqdns'>>('wildcard-fqdns', 'wildcard_fqdns', 'name');
+  return useDbQuery('wildcard-fqdns', 'wildcard_fqdns', 'name');
 }
-
-// ── Security Profiles ───────────────────────────
 export function useCertificates() {
-  return useDbQuery<Tables<'certificates'>>('certificates', 'certificates', 'name');
+  return useDbQuery('certificates', 'certificates', 'name');
 }
-
 export function useIDSSignatures() {
-  return useDbQuery<Tables<'ids_signatures'>>('ids-signatures', 'ids_signatures', 'sid');
+  return useDbQuery('ids-signatures', 'ids_signatures', 'sid');
 }
-
 export function useSSLInspectionProfiles() {
-  return useDbQuery<Tables<'ssl_inspection_profiles'>>('ssl-inspection', 'ssl_inspection_profiles', 'name');
+  return useDbQuery('ssl-inspection', 'ssl_inspection_profiles', 'name');
 }
-
 export function useAVProfiles() {
-  return useDbQuery<Tables<'av_profiles'>>('av-profiles', 'av_profiles', 'name');
+  return useDbQuery('av-profiles', 'av_profiles', 'name');
 }
-
 export function useWebFilterProfiles() {
-  return useDbQuery<Tables<'web_filter_profiles'>>('web-filter-profiles', 'web_filter_profiles', 'name');
+  return useDbQuery('web-filter-profiles', 'web_filter_profiles', 'name');
 }
-
 export function useDNSFilterProfiles() {
-  return useDbQuery<Tables<'dns_filter_profiles'>>('dns-filter-profiles', 'dns_filter_profiles', 'name');
+  return useDbQuery('dns-filter-profiles', 'dns_filter_profiles', 'name');
 }
-
-// ── DHCP ────────────────────────────────────────
 export function useDHCPServers() {
-  return useDbQuery<Tables<'dhcp_servers'>>('dhcp-servers', 'dhcp_servers', 'interface');
+  return useDbQuery('dhcp-servers', 'dhcp_servers', 'interface');
 }
-
 export function useDHCPLeases() {
-  return useDbQuery<Tables<'dhcp_leases'>>('dhcp-leases', 'dhcp_leases', 'ip');
+  return useDbQuery('dhcp-leases', 'dhcp_leases', 'ip');
 }
-
 export function useDHCPStaticMappings() {
-  return useDbQuery<Tables<'dhcp_static_mappings'>>('dhcp-static-mappings', 'dhcp_static_mappings', 'name');
+  return useDbQuery('dhcp-static-mappings', 'dhcp_static_mappings', 'name');
 }
-
-// ── DNS ─────────────────────────────────────────
 export function useDNSForwardZones() {
-  return useDbQuery<Tables<'dns_forward_zones'>>('dns-forward-zones', 'dns_forward_zones', 'name');
+  return useDbQuery('dns-forward-zones', 'dns_forward_zones', 'name');
 }
-
 export function useDNSLocalRecords() {
-  return useDbQuery<Tables<'dns_local_records'>>('dns-local-records', 'dns_local_records', 'hostname');
+  return useDbQuery('dns-local-records', 'dns_local_records', 'hostname');
 }
-
-// ── Traffic Shaping ─────────────────────────────
 export function useTrafficShapers() {
-  return useDbQuery<Tables<'traffic_shapers'>>('traffic-shapers', 'traffic_shapers', 'name');
+  return useDbQuery('traffic-shapers', 'traffic_shapers', 'name');
 }
-
 export function useTrafficShapingPolicies() {
-  return useDbQuery<Tables<'traffic_shaping_policies'>>('traffic-shaping-policies', 'traffic_shaping_policies', 'name');
+  return useDbQuery('traffic-shaping-policies', 'traffic_shaping_policies', 'name');
 }
 
-// ── Metrics (time-series) ───────────────────────
+// ── Metrics ─────────────────────────────────────
 export function useSystemMetrics(count = 1) {
-  const { user, roles } = useAuth();
-  const hasAccess = roles.length > 0;
-  return useQuery<Tables<'system_metrics'>[]>({
-    queryKey: ['system-metrics', hasAccess, count],
+  const { user } = useAuth();
+  return useQuery<SystemMetric[]>({
+    queryKey: ['system-metrics', !!user, count],
     queryFn: async () => {
-      if (!hasAccess) return [];
-      const { data, error } = await (supabase as any)
-        .from('system_metrics')
-        .select('*')
-        .order('recorded_at', { ascending: false })
-        .limit(count);
+      if (!isApiConfigured()) {
+        return [{
+          id: 'mock', hostname: mockSystemStatus.hostname, uptime: mockSystemStatus.uptime,
+          cpu_usage: mockSystemStatus.cpu.usage, cpu_cores: mockSystemStatus.cpu.cores,
+          cpu_temperature: mockSystemStatus.cpu.temperature,
+          memory_total: mockSystemStatus.memory.total, memory_used: mockSystemStatus.memory.used,
+          memory_free: mockSystemStatus.memory.free, memory_cached: mockSystemStatus.memory.cached,
+          disk_total: mockSystemStatus.disk.total, disk_used: mockSystemStatus.disk.used,
+          disk_free: mockSystemStatus.disk.free,
+          load_1m: mockSystemStatus.load[0], load_5m: mockSystemStatus.load[1],
+          load_15m: mockSystemStatus.load[2], recorded_at: new Date().toISOString(),
+        }];
+      }
+      const { data, error } = await (db.from<SystemMetric>('system_metrics')
+        .select('*').order('recorded_at', { ascending: false }).limit(count) as any);
       if (error) throw error;
       return data ?? [];
     },
     enabled: !!user,
-    refetchInterval: 30000, // refresh every 30s
+    refetchInterval: 30000,
   });
 }
 
 export function useTrafficStats(hours = 24) {
-  const { user, roles } = useAuth();
-  const hasAccess = roles.length > 0;
-  return useQuery<Tables<'traffic_stats'>[]>({
-    queryKey: ['traffic-stats', hasAccess, hours],
+  const { user } = useAuth();
+  return useQuery<TrafficStat[]>({
+    queryKey: ['traffic-stats', !!user, hours],
     queryFn: async () => {
-      if (!hasAccess) return [];
+      if (!isApiConfigured()) {
+        return mockTrafficStats.map(t => ({
+          id: 'mock-' + t.timestamp.getTime(),
+          interface: t.interface,
+          inbound: t.inbound, outbound: t.outbound, blocked: t.blocked,
+          recorded_at: t.timestamp.toISOString(),
+        }));
+      }
       const since = new Date(Date.now() - hours * 3600000).toISOString();
-      const { data, error } = await (supabase as any)
-        .from('traffic_stats')
-        .select('*')
-        .gte('recorded_at', since)
-        .order('recorded_at', { ascending: true });
+      const { data, error } = await (db.from<TrafficStat>('traffic_stats')
+        .select('*').gte('recorded_at', since).order('recorded_at') as any);
       if (error) throw error;
       return data ?? [];
     },
@@ -206,18 +235,22 @@ export function useTrafficStats(hours = 24) {
 }
 
 export function useAIAnalysis() {
-  const { user, roles } = useAuth();
-  const hasAccess = roles.length > 0;
-  return useQuery<Tables<'ai_analysis'> | null>({
-    queryKey: ['ai-analysis', hasAccess],
+  const { user } = useAuth();
+  return useQuery<AIAnalysis | null>({
+    queryKey: ['ai-analysis', !!user],
     queryFn: async () => {
-      if (!hasAccess) return null;
-      const { data, error } = await (supabase as any)
-        .from('ai_analysis')
-        .select('*')
-        .order('recorded_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      if (!isApiConfigured()) {
+        return {
+          id: 'mock', risk_score: mockAIAnalysis.riskScore,
+          anomalies_detected: mockAIAnalysis.anomaliesDetected,
+          threats_blocked: mockAIAnalysis.threatsBlocked,
+          predictions: mockAIAnalysis.predictions,
+          recommendations: mockAIAnalysis.recommendations,
+          recorded_at: new Date().toISOString(),
+        };
+      }
+      const { data, error } = await (db.from<AIAnalysis>('ai_analysis')
+        .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle() as any);
       if (error) throw error;
       return data;
     },
@@ -225,19 +258,14 @@ export function useAIAnalysis() {
   });
 }
 
-// ── Audit Logs ──────────────────────────────────
 export function useAuditLogs(limit = 200) {
-  const { user, roles } = useAuth();
-  const hasAccess = roles.length > 0;
-  return useQuery<Tables<'audit_logs'>[]>({
-    queryKey: ['audit-logs', hasAccess, limit],
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['audit-logs', !!user, limit],
     queryFn: async () => {
-      if (!hasAccess) return [];
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      if (!isApiConfigured()) return [];
+      const { data, error } = await (db.from('audit_logs')
+        .select('*').order('created_at', { ascending: false }).limit(limit) as any);
       if (error) throw error;
       return data ?? [];
     },

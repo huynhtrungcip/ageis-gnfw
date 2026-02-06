@@ -1,228 +1,140 @@
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import { db, isApiConfigured } from '@/lib/postgrest';
 
-// Re-export types for convenience
-export type FirewallRule = Tables<'firewall_rules'>;
-export type NATRule = Tables<'nat_rules'>;
-export type NetworkInterface = Tables<'network_interfaces'>;
-export type VPNTunnel = Tables<'vpn_tunnels'>;
-export type ThreatEvent = Tables<'threat_events'>;
-export type SystemSetting = Tables<'system_settings'>;
-export type Profile = Tables<'profiles'>;
+// ─── Types (standalone, no Supabase dependency) ─
+export interface FirewallRule {
+  id: string; rule_order: number; enabled: boolean; action: string; interface: string;
+  direction: string; protocol: string; source_type: string; source_value: string;
+  source_port: string | null; destination_type: string; destination_value: string;
+  destination_port: string | null; description: string; logging: boolean;
+  hits: number; last_hit: string | null; created_at: string; updated_at: string;
+  created_by: string | null;
+}
+export interface NATRule {
+  id: string; type: string; enabled: boolean; interface: string; protocol: string;
+  external_address: string | null; external_port: string; internal_address: string;
+  internal_port: string; description: string; created_at: string; updated_at: string;
+  created_by: string | null;
+}
+export interface NetworkInterface {
+  id: string; name: string; type: string; status: string; ip_address: string | null;
+  subnet: string | null; gateway: string | null; mac: string | null; speed: string | null;
+  duplex: string | null; mtu: number | null; vlan: number | null;
+  rx_bytes: number | null; tx_bytes: number | null; rx_packets: number | null;
+  tx_packets: number | null; created_at: string; updated_at: string;
+}
+export interface VPNTunnel {
+  id: string; name: string; type: string; status: string; remote_gateway: string | null;
+  local_network: string | null; remote_network: string | null;
+  bytes_in: number | null; bytes_out: number | null; uptime: number | null;
+  created_at: string; updated_at: string;
+}
+export interface ThreatEvent {
+  id: string; severity: string; category: string; source_ip: string | null;
+  destination_ip: string | null; source_port: number | null; destination_port: number | null;
+  protocol: string | null; signature: string | null; description: string | null;
+  action: string; ai_confidence: number | null; created_at: string;
+}
+export interface SystemSetting {
+  id: string; key: string; value: string; description: string | null;
+  is_auditable: boolean; created_at: string; updated_at: string;
+}
+export interface SystemMetric {
+  id: string; hostname: string; uptime: number; cpu_usage: number; cpu_cores: number;
+  cpu_temperature: number; memory_total: number; memory_used: number; memory_free: number;
+  memory_cached: number; disk_total: number; disk_used: number; disk_free: number;
+  load_1m: number; load_5m: number; load_15m: number; recorded_at: string;
+}
+export interface TrafficStat {
+  id: string; interface: string; inbound: number; outbound: number; blocked: number;
+  recorded_at: string;
+}
+export interface AIAnalysis {
+  id: string; risk_score: number; anomalies_detected: number; threats_blocked: number;
+  predictions: any; recommendations: any; recorded_at: string;
+}
 
-// ── Generic CRUD helper ─────────────────────────
-function createCrudApi<T extends string>(tableName: T, orderBy = 'created_at') {
+// ─── Generic CRUD helper ─────────────────────────
+function createCrudApi<T = any>(tableName: string, orderBy = 'created_at') {
   return {
-    async getAll() {
-      const { data, error } = await (supabase as any)
-        .from(tableName)
-        .select('*')
-        .order(orderBy, { ascending: true });
+    async getAll(): Promise<T[]> {
+      if (!isApiConfigured()) return [];
+      const result = await db.from<T>(tableName).select('*').order(orderBy, { ascending: true });
+      const { data, error } = await (result as any);
       if (error) throw error;
-      return data;
+      return (data as T[]) ?? [];
     },
-    async create(record: any) {
-      const { data, error } = await (supabase as any)
-        .from(tableName)
-        .insert(record)
-        .select()
-        .single();
+    async create(record: Partial<T>): Promise<T> {
+      const builder = db.from<T>(tableName);
+      (builder as any).insert(record);
+      const { data, error } = await (builder.single() as any);
       if (error) throw error;
-      return data;
+      return data as T;
     },
-    async update(id: string, updates: any) {
-      const { data, error } = await (supabase as any)
-        .from(tableName)
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+    async update(id: string, updates: Partial<T>): Promise<T> {
+      const builder = db.from<T>(tableName);
+      (builder as any).update(updates);
+      const { data, error } = await (builder.eq('id', id).single() as any);
       if (error) throw error;
-      return data;
+      return data as T;
     },
-    async delete(id: string) {
-      const { error } = await (supabase as any)
-        .from(tableName)
-        .delete()
-        .eq('id', id);
+    async delete(id: string): Promise<void> {
+      const builder = db.from(tableName);
+      (builder as any).delete();
+      const { error } = await (builder.eq('id', id) as any);
       if (error) throw error;
     },
-    async deleteMany(ids: string[]) {
-      const { error } = await (supabase as any)
-        .from(tableName)
-        .delete()
-        .in('id', ids);
+    async deleteMany(ids: string[]): Promise<void> {
+      const builder = db.from(tableName);
+      (builder as any).delete();
+      const { error } = await (builder.in('id', ids) as any);
       if (error) throw error;
     },
   };
 }
 
-// ── Firewall Rules ──────────────────────────────
+// ─── API exports ─────────────────────────────────
 export const firewallRulesApi = {
-  ...createCrudApi('firewall_rules', 'rule_order'),
-  async getAll() {
-    const { data, error } = await supabase
-      .from('firewall_rules')
-      .select('*')
-      .order('rule_order', { ascending: true });
-    if (error) throw error;
-    return data;
-  },
-  async create(rule: TablesInsert<'firewall_rules'>) {
-    const { data, error } = await supabase
-      .from('firewall_rules')
-      .insert(rule)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  async update(id: string, updates: TablesUpdate<'firewall_rules'>) {
-    const { data, error } = await supabase
-      .from('firewall_rules')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-  async delete(id: string) {
-    const { error } = await supabase.from('firewall_rules').delete().eq('id', id);
-    if (error) throw error;
-  },
-  async deleteMany(ids: string[]) {
-    const { error } = await supabase.from('firewall_rules').delete().in('id', ids);
-    if (error) throw error;
-  },
+  ...createCrudApi<FirewallRule>('firewall_rules', 'rule_order'),
 };
-
-// ── NAT Rules ──────────────────────────────────
-export const natRulesApi = {
-  ...createCrudApi('nat_rules'),
-  async getAll() {
-    const { data, error } = await supabase.from('nat_rules').select('*').order('created_at', { ascending: true });
-    if (error) throw error;
-    return data;
-  },
-  async create(rule: TablesInsert<'nat_rules'>) {
-    const { data, error } = await supabase.from('nat_rules').insert(rule).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async update(id: string, updates: TablesUpdate<'nat_rules'>) {
-    const { data, error } = await supabase.from('nat_rules').update(updates).eq('id', id).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async delete(id: string) {
-    const { error } = await supabase.from('nat_rules').delete().eq('id', id);
-    if (error) throw error;
-  },
-};
-
-// ── Network Interfaces ─────────────────────────
-export const networkInterfacesApi = {
-  ...createCrudApi('network_interfaces', 'name'),
-  async getAll() {
-    const { data, error } = await supabase.from('network_interfaces').select('*').order('name', { ascending: true });
-    if (error) throw error;
-    return data;
-  },
-  async create(iface: TablesInsert<'network_interfaces'>) {
-    const { data, error } = await supabase.from('network_interfaces').insert(iface).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async update(id: string, updates: TablesUpdate<'network_interfaces'>) {
-    const { data, error } = await supabase.from('network_interfaces').update(updates).eq('id', id).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async delete(id: string) {
-    const { error } = await supabase.from('network_interfaces').delete().eq('id', id);
-    if (error) throw error;
-  },
-};
-
-// ── VPN Tunnels ────────────────────────────────
-export const vpnTunnelsApi = {
-  ...createCrudApi('vpn_tunnels', 'name'),
-  async getAll() {
-    const { data, error } = await supabase.from('vpn_tunnels').select('*').order('name', { ascending: true });
-    if (error) throw error;
-    return data;
-  },
-  async create(tunnel: TablesInsert<'vpn_tunnels'>) {
-    const { data, error } = await supabase.from('vpn_tunnels').insert(tunnel).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async update(id: string, updates: TablesUpdate<'vpn_tunnels'>) {
-    const { data, error } = await supabase.from('vpn_tunnels').update(updates).eq('id', id).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async delete(id: string) {
-    const { error } = await supabase.from('vpn_tunnels').delete().eq('id', id);
-    if (error) throw error;
-  },
-};
-
-// ── Threat Events ──────────────────────────────
-export const threatEventsApi = {
-  async getAll(limit = 100) {
-    const { data, error } = await supabase.from('threat_events').select('*').order('created_at', { ascending: false }).limit(limit);
-    if (error) throw error;
-    return data;
-  },
-  async getById(id: string) {
-    const { data, error } = await supabase.from('threat_events').select('*').eq('id', id).maybeSingle();
-    if (error) throw error;
-    return data;
-  },
-};
-
-// ── System Settings ────────────────────────────
+export const natRulesApi = createCrudApi<NATRule>('nat_rules');
+export const networkInterfacesApi = createCrudApi<NetworkInterface>('network_interfaces', 'name');
+export const vpnTunnelsApi = createCrudApi<VPNTunnel>('vpn_tunnels', 'name');
 export const systemSettingsApi = {
   async getAll() {
-    const { data, error } = await supabase.from('system_settings').select('*').order('key', { ascending: true });
+    if (!isApiConfigured()) return [];
+    const { data, error } = await (db.from('system_settings').select('*').order('key') as any);
     if (error) throw error;
-    return data;
+    return data ?? [];
   },
   async get(key: string) {
-    const { data, error } = await supabase.from('system_settings').select('*').eq('key', key).maybeSingle();
+    if (!isApiConfigured()) return null;
+    const { data, error } = await (db.from('system_settings').eq('key', key).maybeSingle() as any);
     if (error) throw error;
     return data;
   },
   async upsert(key: string, value: string, description?: string) {
-    const { data, error } = await supabase.from('system_settings').upsert({ key, value, description }, { onConflict: 'key' }).select().single();
+    const builder = db.from('system_settings');
+    (builder as any).upsert({ key, value, description }, { onConflict: 'key' });
+    const { data, error } = await (builder.single() as any);
     if (error) throw error;
     return data;
   },
 };
-
-// ── Profiles ───────────────────────────────────
-export const profilesApi = {
-  async getAll() {
-    const { data, error } = await supabase.from('profiles').select('*').order('full_name', { ascending: true });
+export const threatEventsApi = {
+  async getAll(limit = 100) {
+    if (!isApiConfigured()) return [];
+    const { data, error } = await (db.from<ThreatEvent>('threat_events').select('*').order('created_at', { ascending: false }).limit(limit) as any);
     if (error) throw error;
-    return data;
+    return data ?? [];
   },
-  async getCurrent(userId: string) {
-    const { data, error } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle();
-    if (error) throw error;
-    return data;
-  },
-  async update(userId: string, updates: TablesUpdate<'profiles'>) {
-    const { data, error } = await supabase.from('profiles').update(updates).eq('user_id', userId).select().single();
+  async getById(id: string) {
+    if (!isApiConfigured()) return null;
+    const { data, error } = await (db.from<ThreatEvent>('threat_events').eq('id', id).maybeSingle() as any);
     if (error) throw error;
     return data;
   },
 };
-
-// ── New tables (using generic CRUD) ────────────
-export const staticRoutesApi = createCrudApi('static_routes', 'created_at');
+export const staticRoutesApi = createCrudApi('static_routes');
 export const policyRoutesApi = createCrudApi('policy_routes', 'seq');
 export const aliasesApi = createCrudApi('aliases', 'name');
 export const servicesApi = createCrudApi('services', 'name');
@@ -245,64 +157,55 @@ export const avProfilesApi = createCrudApi('av_profiles', 'name');
 export const webFilterProfilesApi = createCrudApi('web_filter_profiles', 'name');
 export const auditLogsApi = {
   async getAll(limit = 200) {
-    const { data, error } = await (supabase as any).from('audit_logs').select('*').order('created_at', { ascending: false }).limit(limit);
+    if (!isApiConfigured()) return [];
+    const { data, error } = await (db.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(limit) as any);
     if (error) throw error;
-    return data;
+    return data ?? [];
   },
   async create(log: any) {
-    const { data, error } = await (supabase as any).from('audit_logs').insert(log).select().single();
+    const builder = db.from('audit_logs');
+    (builder as any).insert(log);
+    const { data, error } = await (builder.single() as any);
     if (error) throw error;
     return data;
   },
 };
-
-// ── Traffic Stats (time-series) ────────────────
 export const trafficStatsApi = {
   async getRecent(hours = 24) {
+    if (!isApiConfigured()) return [];
     const since = new Date(Date.now() - hours * 3600000).toISOString();
-    const { data, error } = await (supabase as any)
-      .from('traffic_stats')
-      .select('*')
-      .gte('recorded_at', since)
-      .order('recorded_at', { ascending: true });
+    const { data, error } = await (db.from<TrafficStat>('traffic_stats').select('*').gte('recorded_at', since).order('recorded_at') as any);
     if (error) throw error;
-    return data;
+    return data ?? [];
   },
 };
-
-// ── System Metrics ─────────────────────────────
 export const systemMetricsApi = {
-  async getLatest() {
-    const { data, error } = await (supabase as any)
-      .from('system_metrics')
-      .select('*')
-      .order('recorded_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  async getLatest(): Promise<SystemMetric | null> {
+    if (!isApiConfigured()) return null;
+    const { data, error } = await (db.from<SystemMetric>('system_metrics').select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle() as any);
     if (error) throw error;
     return data;
   },
   async getRecent(count = 60) {
-    const { data, error } = await (supabase as any)
-      .from('system_metrics')
-      .select('*')
-      .order('recorded_at', { ascending: false })
-      .limit(count);
+    if (!isApiConfigured()) return [];
+    const { data, error } = await (db.from<SystemMetric>('system_metrics').select('*').order('recorded_at', { ascending: false }).limit(count) as any);
+    if (error) throw error;
+    return data ?? [];
+  },
+};
+export const aiAnalysisApi = {
+  async getLatest(): Promise<AIAnalysis | null> {
+    if (!isApiConfigured()) return null;
+    const { data, error } = await (db.from<AIAnalysis>('ai_analysis').select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle() as any);
     if (error) throw error;
     return data;
   },
 };
-
-// ── AI Analysis ────────────────────────────────
-export const aiAnalysisApi = {
-  async getLatest() {
-    const { data, error } = await (supabase as any)
-      .from('ai_analysis')
-      .select('*')
-      .order('recorded_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+export const profilesApi = {
+  async getAll() {
+    if (!isApiConfigured()) return [];
+    const { data, error } = await (db.from('users').select('*').order('full_name') as any);
     if (error) throw error;
-    return data;
+    return data ?? [];
   },
 };

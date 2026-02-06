@@ -1,8 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Database } from '@/integrations/supabase/types';
-
-type AppRole = Database['public']['Enums']['app_role'];
+import type { AppRole } from '@/lib/postgrest';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -27,7 +25,6 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     return <Navigate to="/auth" replace />;
   }
 
-  // If specific roles required, check them
   if (requiredRoles && requiredRoles.length > 0) {
     const hasRequired = requiredRoles.some(role => roles.includes(role));
     if (!hasRequired && roles.length > 0) {

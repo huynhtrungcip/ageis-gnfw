@@ -8,52 +8,49 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { db, isApiConfigured, type AppRole } from '@/lib/postgrest';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Database } from '@/integrations/supabase/types';
-
-type AppRole = Database['public']['Enums']['app_role'];
 
 // Fetch all admins: profiles joined with their roles
 async function fetchAdminUsers() {
-  const { data: roles, error: rolesErr } = await supabase
-    .from('user_roles')
-    .select('user_id, role, created_at');
+  if (!isApiConfigured()) return [];
+  const { data: roles, error: rolesErr } = await (db.from('user_roles')
+    .select('user_id, role, created_at') as any);
   if (rolesErr) throw rolesErr;
 
   const userIds = [...new Set(roles?.map(r => r.user_id) ?? [])];
   if (userIds.length === 0) return [];
 
-  const { data: profiles, error: profErr } = await supabase
-    .from('profiles')
+  const { data: profiles, error: profErr } = await (db.from('users')
     .select('*')
-    .in('user_id', userIds);
+    .in('id', userIds) as any);
   if (profErr) throw profErr;
 
-  const profileMap = new Map((profiles ?? []).map(p => [p.user_id, p]));
+  const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+
+  const userMap = new Map<string, { profile: any; roles: AppRole[]; createdAt: string }>();
 
   // Group roles by user
-  const userMap = new Map<string, { profile: typeof profiles extends (infer T)[] ? T : never; roles: AppRole[]; createdAt: string }>();
+  const userMapTyped = new Map<string, { profile: any; roles: AppRole[]; createdAt: string }>();
   for (const r of roles ?? []) {
-    if (!userMap.has(r.user_id)) {
-      userMap.set(r.user_id, {
-        profile: profileMap.get(r.user_id)!,
+    if (!userMapTyped.has(r.user_id)) {
+      userMapTyped.set(r.user_id, {
+        profile: profileMap.get(r.user_id),
         roles: [],
         createdAt: r.created_at,
       });
     }
-    userMap.get(r.user_id)!.roles.push(r.role);
+    userMapTyped.get(r.user_id)!.roles.push(r.role);
   }
-
-  return Array.from(userMap.values());
+  return Array.from(userMapTyped.values());
 }
 
 async function fetchAuditLogs(limit = 50) {
-  const { data, error } = await supabase
-    .from('audit_logs')
+  if (!isApiConfigured()) return [];
+  const { data, error } = await (db.from('audit_logs')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(limit);
+    .limit(limit) as any);
   if (error) throw error;
   return data ?? [];
 }
