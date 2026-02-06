@@ -1,10 +1,16 @@
 import { Shell } from '@/components/layout/Shell';
 import { mockAIAnalysis, mockThreats } from '@/data/mockData';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
 const AISecurity = () => {
-  const { anomaliesDetected, threatsBlocked, recommendations } = mockAIAnalysis;
+  const { demoMode } = useDemoMode();
+  const analysis = demoMode ? mockAIAnalysis : null;
+  const threats = demoMode ? mockThreats : [];
+  const anomaliesDetected = analysis?.anomaliesDetected ?? 0;
+  const threatsBlocked = analysis?.threatsBlocked ?? 0;
+  const recommendations = analysis?.recommendations ?? [];
 
   const formatTime = (date: Date) => {
     const mins = Math.floor((Date.now() - date.getTime()) / 60000);
@@ -53,7 +59,7 @@ const AISecurity = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockThreats.slice(0, 4).map((t) => (
+                  {threats.slice(0, 4).map((t) => (
                     <tr key={t.id}>
                       <td>
                         <span className={cn("tag", t.severity === 'critical' ? 'tag-critical' : t.severity === 'high' ? 'tag-high' : 'tag-medium')}>

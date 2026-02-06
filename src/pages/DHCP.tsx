@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { mockDHCPLeases } from '@/data/mockData';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { ChevronDown, Plus, RefreshCw, Search, Edit2, Trash2, Server, Network, Settings, X, Download, Upload, Copy, GripVertical } from 'lucide-react';
@@ -157,7 +158,8 @@ const SortableMappingRow = ({ mapping, toggleMapping, handleEditMapping, handleD
 };
 
 const DHCP = () => {
-  const [leases] = useState(mockDHCPLeases);
+  const { demoMode } = useDemoMode();
+  const [leases] = useState(demoMode ? mockDHCPLeases : []);
   const [activeTab, setActiveTab] = useState<'server' | 'leases' | 'static'>('server');
   const [servers, setServers] = useState<DHCPServer[]>(initialServers);
   const [mappings, setMappings] = useState<StaticMapping[]>(initialMappings);
