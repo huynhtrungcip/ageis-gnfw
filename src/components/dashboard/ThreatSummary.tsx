@@ -1,11 +1,15 @@
-import { mockThreats, mockAIAnalysis } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { useRecentThreats, useLatestAIAnalysis } from '@/hooks/useDashboardData';
 
 export function ThreatSummary() {
-  const recentThreats = mockThreats.slice(0, 5);
-  
-  const formatTime = (date: Date) => {
-    const diff = Date.now() - date.getTime();
+  const { data: threatEvents = [] } = useRecentThreats();
+  const { data: aiData } = useLatestAIAnalysis();
+
+  const recentThreats = threatEvents.slice(0, 5);
+  const threatsBlocked = aiData?.threats_blocked ?? threatEvents.filter(t => t.action === 'blocked').length;
+
+  const formatTime = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 60) return `${mins}m ago`;
     const hours = Math.floor(mins / 60);
@@ -30,10 +34,10 @@ export function ThreatSummary() {
           <h3 className="text-sm font-medium">Recent Threats</h3>
           <span className="text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded">AI Powered</span>
         </div>
-        <span className="text-xs text-muted-foreground">{mockAIAnalysis.threatsBlocked} blocked today</span>
+        <span className="text-xs text-muted-foreground">{threatsBlocked} blocked today</span>
       </div>
       <div className="divide-y divide-border">
-        {recentThreats.map((threat) => (
+        {recentThreats.length > 0 ? recentThreats.map((threat) => (
           <div key={threat.id} className={cn("p-3 hover:bg-secondary/30 transition-colors", getSeverityClass(threat.severity))}>
             <div className="flex items-start justify-between mb-1">
               <div className="flex items-center gap-2">
@@ -48,12 +52,12 @@ export function ThreatSummary() {
                 </span>
                 <span className="text-xs font-medium">{threat.category}</span>
               </div>
-              <span className="text-[10px] text-muted-foreground">{formatTime(threat.timestamp)}</span>
+              <span className="text-[10px] text-muted-foreground">{formatTime(threat.created_at)}</span>
             </div>
-            <div className="text-xs text-muted-foreground mb-2 line-clamp-1">{threat.description}</div>
+            <div className="text-xs text-muted-foreground mb-2 line-clamp-1">{threat.description ?? '—'}</div>
             <div className="flex items-center justify-between text-[10px]">
               <div className="font-mono">
-                {threat.sourceIp} → {threat.destinationIp}:{threat.destinationPort}
+                {threat.source_ip ?? '—'} → {threat.destination_ip ?? '—'}:{threat.destination_port ?? ''}
               </div>
               <div className="flex items-center gap-2">
                 <span className={cn(
@@ -62,16 +66,15 @@ export function ThreatSummary() {
                 )}>
                   {threat.action.toUpperCase()}
                 </span>
-                <span className="text-muted-foreground">
-                  AI: {threat.aiConfidence}%
-                </span>
+                {threat.ai_confidence && (
+                  <span className="text-muted-foreground">AI: {threat.ai_confidence}%</span>
+                )}
               </div>
             </div>
           </div>
-        ))}
-      </div>
-      <div className="p-3 border-t border-border">
-        <button className="btn-secondary w-full text-xs py-2">View All Threats</button>
+        )) : (
+          <div className="p-4 text-sm text-muted-foreground text-center">No recent threats</div>
+        )}
       </div>
     </div>
   );

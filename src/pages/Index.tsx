@@ -2,129 +2,141 @@ import { useState, useEffect } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
-import { mockInterfaces, mockSystemStatus, mockVPNTunnels } from '@/data/mockData';
-import { 
-  Cpu, 
-  HardDrive, 
-  Shield, 
-  Network, 
-  Globe, 
-  Activity, 
-  ShieldCheck, 
-  Lock, 
-  Bug, 
-  Filter,
-  Settings,
-  RefreshCw,
-  CheckCircle2,
-  Server,
-  Wifi,
-  Database,
-  ChevronRight,
-  ArrowRight,
-  X,
-  XCircle
+import {
+  Cpu, HardDrive, Shield, Network, Globe, Activity,
+  ShieldCheck, Lock, Bug, Filter, Settings, RefreshCw,
+  CheckCircle2, Server, Database, ChevronRight, ArrowRight,
+  X, XCircle, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  Legend,
-  LineChart,
-  Line
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer
 } from 'recharts';
+import {
+  useLatestMetrics, useTrafficHistory, useInterfaces,
+  useVPN, useRecentThreats, useLatestAIAnalysis, useFirewallStats
+} from '@/hooks/useDashboardData';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock chart data
-const generateTrafficData = () => {
-  const hours = [];
-  for (let i = 0; i < 24; i++) {
-    hours.push({
-      time: `${i}:00`,
-      inbound: Math.floor(Math.random() * 50) + 10,
-      outbound: Math.floor(Math.random() * 40) + 5,
-    });
-  }
-  return hours;
+// ─── Helpers ────────────────────────────────────
+const formatUptime = (seconds: number) => {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${days}d ${hours}h ${mins}m`;
 };
 
-const licenses = [
-  { name: 'VM License', status: 'Valid', expiry: '2025-12-31' },
-  { name: 'Support', status: 'Valid', expiry: '2025-12-31' },
-  { name: 'IPS & IPS', status: 'Valid', expiry: '2025-12-31' },
-  { name: 'AntiVirus', status: 'Valid', expiry: '2025-12-31' },
-  { name: 'Web Filtering', status: 'Valid', expiry: '2025-12-31' },
-  { name: 'Email Filtering', status: 'Valid', expiry: '2025-12-31' },
-  { name: 'Aegis Sandbox Cloud', status: 'Valid', expiry: '2025-12-31' },
-];
+const formatBytes = (bytes: number | null) => {
+  if (!bytes) return '0 B';
+  if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+  if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+  return (bytes / 1024).toFixed(2) + ' KB';
+};
 
-// Widget Component
-const Widget = ({ 
-  title, 
-  children,
-  className = '',
-  headerActions
-}: { 
-  title: string; 
+// ─── Widget wrapper ─────────────────────────────
+const Widget = ({
+  title, children, className = '', headerActions, loading
+}: {
+  title: string;
   children: React.ReactNode;
   className?: string;
   headerActions?: React.ReactNode;
+  loading?: boolean;
 }) => (
   <div className={cn("widget", className)}>
     <div className="widget-header">
       <span>{title}</span>
-      {headerActions}
+      <div className="flex items-center gap-2">
+        {loading && <Loader2 size={12} className="animate-spin text-muted-foreground" />}
+        {headerActions}
+      </div>
     </div>
-    <div className="widget-body">
-      {children}
-    </div>
+    <div className="widget-body">{children}</div>
   </div>
 );
 
+// ─── Licenses (static config data) ─────────────
+const licenses = [
+  { name: 'VM License', status: 'Valid' },
+  { name: 'Support', status: 'Valid' },
+  { name: 'IDS & IPS', status: 'Valid' },
+  { name: 'AntiVirus', status: 'Valid' },
+  { name: 'Web Filtering', status: 'Valid' },
+];
+
+// ─── Dashboard ──────────────────────────────────
 const Dashboard = () => {
-  const { cpu, memory, uptime, hostname, disk } = mockSystemStatus;
-  const memPct = Math.round((memory.used / memory.total) * 100);
-  const diskPct = Math.round((disk.used / disk.total) * 100);
-  
-  const [trafficData, setTrafficData] = useState(generateTrafficData);
+  const queryClient = useQueryClient();
+  const metrics = useLatestMetrics();
+  const traffic = useTrafficHistory(24);
+  const interfaces = useInterfaces();
+  const vpn = useVPN();
+  const threats = useRecentThreats();
+  const ai = useLatestAIAnalysis();
+  const fwStats = useFirewallStats();
+
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [isAutoRefresh, setIsAutoRefresh] = useState(true);
 
-  // Auto-refresh every 30 seconds
+  // Trigger collect-metrics to populate data
+  const triggerCollect = async () => {
+    try {
+      await supabase.functions.invoke('collect-metrics');
+    } catch (e) {
+      console.error('collect-metrics error:', e);
+    }
+  };
+
+  useEffect(() => {
+    // Trigger initial data collection
+    triggerCollect();
+  }, []);
+
   useEffect(() => {
     if (!isAutoRefresh) return;
-    
     const interval = setInterval(() => {
-      setTrafficData(generateTrafficData());
+      triggerCollect();
+      queryClient.invalidateQueries();
       setLastRefresh(new Date());
     }, 30000);
-    
     return () => clearInterval(interval);
-  }, [isAutoRefresh]);
+  }, [isAutoRefresh, queryClient]);
 
   const handleManualRefresh = () => {
-    setTrafficData(generateTrafficData());
+    triggerCollect();
+    queryClient.invalidateQueries();
     setLastRefresh(new Date());
   };
 
-  const formatUptime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return `${days} days ${hours} hours ${mins} minutes`;
+  // ── Derived data ──
+  const m = metrics.data;
+  const cpuUsage = m?.cpu_usage ?? 0;
+  const memPct = m ? Math.round((m.memory_used / m.memory_total) * 100) : 0;
+  const diskPct = m ? Math.round((m.disk_used / m.disk_total) * 100) : 0;
+
+  const trafficData = (traffic.data ?? []).map(t => ({
+    time: new Date(t.recorded_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    inbound: t.inbound,
+    outbound: t.outbound,
+  }));
+
+  const ifaces = interfaces.data ?? [];
+  const vpnTunnels = vpn.data ?? [];
+  const threatEvents = threats.data ?? [];
+  const connectedVPNs = vpnTunnels.filter(v => v.status === 'connected').length;
+
+  // Threat severity counts
+  const threatCounts = {
+    critical: threatEvents.filter(t => t.severity === 'critical').length,
+    high: threatEvents.filter(t => t.severity === 'high').length,
+    medium: threatEvents.filter(t => t.severity === 'medium').length,
+    low: threatEvents.filter(t => t.severity === 'low').length,
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
-    return (bytes / 1024).toFixed(2) + ' KB';
-  };
+  // Port status based on interface count
+  const activePortCount = ifaces.filter(i => i.status === 'up').length;
 
   return (
     <Shell>
@@ -135,75 +147,47 @@ const Dashboard = () => {
             <span className="text-muted-foreground">
               Last updated: <span className="font-medium text-foreground">{lastRefresh.toLocaleTimeString()}</span>
             </span>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setIsAutoRefresh(!isAutoRefresh)}
-                className={cn(
-                  "px-2 py-1 rounded text-[10px] font-medium transition-colors",
-                  isAutoRefresh 
-                    ? "bg-[#4caf50] text-white" 
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                Auto-refresh: {isAutoRefresh ? 'ON' : 'OFF'}
-              </button>
-              <span className="text-muted-foreground">(every 30s)</span>
-            </div>
+            <button
+              onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+              className={cn(
+                "px-2 py-1 rounded text-[10px] font-medium transition-colors",
+                isAutoRefresh ? "bg-[#4caf50] text-white" : "bg-muted text-muted-foreground"
+              )}
+            >
+              Auto-refresh: {isAutoRefresh ? 'ON' : 'OFF'}
+            </button>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-7 gap-2"
-            onClick={handleManualRefresh}
-          >
+          <Button variant="ghost" size="sm" className="h-7 gap-2" onClick={handleManualRefresh}>
             <RefreshCw className="h-3 w-3" />
             Refresh Now
           </Button>
         </div>
-        {/* Top Row - System Info + Licenses */}
+
+        {/* Row 1 - System Info + Licenses */}
         <div className="grid grid-cols-3 gap-3">
-          {/* System Information */}
-          <Widget title="System Information" className="col-span-2">
+          <Widget title="System Information" className="col-span-2" loading={metrics.isLoading}>
             <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[11px]">
-              <div className="flex justify-between py-1 border-b border-[#eee]">
-                <span className="text-[#666]">Hostname:</span>
-                <span className="font-medium">{hostname}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#eee]">
-                <span className="text-[#666]">Serial Number:</span>
-                <span className="font-medium font-mono">FG100E4Q16005747</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#eee]">
-                <span className="text-[#666]">Operation Mode:</span>
-                <span className="font-medium">NAT</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#eee]">
-                <span className="text-[#666]">HA Status:</span>
-                <span className="font-medium">Standalone</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#eee]">
-                <span className="text-[#666]">Firmware:</span>
-                <span className="font-medium">v7.0.5 build0304 (GA)</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#eee]">
-                <span className="text-[#666]">System Time:</span>
-                <span className="font-medium">{new Date().toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#eee]">
-                <span className="text-[#666]">Uptime:</span>
-                <span className="font-medium">{formatUptime(uptime)}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-[#eee]">
-                <span className="text-[#666]">VDOM Mode:</span>
-                <span className="font-medium">Disabled</span>
-              </div>
+              {[
+                ['Hostname', m?.hostname ?? '—'],
+                ['Serial Number', 'AEGIS-NGFW-001'],
+                ['Operation Mode', 'NAT'],
+                ['HA Status', 'Standalone'],
+                ['Firmware', 'v7.0.5 build0304 (GA)'],
+                ['System Time', new Date().toLocaleString()],
+                ['Uptime', m ? formatUptime(m.uptime) : '—'],
+                ['CPU Cores', m ? `${m.cpu_cores} cores / ${m.cpu_temperature}°C` : '—'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between py-1 border-b border-[#eee]">
+                  <span className="text-[#666]">{label}:</span>
+                  <span className="font-medium">{value}</span>
+                </div>
+              ))}
             </div>
           </Widget>
 
-          {/* Licenses */}
           <Widget title="Licenses">
             <div className="space-y-1">
-              {licenses.slice(0, 5).map((lic, idx) => (
+              {licenses.map((lic, idx) => (
                 <div key={idx} className="flex items-center justify-between text-[11px] py-0.5">
                   <span className="text-[#666]">{lic.name}</span>
                   <span className="inline-flex items-center gap-1 text-[#4caf50]">
@@ -216,114 +200,93 @@ const Dashboard = () => {
           </Widget>
         </div>
 
-        {/* Second Row - Resources + Interface */}
+        {/* Row 2 - Resources + Interface Bandwidth */}
         <div className="grid grid-cols-3 gap-3">
-          {/* CPU / Memory / Disk */}
-          <Widget title="Resources">
+          <Widget title="Resources" loading={metrics.isLoading}>
             <div className="space-y-3">
-              {/* CPU */}
-              <div>
-                <div className="flex items-center justify-between text-[11px] mb-1">
-                  <span className="text-[#666]">CPU</span>
-                  <span className="font-medium">{cpu.usage}%</span>
+              {[
+                { label: 'CPU', value: cpuUsage },
+                { label: 'Memory', value: memPct },
+                { label: 'Disk', value: diskPct },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <div className="flex items-center justify-between text-[11px] mb-1">
+                    <span className="text-[#666]">{label}</span>
+                    <span className="font-medium">{value}%</span>
+                  </div>
+                  <div className="forti-progress">
+                    <div
+                      className={cn(
+                        "forti-progress-bar",
+                        value > 80 ? "red" : value > 60 ? "orange" : "green"
+                      )}
+                      style={{ width: `${value}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="forti-progress">
-                  <div 
-                    className={cn(
-                      "forti-progress-bar",
-                      cpu.usage > 80 ? "red" : cpu.usage > 60 ? "orange" : "green"
-                    )}
-                    style={{ width: `${cpu.usage}%` }}
-                  />
+              ))}
+              {m && (
+                <div className="text-[10px] text-[#999] pt-1 border-t border-[#eee]">
+                  Load: {m.load_1m} / {m.load_5m} / {m.load_15m}
                 </div>
-              </div>
-              {/* Memory */}
-              <div>
-                <div className="flex items-center justify-between text-[11px] mb-1">
-                  <span className="text-[#666]">Memory</span>
-                  <span className="font-medium">{memPct}%</span>
-                </div>
-                <div className="forti-progress">
-                  <div 
-                    className={cn(
-                      "forti-progress-bar",
-                      memPct > 80 ? "red" : memPct > 60 ? "orange" : "blue"
-                    )}
-                    style={{ width: `${memPct}%` }}
-                  />
-                </div>
-              </div>
-              {/* Session */}
-              <div>
-                <div className="flex items-center justify-between text-[11px] mb-1">
-                  <span className="text-[#666]">Session</span>
-                  <span className="font-medium">2.4K</span>
-                </div>
-                <div className="forti-progress">
-                  <div className="forti-progress-bar green" style={{ width: '12%' }} />
-                </div>
-              </div>
+              )}
             </div>
           </Widget>
 
-          {/* Interface Bandwidth */}
-          <Widget title="Interface Bandwidth (Mbps)" className="col-span-2">
+          <Widget title="Interface Bandwidth (Mbps)" className="col-span-2" loading={traffic.isLoading}>
             <div className="h-32">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trafficData.slice(-12)} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                  <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="#999" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="#999" />
-                  <Tooltip 
-                    contentStyle={{ fontSize: 11, background: '#fff', border: '1px solid #ddd' }}
-                  />
-                  <Area type="monotone" dataKey="inbound" stroke="#4caf50" fill="#4caf50" fillOpacity={0.3} />
-                  <Area type="monotone" dataKey="outbound" stroke="#2196f3" fill="#2196f3" fillOpacity={0.3} />
-                </AreaChart>
-              </ResponsiveContainer>
+              {trafficData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trafficData.slice(-12)} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                    <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="#999" />
+                    <YAxis tick={{ fontSize: 10 }} stroke="#999" />
+                    <Tooltip contentStyle={{ fontSize: 11, background: '#fff', border: '1px solid #ddd' }} />
+                    <Area type="monotone" dataKey="inbound" stroke="#4caf50" fill="#4caf50" fillOpacity={0.3} />
+                    <Area type="monotone" dataKey="outbound" stroke="#2196f3" fill="#2196f3" fillOpacity={0.3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-[11px] text-[#999]">
+                  No traffic data yet. Agent will populate this.
+                </div>
+              )}
             </div>
           </Widget>
         </div>
 
-        {/* Third Row - Device Unit + Interfaces */}
+        {/* Row 3 - Unit Operation + Top Interfaces */}
         <div className="grid grid-cols-3 gap-3">
-          {/* Aegis Unit Visualization */}
-          <Widget title="Unit Operation">
+          <Widget title="Unit Operation" loading={interfaces.isLoading}>
             <div className="flex flex-col items-center py-2">
-              {/* Device Visual */}
               <div className="bg-[#333] rounded px-4 py-2 text-center mb-2">
                 <div className="text-[10px] text-gray-400 mb-1">AEGIS</div>
                 <div className="text-[11px] text-white font-bold">Aegis NGFW-500</div>
                 <div className="flex items-center justify-center gap-1 mt-2">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                    <div 
+                  {Array.from({ length: 10 }, (_, i) => (
+                    <div
                       key={i}
-                      className={cn(
-                        "forti-port",
-                        i <= 4 ? "up" : "down"
-                      )}
+                      className={cn("forti-port", i < activePortCount ? "up" : "down")}
                     >
-                      {i}
+                      {i + 1}
                     </div>
                   ))}
                 </div>
               </div>
-              {/* Status */}
               <div className="flex items-center gap-4 text-[10px]">
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-[#4caf50]" />
-                  Connected: 4
+                  Connected: {activePortCount}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-[#ccc]" />
-                  Disconnected: 6
+                  Disconnected: {10 - activePortCount}
                 </span>
               </div>
             </div>
           </Widget>
 
-          {/* Interfaces Status */}
-          <Widget title="Top Interfaces by Bandwidth" className="col-span-2">
+          <Widget title="Top Interfaces by Bandwidth" className="col-span-2" loading={interfaces.isLoading}>
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-left text-[#666]">
@@ -335,10 +298,10 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {mockInterfaces.slice(0, 4).map((iface) => (
+                {ifaces.length > 0 ? ifaces.slice(0, 6).map((iface) => (
                   <tr key={iface.id} className="border-t border-[#eee]">
                     <td className="py-1.5 font-medium">{iface.name}</td>
-                    <td className="py-1.5 font-mono text-[#666]">{iface.ipAddress}</td>
+                    <td className="py-1.5 font-mono text-[#666]">{iface.ip_address ?? '—'}</td>
                     <td className="py-1.5">
                       <span className={cn(
                         "inline-flex items-center gap-1",
@@ -351,47 +314,37 @@ const Dashboard = () => {
                         {iface.status === 'up' ? 'Up' : 'Down'}
                       </span>
                     </td>
-                    <td className="py-1.5 text-right text-[#666]">{formatBytes(iface.rxBytes)}</td>
-                    <td className="py-1.5 text-right text-[#666]">{formatBytes(iface.txBytes)}</td>
+                    <td className="py-1.5 text-right text-[#666]">{formatBytes(iface.rx_bytes)}</td>
+                    <td className="py-1.5 text-right text-[#666]">{formatBytes(iface.tx_bytes)}</td>
                   </tr>
-                ))}
+                )) : (
+                  <tr><td colSpan={5} className="py-4 text-center text-[#999]">No interface data</td></tr>
+                )}
               </tbody>
             </table>
           </Widget>
         </div>
 
-        {/* Fourth Row - Security + Sessions */}
+        {/* Row 4 - Security Events + Top Sessions */}
         <div className="grid grid-cols-3 gap-3">
-          {/* Security Events */}
-          <Widget title="Security Events (Last 24 Hours)">
+          <Widget title="Security Events (Last 24 Hours)" loading={threats.isLoading}>
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded bg-red-500" />
-                  Critical
-                </span>
-                <span className="font-bold text-red-500">3</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded bg-orange-500" />
-                  High
-                </span>
-                <span className="font-bold text-orange-500">12</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded bg-yellow-500" />
-                  Medium
-                </span>
-                <span className="font-bold text-yellow-600">45</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded bg-blue-500" />
-                  Low
-                </span>
-                <span className="font-bold text-blue-500">128</span>
+              {[
+                { label: 'Critical', count: threatCounts.critical, color: 'bg-red-500', textColor: 'text-red-500' },
+                { label: 'High', count: threatCounts.high, color: 'bg-orange-500', textColor: 'text-orange-500' },
+                { label: 'Medium', count: threatCounts.medium, color: 'bg-yellow-500', textColor: 'text-yellow-600' },
+                { label: 'Low', count: threatCounts.low, color: 'bg-blue-500', textColor: 'text-blue-500' },
+              ].map(({ label, count, color, textColor }) => (
+                <div key={label} className="flex items-center justify-between text-[11px]">
+                  <span className="flex items-center gap-2">
+                    <span className={cn("w-3 h-3 rounded", color)} />
+                    {label}
+                  </span>
+                  <span className={cn("font-bold", textColor)}>{count}</span>
+                </div>
+              ))}
+              <div className="pt-2 border-t border-[#eee] text-[11px] text-[#666]">
+                Total events: <span className="font-bold text-foreground">{threatEvents.length}</span>
               </div>
             </div>
             <Link to="/threats" className="mt-3 flex items-center gap-1 text-[11px] text-[#4caf50] hover:underline">
@@ -399,204 +352,110 @@ const Dashboard = () => {
             </Link>
           </Widget>
 
-          {/* Top Sessions */}
-          <Widget title="Top Sessions by Source" className="col-span-2">
+          <Widget title="Top Sessions by Source" className="col-span-2" loading={threats.isLoading}>
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-left text-[#666]">
                   <th className="pb-1">Source</th>
                   <th className="pb-1">Destination</th>
-                  <th className="pb-1">Application</th>
-                  <th className="pb-1 text-right">Sessions</th>
+                  <th className="pb-1">Category</th>
+                  <th className="pb-1">Action</th>
+                  <th className="pb-1 text-right">Confidence</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-t border-[#eee]">
-                  <td className="py-1.5 font-mono">192.168.1.105</td>
-                  <td className="py-1.5 font-mono">8.8.8.8</td>
-                  <td className="py-1.5">DNS</td>
-                  <td className="py-1.5 text-right font-medium">1,247</td>
-                </tr>
-                <tr className="border-t border-[#eee]">
-                  <td className="py-1.5 font-mono">192.168.1.112</td>
-                  <td className="py-1.5 font-mono">151.101.1.140</td>
-                  <td className="py-1.5">HTTPS</td>
-                  <td className="py-1.5 text-right font-medium">892</td>
-                </tr>
-                <tr className="border-t border-[#eee]">
-                  <td className="py-1.5 font-mono">192.168.1.108</td>
-                  <td className="py-1.5 font-mono">142.250.185.46</td>
-                  <td className="py-1.5">HTTPS</td>
-                  <td className="py-1.5 text-right font-medium">654</td>
-                </tr>
+                {threatEvents.length > 0 ? threatEvents.slice(0, 5).map((t) => (
+                  <tr key={t.id} className="border-t border-[#eee]">
+                    <td className="py-1.5 font-mono">{t.source_ip ?? '—'}</td>
+                    <td className="py-1.5 font-mono">{t.destination_ip ?? '—'}{t.destination_port ? `:${t.destination_port}` : ''}</td>
+                    <td className="py-1.5">{t.category}</td>
+                    <td className="py-1.5">
+                      <span className={cn(
+                        "forti-tag text-[10px]",
+                        t.action === 'blocked' ? "bg-red-100 text-red-700 border-red-200" : "bg-yellow-100 text-yellow-700 border-yellow-200"
+                      )}>
+                        {t.action.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-1.5 text-right">{t.ai_confidence ? `${t.ai_confidence}%` : '—'}</td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan={5} className="py-4 text-center text-[#999]">No recent threat events</td></tr>
+                )}
               </tbody>
             </table>
           </Widget>
         </div>
 
-        {/* Fifth Row - VPN Status + WiFi */}
-        <div className="grid grid-cols-3 gap-3">
-          {/* WiFi Status Widget */}
-          <Widget title="WiFi Controller Status">
-            <div className="space-y-3">
-              {/* AP Status */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded bg-[#4caf50]/20 flex items-center justify-center">
-                    <Wifi size={16} className="text-[#4caf50]" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-[#666]">Access Points</div>
-                    <div className="text-sm font-bold">
-                      <span className="text-[#4caf50]">4</span>
-                      <span className="text-[#999]"> / 5</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] text-[#666]">Online</div>
-                  <div className="text-sm font-bold text-[#4caf50]">80%</div>
-                </div>
-              </div>
-
-              {/* Clients */}
-              <div className="flex items-center justify-between py-2 border-t border-[#eee]">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded bg-blue-500/20 flex items-center justify-center">
-                    <Network size={16} className="text-blue-500" />
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-[#666]">Connected Clients</div>
-                    <div className="text-sm font-bold text-blue-600">55</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[11px] text-[#666]">5GHz</div>
-                  <div className="text-sm font-bold text-blue-600">42</div>
-                </div>
-              </div>
-
-              {/* Bandwidth */}
-              <div className="flex items-center justify-between py-2 border-t border-[#eee]">
-                <div>
-                  <div className="text-[11px] text-[#666]">Total Bandwidth</div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[11px]">
-                      <span className="text-[#4caf50]">↓</span> 675 Mbps
-                    </span>
-                    <span className="text-[11px]">
-                      <span className="text-blue-500">↑</span> 320 Mbps
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <Link to="/wifi" className="mt-2 flex items-center gap-1 text-[11px] text-[#4caf50] hover:underline">
-              View WiFi Controller <ChevronRight size={12} />
-            </Link>
-          </Widget>
-
-          {/* VPN Status */}
-          <Widget title="IPsec VPN" className="col-span-2">
+        {/* Row 5 - VPN Status */}
+        <div className="grid grid-cols-1 gap-3">
+          <Widget title={`IPsec VPN (${connectedVPNs}/${vpnTunnels.length} connected)`} loading={vpn.isLoading}>
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-left text-[#666]">
                   <th className="pb-1">Tunnel Name</th>
                   <th className="pb-1">Type</th>
                   <th className="pb-1">Remote Gateway</th>
+                  <th className="pb-1">Local Network</th>
+                  <th className="pb-1">Remote Network</th>
                   <th className="pb-1">Status</th>
                   <th className="pb-1 text-right">Incoming</th>
                   <th className="pb-1 text-right">Outgoing</th>
                 </tr>
               </thead>
               <tbody>
-                {mockVPNTunnels.slice(0, 3).map((vpn) => (
-                  <tr key={vpn.id} className="border-t border-[#eee]">
-                    <td className="py-1.5 font-medium">{vpn.name}</td>
-                    <td className="py-1.5">{vpn.type.toUpperCase()}</td>
-                    <td className="py-1.5 font-mono text-[#666]">{vpn.remoteGateway}</td>
+                {vpnTunnels.length > 0 ? vpnTunnels.map((v) => (
+                  <tr key={v.id} className="border-t border-[#eee]">
+                    <td className="py-1.5 font-medium">{v.name}</td>
+                    <td className="py-1.5">{v.type.toUpperCase()}</td>
+                    <td className="py-1.5 font-mono text-[#666]">{v.remote_gateway ?? '—'}</td>
+                    <td className="py-1.5 font-mono text-[#666]">{v.local_network ?? '—'}</td>
+                    <td className="py-1.5 font-mono text-[#666]">{v.remote_network ?? '—'}</td>
                     <td className="py-1.5">
                       <span className={cn(
                         "inline-flex items-center gap-1",
-                        vpn.status === 'connected' ? 'text-[#4caf50]' : 'text-[#999]'
+                        v.status === 'connected' ? 'text-[#4caf50]' : 'text-[#999]'
                       )}>
                         <span className={cn(
                           "w-2 h-2 rounded-full",
-                          vpn.status === 'connected' ? 'bg-[#4caf50]' : 'bg-[#ccc]'
+                          v.status === 'connected' ? 'bg-[#4caf50]' : 'bg-[#ccc]'
                         )} />
-                        {vpn.status === 'connected' ? 'Up' : 'Down'}
+                        {v.status === 'connected' ? 'Up' : 'Down'}
                       </span>
                     </td>
-                    <td className="py-1.5 text-right text-[#666]">{formatBytes(vpn.bytesIn)}</td>
-                    <td className="py-1.5 text-right text-[#666]">{formatBytes(vpn.bytesOut)}</td>
+                    <td className="py-1.5 text-right text-[#666]">{formatBytes(v.bytes_in)}</td>
+                    <td className="py-1.5 text-right text-[#666]">{formatBytes(v.bytes_out)}</td>
                   </tr>
-                ))}
+                )) : (
+                  <tr><td colSpan={8} className="py-4 text-center text-[#999]">No VPN tunnels configured</td></tr>
+                )}
               </tbody>
             </table>
           </Widget>
         </div>
 
-        {/* Sixth Row - SSID Status */}
-        <Widget title="Active SSIDs">
-          <table className="w-full text-[11px]">
-            <thead>
-              <tr className="text-left text-[#666]">
-                <th className="pb-1">SSID Name</th>
-                <th className="pb-1">Security</th>
-                <th className="pb-1">Band</th>
-                <th className="pb-1">VLAN</th>
-                <th className="pb-1 text-center">Clients</th>
-                <th className="pb-1 text-right">RX (Mbps)</th>
-                <th className="pb-1 text-right">TX (Mbps)</th>
-                <th className="pb-1">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t border-[#eee]">
-                <td className="py-1.5 font-medium">Corporate-WiFi</td>
-                <td className="py-1.5">
-                  <span className="forti-tag bg-blue-100 text-blue-700 border-blue-200">WPA2-ENT</span>
-                </td>
-                <td className="py-1.5">Dual</td>
-                <td className="py-1.5">10</td>
-                <td className="py-1.5 text-center font-medium">45</td>
-                <td className="py-1.5 text-right">1,250</td>
-                <td className="py-1.5 text-right">890</td>
-                <td className="py-1.5">
-                  <span className="forti-tag bg-green-100 text-green-700 border-green-200">ACTIVE</span>
-                </td>
-              </tr>
-              <tr className="border-t border-[#eee]">
-                <td className="py-1.5 font-medium">Guest-WiFi</td>
-                <td className="py-1.5">
-                  <span className="forti-tag bg-purple-100 text-purple-700 border-purple-200">WPA2-PSK</span>
-                </td>
-                <td className="py-1.5">Dual</td>
-                <td className="py-1.5">20</td>
-                <td className="py-1.5 text-center font-medium">12</td>
-                <td className="py-1.5 text-right">450</td>
-                <td className="py-1.5 text-right">120</td>
-                <td className="py-1.5">
-                  <span className="forti-tag bg-green-100 text-green-700 border-green-200">ACTIVE</span>
-                </td>
-              </tr>
-              <tr className="border-t border-[#eee]">
-                <td className="py-1.5 font-medium">IoT-Network</td>
-                <td className="py-1.5">
-                  <span className="forti-tag bg-purple-100 text-purple-700 border-purple-200">WPA2-PSK</span>
-                </td>
-                <td className="py-1.5">2.4GHz</td>
-                <td className="py-1.5">30</td>
-                <td className="py-1.5 text-center font-medium">8</td>
-                <td className="py-1.5 text-right">50</td>
-                <td className="py-1.5 text-right">30</td>
-                <td className="py-1.5">
-                  <span className="forti-tag bg-green-100 text-green-700 border-green-200">ACTIVE</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </Widget>
+        {/* Row 6 - Firewall Stats Summary */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: 'Firewall Rules', value: fwStats.data?.total ?? 0, sub: `${fwStats.data?.active ?? 0} active`, icon: Shield },
+            { label: 'VPN Tunnels', value: connectedVPNs, sub: `of ${vpnTunnels.length}`, icon: Lock },
+            { label: 'Threats (24h)', value: threatEvents.length, sub: `${threatCounts.critical} critical`, icon: Bug },
+            { label: 'Interfaces', value: activePortCount, sub: `of ${ifaces.length} up`, icon: Network },
+          ].map(({ label, value, sub, icon: Icon }) => (
+            <div key={label} className="widget">
+              <div className="widget-body flex items-center gap-3 py-3">
+                <div className="w-10 h-10 rounded-lg bg-[#4caf50]/10 flex items-center justify-center">
+                  <Icon size={18} className="text-[#4caf50]" />
+                </div>
+                <div>
+                  <div className="text-lg font-bold">{value}</div>
+                  <div className="text-[10px] text-[#666]">{label}</div>
+                  <div className="text-[9px] text-[#999]">{sub}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </Shell>
   );

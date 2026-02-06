@@ -1,43 +1,36 @@
-import { mockSystemStatus, mockVPNTunnels } from '@/data/mockData';
+import { useLatestMetrics, useVPN } from '@/hooks/useDashboardData';
 import { cn } from '@/lib/utils';
 
 export function SystemStatus() {
-  const { cpu, memory, disk } = mockSystemStatus;
-  const memPercent = Math.round((memory.used / memory.total) * 100);
-  const connectedVPNs = mockVPNTunnels.filter(v => v.status === 'connected').length;
+  const { data: m } = useLatestMetrics();
+  const { data: vpnTunnels = [] } = useVPN();
+  
+  const cpuUsage = m?.cpu_usage ?? 0;
+  const memPercent = m ? Math.round((m.memory_used / m.memory_total) * 100) : 0;
+  const connectedVPNs = vpnTunnels.filter(v => v.status === 'connected').length;
 
   const metrics = [
     { 
-      label: 'CPU', 
-      value: cpu.usage, 
-      suffix: '%',
-      status: cpu.usage > 80 ? 'critical' : cpu.usage > 60 ? 'medium' : 'healthy'
+      label: 'CPU', value: cpuUsage, suffix: '%',
+      status: cpuUsage > 80 ? 'critical' : cpuUsage > 60 ? 'medium' : 'healthy'
     },
     { 
-      label: 'Memory', 
-      value: memPercent, 
-      suffix: '%',
+      label: 'Memory', value: memPercent, suffix: '%',
       status: memPercent > 80 ? 'critical' : memPercent > 60 ? 'medium' : 'healthy'
     },
     { 
-      label: 'Sessions', 
-      value: '12.8K', 
-      suffix: '',
+      label: 'Sessions', value: '12.8K', suffix: '',
       status: 'healthy'
     },
     { 
-      label: 'VPN', 
-      value: connectedVPNs, 
-      suffix: `/${mockVPNTunnels.length}`,
-      status: connectedVPNs === mockVPNTunnels.length ? 'healthy' : connectedVPNs > 0 ? 'medium' : 'inactive'
+      label: 'VPN', value: connectedVPNs, suffix: `/${vpnTunnels.length}`,
+      status: connectedVPNs === vpnTunnels.length ? 'healthy' : connectedVPNs > 0 ? 'medium' : 'inactive'
     },
   ];
 
   return (
     <div className="panel h-full">
-      <div className="panel-header">
-        <span>System Status</span>
-      </div>
+      <div className="panel-header"><span>System Status</span></div>
       <div className="panel-body">
         <div className="grid grid-cols-2 gap-4">
           {metrics.map((metric) => (
