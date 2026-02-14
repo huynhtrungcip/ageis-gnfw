@@ -137,7 +137,7 @@ const SortableServiceRow = ({ service, selectedIds, handleSelect, getProtocolCol
       </td>
       <td className="text-[11px] text-[#666]">{service.category}</td>
       <td>
-        <span className={cn("text-[10px] px-1.5 py-0.5 border", getProtocolColor(service.protocol))}>
+        <span className={cn("forti-tag", getProtocolColor(service.protocol))}>
           {service.protocol}
         </span>
       </td>

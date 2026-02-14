@@ -175,9 +175,9 @@ const PacketCapture = () => {
                         }} />
                       </td>
                       <td className="text-[11px] font-medium">{session.name}</td>
-                      <td><span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">{session.interface}</span></td>
+                      <td><span className="forti-tag bg-blue-100 text-blue-700 border-blue-200">{session.interface}</span></td>
                       <td className="mono text-[10px] text-[#666] max-w-[150px] truncate">{session.filter || '-'}</td>
-                      <td><span className={cn("text-[10px] px-1.5 py-0.5 border", getStatusBadge(session.status))}>{session.status.toUpperCase()}</span></td>
+                      <td><span className={cn("forti-tag", getStatusBadge(session.status))}>{session.status.toUpperCase()}</span></td>
                       <td className="text-[11px]">{session.packets.toLocaleString()}</td>
                       <td className="text-[11px]">{formatSize(session.size_bytes)}</td>
                       <td className="mono text-[10px]">{formatDuration(session.started_at, session.stopped_at)}</td>

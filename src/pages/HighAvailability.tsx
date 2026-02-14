@@ -625,7 +625,7 @@ const HighAvailability = () => {
                     <td className="mono text-[10px] text-[#333]">{event.time}</td>
                     <td>
                       <span className={cn(
-                        "text-[10px] px-1.5 py-0.5 border",
+                        "forti-tag",
                         event.event === 'Failover' ? "bg-orange-100 text-orange-700 border-orange-200" : "bg-blue-100 text-blue-700 border-blue-200"
                       )}>
                         {event.event}

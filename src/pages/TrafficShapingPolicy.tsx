@@ -179,13 +179,13 @@ const TrafficShapingPolicy = () => {
                     </div>
                   </td>
                   <td>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 border border-purple-200">
+                    <span className="forti-tag bg-purple-100 text-purple-700 border-purple-200">
                       {policy.application}
                     </span>
                   </td>
                   <td>
                     {policy.trafficShaper ? (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 border border-orange-200">
+                      <span className="forti-tag bg-orange-100 text-orange-700 border-orange-200">
                         {policy.trafficShaper}
                       </span>
                     ) : (

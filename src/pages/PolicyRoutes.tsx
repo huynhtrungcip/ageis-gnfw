@@ -328,7 +328,7 @@ const PolicyRoutes = () => {
                   />
                 </td>
                 <td>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">
+                  <span className="forti-tag bg-blue-100 text-blue-700 border-blue-200">
                     {route.incoming}
                   </span>
                 </td>
@@ -337,7 +337,7 @@ const PolicyRoutes = () => {
                 <td className="text-[#333]">{route.protocol}</td>
                 <td className="mono text-[#111]">{route.gateway}</td>
                 <td>
-                  <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 border border-green-200">
+                  <span className="forti-tag bg-green-100 text-green-700 border-green-200">
                     {route.outInterface}
                   </span>
                 </td>

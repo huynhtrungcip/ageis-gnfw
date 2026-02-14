@@ -349,7 +349,7 @@ const CertificateManagement = () => {
                     <td className="text-[10px] text-[#666]">{cert.keyType} {cert.keySize}</td>
                     <td>
                       <span className={cn(
-                        "text-[10px] px-1.5 py-0.5 border",
+                        "forti-tag",
                         cert.status === 'valid' ? "bg-green-100 text-green-700 border-green-200" :
                         cert.status === 'expiring' ? "bg-orange-100 text-orange-700 border-orange-200" :
                         cert.status === 'expired' ? "bg-red-100 text-red-700 border-red-200" :
