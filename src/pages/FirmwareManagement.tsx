@@ -30,6 +30,7 @@ const initialFirmware: FirmwareVersion[] = [
   { id: 'fw-1', version: '2.1.0', buildNumber: '2620', releaseDate: '2024-02-01', type: 'maintenance', size: '245 MB', releaseNotes: 'Security fixes and performance improvements', recommended: true },
   { id: 'fw-2', version: '2.0.0', buildNumber: '2571', releaseDate: '2024-01-15', type: 'stable', size: '242 MB', releaseNotes: 'Current installed version', recommended: false },
   { id: 'fw-3', version: '1.9.0', buildNumber: '2463', releaseDate: '2023-12-10', type: 'stable', size: '238 MB', releaseNotes: 'VPN and routing improvements', recommended: false },
+  { id: 'fw-4', version: '2.2.0', buildNumber: '3001', releaseDate: '2024-02-15', type: 'feature', size: '280 MB', releaseNotes: 'New AI-powered threat detection', recommended: false },
 ];
 
 // Backup History
@@ -47,6 +48,7 @@ const initialBackups: BackupEntry[] = [
   { id: 'bk-1', filename: 'config_backup_20240201_143022.conf', date: '2024-02-01 14:30:22', size: '2.4 MB', type: 'auto', firmwareVersion: '2.0.0', status: 'success' },
   { id: 'bk-2', filename: 'config_backup_20240125_090015.conf', date: '2024-01-25 09:00:15', size: '2.3 MB', type: 'manual', firmwareVersion: '2.0.0', status: 'success' },
   { id: 'bk-3', filename: 'pre_upgrade_20240115_083045.conf', date: '2024-01-15 08:30:45', size: '2.2 MB', type: 'pre-upgrade', firmwareVersion: '1.9.0', status: 'success' },
+  { id: 'bk-4', filename: 'config_backup_20240101_120000.conf', date: '2024-01-01 12:00:00', size: '2.1 MB', type: 'auto', firmwareVersion: '1.9.0', status: 'success' },
 ];
 
 const formatUptime = (seconds: number) => {
@@ -55,43 +57,6 @@ const formatUptime = (seconds: number) => {
   const mins = Math.floor((seconds % 3600) / 60);
   return `${days} days ${hours} hours ${mins} minutes`;
 };
-
-// Available Firmware
-interface FirmwareVersion {
-  id: string;
-  version: string;
-  buildNumber: string;
-  releaseDate: string;
-  type: 'stable' | 'feature' | 'maintenance';
-  size: string;
-  releaseNotes: string;
-  recommended: boolean;
-}
-
-const initialFirmware: FirmwareVersion[] = [
-  { id: 'fw-1', version: '7.4.3', buildNumber: '2620', releaseDate: '2024-02-01', type: 'maintenance', size: '245 MB', releaseNotes: 'Security fixes and performance improvements', recommended: true },
-  { id: 'fw-2', version: '7.4.2', buildNumber: '2571', releaseDate: '2024-01-15', type: 'stable', size: '242 MB', releaseNotes: 'Current installed version', recommended: false },
-  { id: 'fw-3', version: '7.4.1', buildNumber: '2463', releaseDate: '2023-12-10', type: 'stable', size: '238 MB', releaseNotes: 'VPN and routing improvements', recommended: false },
-  { id: 'fw-4', version: '7.6.0', buildNumber: '3001', releaseDate: '2024-02-15', type: 'feature', size: '280 MB', releaseNotes: 'New AI-powered threat detection', recommended: false },
-];
-
-// Backup History
-interface BackupEntry {
-  id: string;
-  filename: string;
-  date: string;
-  size: string;
-  type: 'auto' | 'manual' | 'pre-upgrade';
-  firmwareVersion: string;
-  status: 'success' | 'failed';
-}
-
-const initialBackups: BackupEntry[] = [
-  { id: 'bk-1', filename: 'config_backup_20240201_143022.conf', date: '2024-02-01 14:30:22', size: '2.4 MB', type: 'auto', firmwareVersion: '7.4.2', status: 'success' },
-  { id: 'bk-2', filename: 'config_backup_20240125_090015.conf', date: '2024-01-25 09:00:15', size: '2.3 MB', type: 'manual', firmwareVersion: '7.4.2', status: 'success' },
-  { id: 'bk-3', filename: 'pre_upgrade_20240115_083045.conf', date: '2024-01-15 08:30:45', size: '2.2 MB', type: 'pre-upgrade', firmwareVersion: '7.4.1', status: 'success' },
-  { id: 'bk-4', filename: 'config_backup_20240101_120000.conf', date: '2024-01-01 12:00:00', size: '2.1 MB', type: 'auto', firmwareVersion: '7.4.1', status: 'success' },
-];
 
 const FirmwareManagement = () => {
   const { info: firmwareInfo, loading: fwLoading, fetchInfo } = useFirmwareInfo();
@@ -107,6 +72,14 @@ const FirmwareManagement = () => {
   const [backupToRestore, setBackupToRestore] = useState<string | null>(null);
 
   const currentVersion = firmwareInfo?.current_version || '2.0.0';
+  const currentBuild = firmwareInfo?.build_number || '2571';
+  const currentHostname = firmwareInfo?.hostname || 'AEGIS-PRIMARY';
+  const currentModel = firmwareInfo?.model || 'Aegis-NGFW';
+  const currentSerial = firmwareInfo?.serial_number || 'AEGIS-A1B2C3D4E5F6';
+  const currentUptime = firmwareInfo?.uptime_seconds ? formatUptime(firmwareInfo.uptime_seconds) : '0 days';
+  const currentKernel = firmwareInfo?.kernel_version || '';
+  const currentOS = firmwareInfo?.os_version || '';
+  const lastUpdated = firmwareInfo?.last_updated || 'N/A';
 
   const handleUpgrade = () => {
     if (!selectedFirmware) { toast.error('Please select a firmware version'); return; }
@@ -167,7 +140,7 @@ const FirmwareManagement = () => {
   };
 
   const handleExportAll = () => {
-    const data = { firmware, backups, systemInfo };
+    const data = { firmware, backups, firmwareInfo };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -225,24 +198,20 @@ const FirmwareManagement = () => {
         <div className="flex items-center gap-0 border-x border-[#ddd]">
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
             <Server size={14} className="text-blue-600" />
-            <span className="text-sm font-bold text-blue-600">{systemInfo.model}</span>
+            <span className="text-sm font-bold text-blue-600">{currentModel}</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
             <Shield size={14} className="text-green-600" />
-            <span className="text-lg font-bold text-green-600">v{systemInfo.currentFirmware}</span>
+            <span className="text-lg font-bold text-green-600">v{currentVersion}</span>
             <span className="text-[11px] text-[#333]">Current</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
             <Clock size={14} className="text-purple-600" />
-            <span className="text-[11px] text-[#333]">{systemInfo.uptime}</span>
+            <span className="text-[11px] text-[#333]">{currentUptime}</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            {systemInfo.licenseStatus === 'valid' ? (
-              <CheckCircle size={14} className="text-green-600" />
-            ) : (
-              <AlertTriangle size={14} className="text-yellow-600" />
-            )}
-            <span className="text-[11px] text-[#333]">License: {systemInfo.licenseExpiry}</span>
+            <CheckCircle size={14} className="text-green-600" />
+            <span className="text-[11px] text-[#333]">System Active</span>
           </div>
         </div>
 
@@ -283,19 +252,19 @@ const FirmwareManagement = () => {
                     <tbody>
                       <tr>
                         <td className="widget-label">Model</td>
-                        <td className="widget-value text-[#111]">{systemInfo.model}</td>
+                        <td className="widget-value text-[#111]">{currentModel}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Serial Number</td>
-                        <td className="widget-value mono text-[#111]">{systemInfo.serialNumber}</td>
+                        <td className="widget-value mono text-[#111]">{currentSerial}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Hostname</td>
-                        <td className="widget-value text-[#111]">{systemInfo.hostname}</td>
+                        <td className="widget-value text-[#111]">{currentHostname}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Uptime</td>
-                        <td className="widget-value text-[#111]">{systemInfo.uptime}</td>
+                        <td className="widget-value text-[#111]">{currentUptime}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -311,32 +280,23 @@ const FirmwareManagement = () => {
                     <tbody>
                       <tr>
                         <td className="widget-label">Current Version</td>
-                        <td className="widget-value text-[#111]">v{systemInfo.currentFirmware}</td>
+                        <td className="widget-value text-[#111]">v{currentVersion}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Build Number</td>
-                        <td className="widget-value text-[#111]">{systemInfo.buildNumber}</td>
+                        <td className="widget-value text-[#111]">{currentBuild}</td>
+                      </tr>
+                      <tr>
+                        <td className="widget-label">Kernel Version</td>
+                        <td className="widget-value text-[#111]">{currentKernel}</td>
+                      </tr>
+                      <tr>
+                        <td className="widget-label">OS Version</td>
+                        <td className="widget-value text-[#111]">{currentOS}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Last Updated</td>
-                        <td className="widget-value text-[#111]">{systemInfo.lastUpdated}</td>
-                      </tr>
-                      <tr>
-                        <td className="widget-label">License Status</td>
-                        <td className="widget-value">
-                          <span className={cn(
-                            "forti-tag",
-                            systemInfo.licenseStatus === 'valid' ? 'bg-green-100 text-green-700 border-green-200' :
-                            systemInfo.licenseStatus === 'expiring' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                            'bg-red-100 text-red-700 border-red-200'
-                          )}>
-                            {systemInfo.licenseStatus.toUpperCase()}
-                          </span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="widget-label">License Expiry</td>
-                        <td className="widget-value text-[#111]">{systemInfo.licenseExpiry}</td>
+                        <td className="widget-value text-[#111]">{lastUpdated}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -369,7 +329,7 @@ const FirmwareManagement = () => {
                     className={cn(
                       "cursor-pointer",
                       selectedFirmware === fw.id && "bg-[#fff8e1]",
-                      fw.version === systemInfo.currentFirmware && "bg-green-50"
+                      fw.version === currentVersion && "bg-green-50"
                     )}
                   >
                     <td>
@@ -378,7 +338,7 @@ const FirmwareManagement = () => {
                         name="firmware"
                         checked={selectedFirmware === fw.id}
                         onChange={() => setSelectedFirmware(fw.id)}
-                        disabled={fw.version === systemInfo.currentFirmware}
+                        disabled={fw.version === currentVersion}
                         className="forti-checkbox"
                       />
                     </td>
@@ -405,7 +365,7 @@ const FirmwareManagement = () => {
                     <td className="text-[#333]">{fw.size}</td>
                     <td className="text-[#333]">{fw.releaseNotes}</td>
                     <td>
-                      {fw.version === systemInfo.currentFirmware ? (
+                      {fw.version === currentVersion ? (
                         <span className="forti-tag bg-green-100 text-green-700 border-green-200">
                           INSTALLED
                         </span>
@@ -422,7 +382,7 @@ const FirmwareManagement = () => {
                       )}
                     </td>
                     <td>
-                      {fw.version !== systemInfo.currentFirmware && (
+                      {fw.version !== currentVersion && (
                         <button 
                           className="p-1 hover:bg-[#f0f0f0]"
                           onClick={(e) => {
@@ -455,7 +415,7 @@ const FirmwareManagement = () => {
                 </div>
                 <button 
                   onClick={handleUpgrade}
-                  disabled={!selectedFirmware || firmware.find(f => f.id === selectedFirmware)?.version === systemInfo.currentFirmware}
+                  disabled={!selectedFirmware || firmware.find(f => f.id === selectedFirmware)?.version === currentVersion}
                   className="forti-btn forti-btn-primary flex items-center gap-2"
                 >
                   <ArrowUpCircle size={14} />

@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { mockFirewallRules, mockNATRules } from '@/data/mockData';
+import { useConfigBackups } from '@/hooks/useConfigBackups';
 
 // Comprehensive mock data for full system backup
 const mockSystemConfig = {
@@ -184,7 +185,7 @@ const configSections = [
   { key: 'logging', label: 'Logging', icon: History, color: 'text-gray-400' },
 ];
 
-const recentBackups = [
+const fallbackRecentBackups = [
   { date: '2024-01-15 10:30', size: '2.4 MB', type: 'Full', status: 'success' },
   { date: '2024-01-14 18:00', size: '2.3 MB', type: 'Full', status: 'success' },
   { date: '2024-01-13 08:00', size: '1.8 MB', type: 'Partial', status: 'success' },
@@ -209,6 +210,25 @@ const initialScheduledBackups: ScheduledBackup[] = [
 ];
 
 const SystemBackup = () => {
+  const { backups: dbBackups, loading: backupsLoading, fetchBackups, deleteBackup } = useConfigBackups();
+
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const recentBackups = dbBackups.length > 0
+    ? dbBackups.slice(0, 4).map(b => ({
+        date: new Date(b.created_at).toLocaleString(),
+        size: formatSize(b.size_bytes),
+        type: b.type === 'manual' ? 'Manual' : b.type === 'auto' ? 'Auto' : b.type === 'scheduled' ? 'Scheduled' : 'Pre-Upgrade',
+        status: b.status,
+      }))
+    : fallbackRecentBackups;
+
   const [exportConfig, setExportConfig] = useState<ExportConfig>({
     system: true, interfaces: true, firewallRules: true, natRules: true,
     aliases: true, services: true, schedules: true, ipPools: true,
