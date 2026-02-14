@@ -8,29 +8,29 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { db, isApiConfigured, type AppRole } from '@/lib/postgrest';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+
+type AppRole = 'super_admin' | 'admin' | 'operator' | 'auditor';
 
 // Fetch all admins: profiles joined with their roles
 async function fetchAdminUsers() {
-  if (!isApiConfigured()) return [];
-  const { data: roles, error: rolesErr } = await (db.from('user_roles')
-    .select('user_id, role, created_at') as any);
+  const { data: roles, error: rolesErr } = await supabase
+    .from('user_roles')
+    .select('user_id, role, created_at');
   if (rolesErr) throw rolesErr;
 
   const userIds = [...new Set(roles?.map(r => r.user_id) ?? [])];
   if (userIds.length === 0) return [];
 
-  const { data: profiles, error: profErr } = await (db.from('users')
+  const { data: profiles, error: profErr } = await supabase
+    .from('profiles')
     .select('*')
-    .in('id', userIds) as any);
+    .in('user_id', userIds);
   if (profErr) throw profErr;
 
-  const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+  const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
 
-  const userMap = new Map<string, { profile: any; roles: AppRole[]; createdAt: string }>();
-
-  // Group roles by user
   const userMapTyped = new Map<string, { profile: any; roles: AppRole[]; createdAt: string }>();
   for (const r of roles ?? []) {
     if (!userMapTyped.has(r.user_id)) {
@@ -40,17 +40,17 @@ async function fetchAdminUsers() {
         createdAt: r.created_at,
       });
     }
-    userMapTyped.get(r.user_id)!.roles.push(r.role);
+    userMapTyped.get(r.user_id)!.roles.push(r.role as AppRole);
   }
   return Array.from(userMapTyped.values());
 }
 
 async function fetchAuditLogs(limit = 50) {
-  if (!isApiConfigured()) return [];
-  const { data, error } = await (db.from('audit_logs')
+  const { data, error } = await supabase
+    .from('audit_logs')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(limit) as any);
+    .limit(limit);
   if (error) throw error;
   return data ?? [];
 }

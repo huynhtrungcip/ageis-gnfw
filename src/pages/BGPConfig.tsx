@@ -2,6 +2,7 @@ import { Shell } from '@/components/layout/Shell';
 import { Settings, Globe, RefreshCw, Save, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { FortiToggle } from '@/components/ui/forti-toggle';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 
 interface BGPNeighbor {
   id: string;
@@ -14,14 +15,15 @@ interface BGPNeighbor {
 }
 
 const BGPConfig = () => {
-  const [enabled, setEnabled] = useState(true);
+  const { demoMode } = useDemoMode();
+  const [enabled, setEnabled] = useState(demoMode);
   const [localAS, setLocalAS] = useState(65001);
   const [routerId, setRouterId] = useState('10.0.0.1');
-  const [neighbors] = useState<BGPNeighbor[]>([
+  const [neighbors] = useState<BGPNeighbor[]>(demoMode ? [
     { id: '1', ip: '192.168.1.1', remoteAS: 65002, description: 'ISP Primary', status: 'established', uptime: '5d 12h', prefixesReceived: 125000 },
     { id: '2', ip: '192.168.2.1', remoteAS: 65003, description: 'ISP Backup', status: 'established', uptime: '3d 8h', prefixesReceived: 98500 },
     { id: '3', ip: '10.10.10.1', remoteAS: 65004, description: 'Partner Network', status: 'idle', uptime: '-', prefixesReceived: 0 },
-  ]);
+  ] : []);
 
   const getStatusColor = (status: string) => {
     switch (status) {

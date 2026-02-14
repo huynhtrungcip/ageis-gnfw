@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   Shield, 
   Search, 
@@ -214,9 +215,10 @@ const webCategories = [
 ];
 
 const SSLInspection = () => {
+  const { demoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('profiles');
-  const [certificates, setCertificates] = useState<Certificate[]>(mockCertificates);
-  const [sslProfiles, setSSLProfiles] = useState<SSLProfile[]>(mockSSLProfiles);
+  const [certificates, setCertificates] = useState<Certificate[]>(demoMode ? mockCertificates : []);
+  const [sslProfiles, setSSLProfiles] = useState<SSLProfile[]>(demoMode ? mockSSLProfiles : []);
   const [search, setSearch] = useState('');
   const [certType, setCertType] = useState('all');
   const [selectedCerts, setSelectedCerts] = useState<string[]>([]);

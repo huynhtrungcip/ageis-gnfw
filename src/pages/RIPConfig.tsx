@@ -2,6 +2,7 @@ import { Shell } from '@/components/layout/Shell';
 import { Settings, Network, RefreshCw, Save, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { FortiToggle } from '@/components/ui/forti-toggle';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 
 interface RIPNetwork {
   id: string;
@@ -16,16 +17,17 @@ interface RIPInterface {
 }
 
 const RIPConfig = () => {
-  const [enabled, setEnabled] = useState(true);
+  const { demoMode } = useDemoMode();
+  const [enabled, setEnabled] = useState(demoMode);
   const [version, setVersion] = useState<'1' | '2'>('2');
-  const [networks, setNetworks] = useState<RIPNetwork[]>([
+  const [networks, setNetworks] = useState<RIPNetwork[]>(demoMode ? [
     { id: '1', network: '10.0.0.0/8' },
     { id: '2', network: '192.168.1.0/24' },
-  ]);
-  const [interfaces, setInterfaces] = useState<RIPInterface[]>([
+  ] : []);
+  const [interfaces, setInterfaces] = useState<RIPInterface[]>(demoMode ? [
     { name: 'internal', passive: false, splitHorizon: true, authentication: 'none' },
     { name: 'wan1', passive: true, splitHorizon: true, authentication: 'md5' },
-  ]);
+  ] : []);
 
   return (
     <Shell>

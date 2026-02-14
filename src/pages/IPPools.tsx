@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
@@ -174,7 +175,8 @@ const SortablePoolRow = ({ pool, isSelected, onSelect, onToggle, onDoubleClick, 
 };
 
 const IPPools = () => {
-  const [pools, setPools] = useState<IPPool[]>(initialPools);
+  const { demoMode } = useDemoMode();
+  const [pools, setPools] = useState<IPPool[]>(demoMode ? initialPools : []);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { Plus, Pencil, Trash2, Shield, User, Key, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -124,7 +125,8 @@ const initialUsers: SystemUser[] = [
 ];
 
 const UserManagement = () => {
-  const [users, setUsers] = useState<SystemUser[]>(initialUsers);
+  const { demoMode } = useDemoMode();
+  const [users, setUsers] = useState<SystemUser[]>(demoMode ? initialUsers : []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);

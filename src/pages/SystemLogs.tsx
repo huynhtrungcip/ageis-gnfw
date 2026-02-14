@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   Search, 
   Download, 
@@ -85,6 +86,7 @@ const generateMockLogs = (): LogEntry[] => {
 const mockLogs = generateMockLogs();
 
 const SystemLogs = () => {
+  const { demoMode } = useDemoMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedInterface, setSelectedInterface] = useState<string>('all');
@@ -104,7 +106,7 @@ const SystemLogs = () => {
 
   // Filter logs
   const filteredLogs = useMemo(() => {
-    let filtered = [...mockLogs];
+    let filtered = demoMode ? [...mockLogs] : [];
 
     // Time range filter
     const now = Date.now();

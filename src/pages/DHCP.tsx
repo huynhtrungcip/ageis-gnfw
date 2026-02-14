@@ -161,8 +161,8 @@ const DHCP = () => {
   const { demoMode } = useDemoMode();
   const [leases] = useState(demoMode ? mockDHCPLeases : []);
   const [activeTab, setActiveTab] = useState<'server' | 'leases' | 'static'>('server');
-  const [servers, setServers] = useState<DHCPServer[]>(initialServers);
-  const [mappings, setMappings] = useState<StaticMapping[]>(initialMappings);
+  const [servers, setServers] = useState<DHCPServer[]>(demoMode ? initialServers : []);
+  const [mappings, setMappings] = useState<StaticMapping[]>(demoMode ? initialMappings : []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 

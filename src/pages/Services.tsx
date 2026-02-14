@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   Plus, 
   Edit2, 
@@ -155,7 +156,8 @@ const SortableServiceRow = ({ service, selectedIds, handleSelect, getProtocolCol
 };
 
 const Services = () => {
-  const [services, setServices] = useState<ServiceObject[]>(initialServices);
+  const { demoMode } = useDemoMode();
+  const [services, setServices] = useState<ServiceObject[]>(demoMode ? initialServices : []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showCreateMenu, setShowCreateMenu] = useState(false);

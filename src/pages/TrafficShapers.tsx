@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
@@ -250,7 +251,8 @@ const SortableShaperRow = ({ shaper, isSelected, onSelect, onToggle, onDoubleCli
 };
 
 const TrafficShapers = () => {
-  const [shapers, setShapers] = useState<TrafficShaper[]>(initialShapers);
+  const { demoMode } = useDemoMode();
+  const [shapers, setShapers] = useState<TrafficShaper[]>(demoMode ? initialShapers : []);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
