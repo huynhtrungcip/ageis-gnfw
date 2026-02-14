@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { Download } from 'lucide-react';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 
 const threatDetail = {
   id: 'threat-1',
@@ -56,11 +57,23 @@ const threatDetail = {
 };
 
 const ThreatDetail = () => {
+  const { demoMode } = useDemoMode();
   const { id } = useParams();
   const [tab, setTab] = useState<'overview' | 'session' | 'evidence' | 'timeline' | 'raw'>('overview');
-  const t = threatDetail;
+  const t = demoMode ? threatDetail : null;
 
   const tabs = ['overview', 'session', 'evidence', 'timeline', 'raw'];
+
+  if (!t) {
+    return (
+      <Shell>
+        <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
+          No threat data available. Switch to MOCK mode to see demo data.
+        </div>
+      </Shell>
+    );
+  }
+
 
   return (
     <Shell>
