@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 
 const SystemSettings = () => {
   const { demoMode, setDemoMode } = useDemoMode();
-  const [hostname, setHostname] = useState('NGFW-PRIMARY');
+  const [hostname, setHostname] = useState('AEGIS-NGFW-500');
   const [domain, setDomain] = useState('local.lan');
   const [timezone, setTimezone] = useState('Asia/Ho_Chi_Minh');
   const [ntpServer, setNtpServer] = useState('pool.ntp.org');

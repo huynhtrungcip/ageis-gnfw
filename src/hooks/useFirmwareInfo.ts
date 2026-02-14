@@ -16,7 +16,7 @@ export interface FirmwareInfo {
 
 const mockInfo: FirmwareInfo = {
   id: '1',
-  hostname: 'AEGIS-PRIMARY',
+  hostname: 'AEGIS-NGFW-500',
   model: 'Aegis-NGFW',
   serial_number: 'AEGIS-A1B2C3D4E5F6',
   current_version: '2.0.0',

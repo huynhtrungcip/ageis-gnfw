@@ -88,7 +88,7 @@ const ConfigBackup = () => {
     const data: any = {
       version: '1.0',
       exportDate: new Date().toISOString(),
-      hostname: 'NGFW-PRIMARY',
+      hostname: 'AEGIS-NGFW-500',
     };
 
     if (!demoMode) return data;

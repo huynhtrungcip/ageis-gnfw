@@ -304,7 +304,7 @@ export const mockThreats: ThreatEvent[] = [
 ];
 
 export const mockSystemStatus: SystemStatus = {
-  hostname: 'NGFW-PRIMARY',
+  hostname: 'AEGIS-NGFW-500',
   uptime: 2592000,
   cpu: {
     usage: 23,

@@ -36,7 +36,7 @@ function simulateCommand(cmd: string): string {
 
   if (trimmed === 'status') {
     return `System Status: ONLINE
-Hostname: AEGIS-PRIMARY
+Hostname: AEGIS-NGFW-500
 Model: Aegis Firewall v7.4
 Serial: FW-2024-AEG-001
 Uptime: 30 days, 5 hours, 12 minutes
@@ -201,7 +201,7 @@ export function CLIConsole({ open, onOpenChange }: CLIConsoleProps) {
             <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
             <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
             <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-            <span className="text-[11px] text-gray-400 ml-2 font-mono">aegis-cli — AEGIS-PRIMARY</span>
+            <span className="text-[11px] text-gray-400 ml-2 font-mono">aegis-cli — AEGIS-NGFW-500</span>
           </div>
         </div>
         <div ref={scrollRef} className="h-[400px] overflow-y-auto p-3 font-mono text-[12px] leading-relaxed">

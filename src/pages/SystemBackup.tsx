@@ -54,7 +54,7 @@ import { useDemoMode } from '@/contexts/DemoModeContext';
 // Comprehensive mock data for full system backup
 const mockSystemConfig = {
   system: {
-    hostname: 'NGFW-PRIMARY',
+    hostname: 'AEGIS-NGFW-500',
     domain: 'corp.local',
     timezone: 'Asia/Ho_Chi_Minh',
     dns: ['8.8.8.8', '8.8.4.4'],
