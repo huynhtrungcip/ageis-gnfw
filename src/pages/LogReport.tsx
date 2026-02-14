@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   Download, 
   RefreshCw, 
@@ -41,6 +42,7 @@ const mockLogs: LogEntry[] = [
 ];
 
 const LogReport = () => {
+  const { demoMode } = useDemoMode();
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,7 +58,9 @@ const LogReport = () => {
 
   const logLevels = ['all', 'info', 'warning', 'error', 'critical'];
 
-  const filteredLogs = mockLogs.filter(log => {
+  const logs = demoMode ? mockLogs : [];
+
+  const filteredLogs = logs.filter(log => {
     if (selectedType !== 'all' && log.type !== selectedType) return false;
     if (selectedLevel !== 'all' && log.level !== selectedLevel) return false;
     if (searchQuery && !log.message.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -108,10 +112,10 @@ const LogReport = () => {
 
   // Stats
   const stats = {
-    total: mockLogs.length,
-    critical: mockLogs.filter(l => l.level === 'critical').length,
-    errors: mockLogs.filter(l => l.level === 'error').length,
-    warnings: mockLogs.filter(l => l.level === 'warning').length,
+    total: logs.length,
+    critical: logs.filter(l => l.level === 'critical').length,
+    errors: logs.filter(l => l.level === 'error').length,
+    warnings: logs.filter(l => l.level === 'warning').length,
   };
 
   return (
