@@ -665,7 +665,7 @@ INSERT INTO public.vpn_tunnels (name, type, status, remote_gateway, local_networ
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public.system_settings (key, value, description, is_auditable) VALUES
-  ('hostname', 'AEGIS-PRIMARY', 'System hostname', true),
+  ('hostname', 'AEGIS-NGFW-500', 'System hostname', true),
   ('timezone', 'Asia/Ho_Chi_Minh', 'System timezone', true),
   ('dns_primary', '8.8.8.8', 'Primary DNS server', false),
   ('dns_secondary', '8.8.4.4', 'Secondary DNS server', false)
@@ -735,7 +735,7 @@ INSERT INTO public.web_filter_profiles (name, comment, mode, action) VALUES
   ('default', 'Default web filter', 'proxy', 'block');
 
 INSERT INTO public.system_metrics (hostname, uptime, cpu_usage, cpu_cores, cpu_temperature, memory_total, memory_used, memory_free, memory_cached, disk_total, disk_used, disk_free, load_1m, load_5m, load_15m) VALUES
-  ('AEGIS-PRIMARY', 2592000, 23, 8, 45, 32768, 12288, 16384, 4096, 512000, 128000, 384000, 1.25, 1.42, 1.38);
+  ('AEGIS-NGFW-500', 2592000, 23, 8, 45, 32768, 12288, 16384, 4096, 512000, 128000, 384000, 1.25, 1.42, 1.38);
 
 INSERT INTO public.ai_analysis (risk_score, anomalies_detected, threats_blocked, predictions, recommendations) VALUES
   (72, 15, 1247,
@@ -786,7 +786,7 @@ CREATE INDEX IF NOT EXISTS idx_network_devices_ip ON public.network_devices(ip_a
 CREATE TABLE IF NOT EXISTS public.firmware_info (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   hostname TEXT NOT NULL DEFAULT '',
-  model TEXT NOT NULL DEFAULT 'Aegis-NGFW',
+  model TEXT NOT NULL DEFAULT 'Aegis-NGFW-500',
   serial_number TEXT NOT NULL DEFAULT '',
   current_version TEXT NOT NULL DEFAULT '',
   build_number TEXT NOT NULL DEFAULT '',
@@ -826,5 +826,5 @@ GRANT SELECT ON public.config_backups TO anon;
 
 -- Seed firmware info
 INSERT INTO public.firmware_info (hostname, model, current_version, build_number, kernel_version, os_version) VALUES
-  ('AEGIS-PRIMARY', 'Aegis-NGFW', '2.0.0', '2571', '', '')
+  ('AEGIS-NGFW-500', 'Aegis-NGFW-500', '2.0.0', '2571', '', '')
 ON CONFLICT DO NOTHING;

@@ -154,7 +154,7 @@ export default function Auth() {
 
         {/* Footer */}
         <p className="text-center text-[10px] text-gray-500 mt-6">
-          Aegis NGFW v1.0 • Next-Generation Firewall Management
+          Aegis NGFW-500 v2.0 • Next-Generation Firewall Management
         </p>
       </div>
     </div>

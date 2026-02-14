@@ -37,8 +37,8 @@ function simulateCommand(cmd: string): string {
   if (trimmed === 'status') {
     return `System Status: ONLINE
 Hostname: AEGIS-NGFW-500
-Model: Aegis Firewall v7.4
-Serial: FW-2024-AEG-001
+Model: Aegis-NGFW-500
+Serial: AEGIS-NGFW-500
 Uptime: 30 days, 5 hours, 12 minutes
 CPU: 23% | Memory: 61% | Disk: 34%
 Active Sessions: 12,847
@@ -108,7 +108,7 @@ Query time: ${Math.floor(Math.random() * 50) + 1}ms`;
   }
 
   if (trimmed === 'uptime') return `System uptime: 30 days, 5 hours, 12 minutes, 48 seconds`;
-  if (trimmed === 'version') return `Aegis Firewall OS v7.4.2 (build 1234)\nKernel: 5.15.0-aegis\nLast updated: 2026-01-15`;
+  if (trimmed === 'version') return `Aegis NGFW v2.0.0 (build 2571)\nKernel: 5.15.0-aegis\nLast updated: 2026-01-15`;
   if (trimmed === 'cpu') return `CPU Usage: 23%\nCores: 4\nTemperature: 42°C\nLoad Avg: 0.45, 0.38, 0.31`;
   if (trimmed === 'memory') return `Memory: 3.9 GB / 8.0 GB (61%)\nCached: 1.2 GB\nBuffers: 340 MB\nSwap: 0 / 2.0 GB`;
   if (trimmed === 'disk') return `Filesystem  Size   Used  Avail  Use%\n/dev/sda1   120G   41G   79G    34%\n/dev/sda2   500G   180G  320G   36%`;
@@ -124,7 +124,7 @@ interface CLIConsoleProps {
 
 export function CLIConsole({ open, onOpenChange }: CLIConsoleProps) {
   const [lines, setLines] = useState<CLILine[]>([
-    { type: 'system', text: 'Aegis Firewall CLI Console v7.4.2', timestamp: now() },
+    { type: 'system', text: 'Aegis NGFW CLI Console v2.0.0', timestamp: now() },
     { type: 'system', text: 'Type "help" for available commands.', timestamp: now() },
   ]);
   const [input, setInput] = useState('');
