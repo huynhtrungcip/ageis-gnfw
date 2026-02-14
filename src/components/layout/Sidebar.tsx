@@ -217,8 +217,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       collapsed ? "w-[48px]" : "w-[200px]"
     )} style={{ background: '#1e2d3d' }}>
       {/* Logo Header */}
-      <div className="h-10 flex items-center px-3 border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
-        <AegisLogo size="sm" showText={!collapsed} showVersion={!collapsed} />
+      <div className="h-10 flex items-center justify-center border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
+        <AegisLogo size="sm" showText={!collapsed} />
       </div>
 
       {/* Navigation */}
