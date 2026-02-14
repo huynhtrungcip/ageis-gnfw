@@ -2,58 +2,58 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { 
-  HardDrive,
-  Download,
-  Upload,
-  RefreshCw,
-  Search,
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  Shield,
-  Server,
-  FileArchive,
-  ArrowUpCircle,
-  History,
-  Trash2,
-  X
+  HardDrive, Download, Upload, RefreshCw, Search, CheckCircle,
+  AlertTriangle, Clock, Shield, Server, FileArchive, ArrowUpCircle,
+  History, Trash2, X
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useFirmwareInfo } from '@/hooks/useFirmwareInfo';
 
-// Current System Info
-interface SystemInfo {
-  model: string;
-  serialNumber: string;
-  hostname: string;
-  currentFirmware: string;
+// Available Firmware
+interface FirmwareVersion {
+  id: string;
+  version: string;
   buildNumber: string;
-  lastUpdated: string;
-  licenseStatus: 'valid' | 'expired' | 'expiring';
-  licenseExpiry: string;
-  uptime: string;
+  releaseDate: string;
+  type: 'stable' | 'feature' | 'maintenance';
+  size: string;
+  releaseNotes: string;
+  recommended: boolean;
 }
 
-const systemInfo: SystemInfo = {
-  model: 'Aegis-500F',
-  serialNumber: 'FGT500F0000001234',
-  hostname: 'AEGIS-NGFW-HQ',
-  currentFirmware: '7.4.2',
-  buildNumber: '2571',
-  lastUpdated: '2024-01-15',
-  licenseStatus: 'valid',
-  licenseExpiry: '2025-12-31',
-  uptime: '45 days 12 hours 34 minutes',
+const initialFirmware: FirmwareVersion[] = [
+  { id: 'fw-1', version: '2.1.0', buildNumber: '2620', releaseDate: '2024-02-01', type: 'maintenance', size: '245 MB', releaseNotes: 'Security fixes and performance improvements', recommended: true },
+  { id: 'fw-2', version: '2.0.0', buildNumber: '2571', releaseDate: '2024-01-15', type: 'stable', size: '242 MB', releaseNotes: 'Current installed version', recommended: false },
+  { id: 'fw-3', version: '1.9.0', buildNumber: '2463', releaseDate: '2023-12-10', type: 'stable', size: '238 MB', releaseNotes: 'VPN and routing improvements', recommended: false },
+];
+
+// Backup History
+interface BackupEntry {
+  id: string;
+  filename: string;
+  date: string;
+  size: string;
+  type: 'auto' | 'manual' | 'pre-upgrade';
+  firmwareVersion: string;
+  status: 'success' | 'failed';
+}
+
+const initialBackups: BackupEntry[] = [
+  { id: 'bk-1', filename: 'config_backup_20240201_143022.conf', date: '2024-02-01 14:30:22', size: '2.4 MB', type: 'auto', firmwareVersion: '2.0.0', status: 'success' },
+  { id: 'bk-2', filename: 'config_backup_20240125_090015.conf', date: '2024-01-25 09:00:15', size: '2.3 MB', type: 'manual', firmwareVersion: '2.0.0', status: 'success' },
+  { id: 'bk-3', filename: 'pre_upgrade_20240115_083045.conf', date: '2024-01-15 08:30:45', size: '2.2 MB', type: 'pre-upgrade', firmwareVersion: '1.9.0', status: 'success' },
+];
+
+const formatUptime = (seconds: number) => {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${days} days ${hours} hours ${mins} minutes`;
 };
 
 // Available Firmware
@@ -94,6 +94,7 @@ const initialBackups: BackupEntry[] = [
 ];
 
 const FirmwareManagement = () => {
+  const { info: firmwareInfo, loading: fwLoading, fetchInfo } = useFirmwareInfo();
   const [activeTab, setActiveTab] = useState('current');
   const [selectedFirmware, setSelectedFirmware] = useState<string | null>(null);
   const [backupBeforeUpgrade, setBackupBeforeUpgrade] = useState(true);
@@ -105,16 +106,12 @@ const FirmwareManagement = () => {
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [backupToRestore, setBackupToRestore] = useState<string | null>(null);
 
+  const currentVersion = firmwareInfo?.current_version || '2.0.0';
+
   const handleUpgrade = () => {
-    if (!selectedFirmware) {
-      toast.error('Please select a firmware version');
-      return;
-    }
+    if (!selectedFirmware) { toast.error('Please select a firmware version'); return; }
     const fw = firmware.find(f => f.id === selectedFirmware);
-    if (fw?.version === systemInfo.currentFirmware) {
-      toast.error('Selected version is already installed');
-      return;
-    }
+    if (fw?.version === currentVersion) { toast.error('Selected version is already installed'); return; }
     toast.success(`Firmware upgrade to v${fw?.version} initiated. System will reboot...`);
   };
 
@@ -125,7 +122,7 @@ const FirmwareManagement = () => {
       date: new Date().toLocaleString(),
       size: '2.4 MB',
       type: 'manual',
-      firmwareVersion: systemInfo.currentFirmware,
+      firmwareVersion: currentVersion,
       status: 'success',
     };
     setBackups(prev => [newBackup, ...prev]);
