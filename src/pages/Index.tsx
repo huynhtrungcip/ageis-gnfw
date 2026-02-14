@@ -252,7 +252,7 @@ const Dashboard = () => {
                     <td className="py-1.5 font-mono">{t.source_ip ?? '—'}</td>
                     <td className="py-1.5 font-mono">{t.destination_ip ?? '—'}{t.destination_port ? `:${t.destination_port}` : ''}</td>
                     <td className="py-1.5">{t.category}</td>
-                    <td className="py-1.5"><span className={cn("forti-tag text-[10px] inline-block min-w-[72px] text-center", t.action === 'blocked' ? "bg-red-100 text-red-700 border-red-200" : "bg-yellow-100 text-yellow-700 border-yellow-200")}>{t.action.toUpperCase()}</span></td>
+                    <td className="py-1.5"><span className={cn("forti-tag text-[10px] inline-block min-w-[80px] text-center", t.action === 'blocked' ? "bg-red-100 text-red-700 border-red-200" : "bg-yellow-100 text-yellow-700 border-yellow-200")}>{t.action.toUpperCase()}</span></td>
                     <td className="py-1.5 text-right">{t.ai_confidence ? `${t.ai_confidence}%` : '—'}</td>
                   </tr>
                 )) : <tr><td colSpan={5} className="py-4 text-center text-[#999]">No recent events</td></tr>}

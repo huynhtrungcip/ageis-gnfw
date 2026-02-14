@@ -144,7 +144,7 @@ const ThreatMonitor = () => {
               <tr key={threat.id}>
                 <td>
                   <span className={cn(
-                    "forti-tag inline-block w-[72px] text-center",
+                    "forti-tag inline-block min-w-[80px] text-center",
                     threat.severity === 'critical' ? 'bg-red-100 text-red-700 border-red-200' :
                     threat.severity === 'high' ? 'bg-orange-100 text-orange-700 border-orange-200' :
                     threat.severity === 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
@@ -163,7 +163,7 @@ const ThreatMonitor = () => {
                 </td>
                 <td>
                   <span className={cn(
-                    "forti-tag inline-block w-[72px] text-center",
+                    "forti-tag inline-block min-w-[80px] text-center",
                     threat.action === 'blocked' 
                       ? 'bg-green-100 text-green-700 border-green-200' 
                       : 'bg-yellow-100 text-yellow-700 border-yellow-200'

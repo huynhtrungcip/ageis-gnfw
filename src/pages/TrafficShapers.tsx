@@ -223,7 +223,7 @@ const SortableShaperRow = ({ shaper, isSelected, onSelect, onToggle, onDoubleCli
       <td className="mono text-[11px]">{formatBandwidth(shaper.burstBandwidth)}</td>
       <td>
         <span className={cn(
-          "forti-tag inline-block min-w-[72px] text-center",
+          "forti-tag inline-block min-w-[80px] text-center",
           shaper.priority === 'high' && "bg-red-100 text-red-700 border-red-200",
           shaper.priority === 'medium' && "bg-yellow-100 text-yellow-700 border-yellow-200",
           shaper.priority === 'low' && "bg-blue-100 text-blue-700 border-blue-200"
