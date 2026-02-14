@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import { mockFirewallRules, mockNATRules } from '@/data/mockData';
 import { useConfigBackups } from '@/hooks/useConfigBackups';
 import { formatFileSize as formatSize } from '@/lib/formatters';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 
 // Comprehensive mock data for full system backup
 const mockSystemConfig = {
@@ -211,9 +212,8 @@ const initialScheduledBackups: ScheduledBackup[] = [
 ];
 
 const SystemBackup = () => {
+  const { demoMode } = useDemoMode();
   const { backups: dbBackups, loading: backupsLoading, fetchBackups, deleteBackup } = useConfigBackups();
-
-  
 
   const recentBackups = dbBackups.length > 0
     ? dbBackups.slice(0, 4).map(b => ({
@@ -222,7 +222,7 @@ const SystemBackup = () => {
         type: b.type === 'manual' ? 'Manual' : b.type === 'auto' ? 'Auto' : b.type === 'scheduled' ? 'Scheduled' : 'Pre-Upgrade',
         status: b.status,
       }))
-    : fallbackRecentBackups;
+    : demoMode ? fallbackRecentBackups : [];
 
   const [exportConfig, setExportConfig] = useState<ExportConfig>({
     system: true, interfaces: true, firewallRules: true, natRules: true,
@@ -338,15 +338,17 @@ const SystemBackup = () => {
     const data: any = {
       version: '2.0',
       exportDate: new Date().toISOString(),
-      hostname: mockSystemConfig.system.hostname,
+      hostname: demoMode ? mockSystemConfig.system.hostname : '',
       type: 'full_system_backup',
     };
 
-    Object.keys(exportConfig).forEach(key => {
-      if (exportConfig[key as keyof ExportConfig] && mockSystemConfig[key as keyof typeof mockSystemConfig]) {
-        data[key] = mockSystemConfig[key as keyof typeof mockSystemConfig];
-      }
-    });
+    if (demoMode) {
+      Object.keys(exportConfig).forEach(key => {
+        if (exportConfig[key as keyof ExportConfig] && mockSystemConfig[key as keyof typeof mockSystemConfig]) {
+          data[key] = mockSystemConfig[key as keyof typeof mockSystemConfig];
+        }
+      });
+    }
 
     return data;
   };

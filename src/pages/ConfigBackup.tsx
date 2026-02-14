@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { mockFirewallRules, mockNATRules } from '@/data/mockData';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 
 // Mock data for export
 const mockAliases = [
@@ -59,6 +60,7 @@ interface ImportPreview {
 }
 
 const ConfigBackup = () => {
+  const { demoMode } = useDemoMode();
   const [exportConfig, setExportConfig] = useState<ExportConfig>({
     firewallRules: true,
     natRules: true,
@@ -74,10 +76,10 @@ const ConfigBackup = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const configSections = [
-    { key: 'firewallRules', label: 'Firewall Rules', icon: Shield, count: mockFirewallRules.length, color: 'text-blue-400' },
-    { key: 'natRules', label: 'NAT Rules', icon: ArrowRightLeft, count: mockNATRules.length, color: 'text-emerald-400' },
-    { key: 'aliases', label: 'Aliases', icon: Network, count: mockAliases.length, color: 'text-amber-400' },
-    { key: 'schedules', label: 'Schedules', icon: Clock, count: mockSchedules.length, color: 'text-purple-400' },
+    { key: 'firewallRules', label: 'Firewall Rules', icon: Shield, count: demoMode ? mockFirewallRules.length : 0, color: 'text-blue-400' },
+    { key: 'natRules', label: 'NAT Rules', icon: ArrowRightLeft, count: demoMode ? mockNATRules.length : 0, color: 'text-emerald-400' },
+    { key: 'aliases', label: 'Aliases', icon: Network, count: demoMode ? mockAliases.length : 0, color: 'text-amber-400' },
+    { key: 'schedules', label: 'Schedules', icon: Clock, count: demoMode ? mockSchedules.length : 0, color: 'text-purple-400' },
   ];
 
   const selectedCount = Object.values(exportConfig).filter(Boolean).length;
@@ -88,6 +90,8 @@ const ConfigBackup = () => {
       exportDate: new Date().toISOString(),
       hostname: 'NGFW-PRIMARY',
     };
+
+    if (!demoMode) return data;
 
     if (exportConfig.firewallRules) {
       data.firewallRules = mockFirewallRules.map(rule => ({

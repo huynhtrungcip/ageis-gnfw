@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Shield, 
@@ -62,7 +63,8 @@ const initialFeatures: Feature[] = [
 ];
 
 const FeatureVisibility = () => {
-  const [features, setFeatures] = useState<Feature[]>(initialFeatures);
+  const { demoMode } = useDemoMode();
+  const [features, setFeatures] = useState<Feature[]>(demoMode ? initialFeatures : []);
   const [search, setSearch] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
 

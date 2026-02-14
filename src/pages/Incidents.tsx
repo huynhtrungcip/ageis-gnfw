@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { 
   AlertTriangle, 
@@ -141,7 +142,8 @@ const initialIncidents: Incident[] = [
 ];
 
 const Incidents = () => {
-  const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
+  const { demoMode } = useDemoMode();
+  const [incidents, setIncidents] = useState<Incident[]>(demoMode ? initialIncidents : []);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');

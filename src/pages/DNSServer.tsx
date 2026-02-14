@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   ChevronDown, Plus, RefreshCw, Search, Edit2, Trash2, 
@@ -75,14 +76,15 @@ const initialFilters: DNSFilter[] = [
 ];
 
 const DNSServer = () => {
+  const { demoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState<'general' | 'forward' | 'local' | 'filter'>('general');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [dnsEnabled, setDnsEnabled] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [zones, setZones] = useState<ForwardZone[]>(initialZones);
-  const [records, setRecords] = useState<LocalRecord[]>(initialRecords);
-  const [filters, setFilters] = useState<DNSFilter[]>(initialFilters);
+  const [zones, setZones] = useState<ForwardZone[]>(demoMode ? initialZones : []);
+  const [records, setRecords] = useState<LocalRecord[]>(demoMode ? initialRecords : []);
+  const [filters, setFilters] = useState<DNSFilter[]>(demoMode ? initialFilters : []);
 
   // Modal states
   const [zoneModalOpen, setZoneModalOpen] = useState(false);
@@ -508,11 +510,11 @@ const DNSServer = () => {
                 <div className="section-body">
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="p-3 bg-[#f5f5f5] border border-[#ddd] text-center">
-                      <div className="text-2xl font-bold text-[hsl(142,70%,35%)]">12,458</div>
+                      <div className="text-2xl font-bold text-[hsl(142,70%,35%)]">{demoMode ? '12,458' : '0'}</div>
                       <div className="text-[10px] text-[#666]">Total Queries</div>
                     </div>
                     <div className="p-3 bg-[#f5f5f5] border border-[#ddd] text-center">
-                      <div className="text-2xl font-bold text-blue-600">89.2%</div>
+                      <div className="text-2xl font-bold text-blue-600">{demoMode ? '89.2%' : '0%'}</div>
                       <div className="text-[10px] text-[#666]">Cache Hit Rate</div>
                     </div>
                   </div>
@@ -521,19 +523,19 @@ const DNSServer = () => {
                     <tbody>
                       <tr>
                         <td className="widget-label">Queries Today</td>
-                        <td className="widget-value">3,241</td>
+                        <td className="widget-value">{demoMode ? '3,241' : '0'}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Blocked Queries</td>
-                        <td className="widget-value text-red-600">156</td>
+                        <td className="widget-value text-red-600">{demoMode ? '156' : '0'}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Cache Entries</td>
-                        <td className="widget-value">4,892</td>
+                        <td className="widget-value">{demoMode ? '4,892' : '0'}</td>
                       </tr>
                       <tr>
                         <td className="widget-label">Upstream Latency</td>
-                        <td className="widget-value">12ms</td>
+                        <td className="widget-value">{demoMode ? '12ms' : '—'}</td>
                       </tr>
                     </tbody>
                   </table>
