@@ -342,7 +342,7 @@ const DNSFilter = () => {
                   </td>
                   <td>
                     {profile.fortiGuardCategory ? (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 border border-green-200 flex items-center gap-1 w-fit">
+                      <span className="forti-tag bg-green-100 text-green-700 border-green-200 flex items-center gap-1 w-fit">
                         <Shield className="w-3 h-3" /> Enabled
                       </span>
                     ) : (
@@ -358,7 +358,7 @@ const DNSFilter = () => {
                   </td>
                   <td>
                     {profile.youtubeRestrict ? (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 border border-red-200 flex items-center gap-1 w-fit">
+                      <span className="forti-tag bg-red-100 text-red-700 border-red-200 flex items-center gap-1 w-fit">
                         <Ban className="w-3 h-3" /> Strict
                       </span>
                     ) : (

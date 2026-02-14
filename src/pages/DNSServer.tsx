@@ -600,7 +600,7 @@ const DNSServer = () => {
                       ) : zone.name}
                     </td>
                     <td>
-                      <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 border border-purple-200">
+                      <span className="forti-tag bg-purple-100 text-purple-700 border-purple-200">
                         FORWARD
                       </span>
                     </td>
@@ -682,7 +682,7 @@ const DNSServer = () => {
                     <td className="text-[11px]">{record.domain}</td>
                     <td>
                       <span className={cn(
-                        "text-[10px] px-1.5 py-0.5 border font-mono",
+                        "forti-tag font-mono",
                         record.type === 'A' ? "bg-green-100 text-green-700 border-green-200" :
                         record.type === 'CNAME' ? "bg-blue-100 text-blue-700 border-blue-200" :
                         record.type === 'MX' ? "bg-orange-100 text-orange-700 border-orange-200" :
@@ -765,7 +765,7 @@ const DNSServer = () => {
                     <td className="text-[11px]">{filter.category}</td>
                     <td>
                       <span className={cn(
-                        "text-[10px] px-1.5 py-0.5 border",
+                        "forti-tag",
                         filter.action === 'Block' ? "bg-red-100 text-red-700 border-red-200" :
                         "bg-blue-100 text-blue-700 border-blue-200"
                       )}>

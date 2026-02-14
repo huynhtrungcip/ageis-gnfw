@@ -138,7 +138,7 @@ const SortableMappingRow = ({ mapping, toggleMapping, handleEditMapping, handleD
       <td className="mono text-[#111]">{mapping.ip}</td>
       <td className="mono text-[10px] text-[#333]">{mapping.mac}</td>
       <td>
-        <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">
+        <span className="forti-tag bg-blue-100 text-blue-700 border-blue-200">
           {mapping.interface}
         </span>
       </td>
@@ -528,7 +528,7 @@ const DHCP = () => {
                     <td className="mono text-[10px] text-[#333]">{lease.mac}</td>
                     <td className="text-[11px] text-[#333]">{lease.hostname}</td>
                     <td>
-                      <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 border border-blue-200">
+                      <span className="forti-tag bg-blue-100 text-blue-700 border-blue-200">
                         LAN
                       </span>
                     </td>
@@ -540,7 +540,7 @@ const DHCP = () => {
                     </td>
                     <td>
                       <span className={cn(
-                        "text-[10px] px-1.5 py-0.5 border",
+                        "forti-tag",
                         lease.status === 'static' 
                           ? "bg-purple-100 text-purple-700 border-purple-200"
                           : "bg-gray-100 text-gray-600 border-gray-200"
