@@ -163,7 +163,7 @@ const ThreatMonitor = () => {
                 </td>
                 <td>
                   <span className={cn(
-                    "forti-tag",
+                    "forti-tag inline-block w-[72px] text-center",
                     threat.action === 'blocked' 
                       ? 'bg-green-100 text-green-700 border-green-200' 
                       : 'bg-yellow-100 text-yellow-700 border-yellow-200'
