@@ -1,415 +1,315 @@
-# Aegis NGFW
+<p align="center">
+  <img src="public/favicon.ico" alt="Aegis NGFW" width="64" />
+</p>
 
-**Next-Generation Firewall Management Platform** — Giao diện quản trị tường lửa thế hệ mới, self-hosted, tối ưu cho Ubuntu 24.04 LTS.
+<h1 align="center">Aegis NGFW</h1>
 
-![License](https://img.shields.io/badge/license-MIT-green)
-![Platform](https://img.shields.io/badge/platform-Ubuntu%2024.04%20LTS-orange)
-![Docker](https://img.shields.io/badge/docker-compose-blue)
+<p align="center">
+  <strong>Next-Generation Firewall Management Platform</strong><br/>
+  100% Self-Hosted · Zero Cloud Dependencies · Ubuntu 24.04 LTS
+</p>
+
+<p align="center">
+  <a href="#-quick-start"><img src="https://img.shields.io/badge/deploy-one--click-brightgreen?style=for-the-badge" alt="One-Click Deploy" /></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/platform-Ubuntu%2024.04%20LTS-E95420?style=flat-square&logo=ubuntu&logoColor=white" alt="Ubuntu" />
+  <img src="https://img.shields.io/badge/docker-compose-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/react-18-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/postgres-16-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+</p>
 
 ---
 
-## Tính năng
+## 🚀 Quick Start
 
-- 🛡️ **Firewall Rules** — Quản lý iptables/nftables qua giao diện web
-- 🌐 **Network Interfaces** — Giám sát WAN/LAN/DMZ realtime
-- 📊 **System Monitoring** — CPU, RAM, Disk, Load, Traffic bandwidth
-- 🔐 **VPN Management** — IPsec (strongSwan) & WireGuard
-- 🤖 **AI Security** — Phân tích mối đe dọa với AI scoring
-- 🔍 **IDS/IPS** — Tích hợp Suricata threat detection
-- 📡 **NAT & Routing** — Static routes, Policy routes, OSPF, BGP, RIP
-- 🌍 **DNS & DHCP** — DNS Server, DNS Filter, DHCP Server
-- 📋 **Audit Logs** — Ghi lại mọi thay đổi cấu hình
-- 💾 **Backup/Restore** — Export/Import cấu hình JSON, lịch tự động
-- 👥 **RBAC** — Phân quyền: Super Admin, Admin, Operator, Auditor
+**One command to deploy everything** — Docker, database, API, frontend, agent, and automated tests:
 
-## Kiến trúc
-
-```
-┌─────────────────────────────────────────────────┐
-│                  Ubuntu 24.04 LTS               │
-│                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
-│  │  Nginx   │──│ PostgREST│──│ PostgreSQL 16│  │
-│  │ (TLS)    │  │  (API)   │  │ (Database)   │  │
-│  │ :443/:80 │  │  :3000   │  │   :5432      │  │
-│  └──────────┘  └──────────┘  └──────────────┘  │
-│       │                            │            │
-│  ┌──────────┐              ┌──────────────┐     │
-│  │ Frontend │              │ Aegis Agent  │     │
-│  │ (React)  │              │ (bash daemon)│     │
-│  └──────────┘              └──────────────┘     │
-│                                    │            │
-│                    ┌───────────────┴──────┐      │
-│                    │ iptables / nftables  │      │
-│                    │ Suricata / strongSwan│      │
-│                    │ WireGuard            │      │
-│                    └─────────────────────-┘      │
-└─────────────────────────────────────────────────┘
+```bash
+git clone https://github.com/your-org/aegis-ngfw.git && cd aegis-ngfw
+sudo bash scripts/deploy-oneclick.sh --dev --auto
 ```
 
-## Tech Stack
+That's it. Open **http://localhost:8080** → Login with `admin@aegis.local` / `Admin123!`
+
+> **Production with TLS?**
+> ```bash
+> sudo bash scripts/deploy-oneclick.sh --domain firewall.yourdomain.com
+> ```
+
+<details>
+<summary><strong>What does the one-click script do?</strong></summary>
+
+1. ✅ Installs Docker & prerequisites automatically
+2. ✅ Generates secure random credentials (DB password, JWT secret, Agent key)
+3. ✅ Builds and launches the full Docker stack
+4. ✅ Waits for PostgreSQL, PostgREST API, and Nginx to be healthy
+5. ✅ Installs the Aegis Agent on the host for real metrics & rule sync
+6. ✅ Runs 22+ automated tests to verify everything works
+7. ✅ Prints access URLs and credentials
+
+</details>
+
+---
+
+## ✨ Features
+
+| Category | Features |
+|----------|----------|
+| 🛡️ **Firewall** | Rule management (iptables/nftables), NAT (SNAT/DNAT/Port Forward), Virtual IPs |
+| 🌐 **Networking** | Interface management (WAN/LAN/DMZ), DHCP Server, DNS Server & Filter |
+| 📡 **Routing** | Static Routes, Policy Routes, OSPF, BGP, RIP |
+| 🔐 **VPN** | IPsec (strongSwan), WireGuard, tunnel monitoring |
+| 🔍 **Security** | IDS/IPS (Suricata), SSL Inspection, Application Control, Web/DNS Filtering |
+| 🤖 **AI Security** | Threat scoring, anomaly detection, predictive analysis |
+| 📊 **Monitoring** | Real-time CPU/RAM/Disk/Traffic, Network Topology, Packet Capture |
+| 🔑 **Auth & RBAC** | Role-based access: Super Admin, Admin, Operator, Auditor |
+| 💾 **Backup** | Automated daily DB backup (30-day retention), config export/import (JSON) |
+| 📋 **Audit** | Complete audit trail for all configuration changes |
+| 📈 **Reporting** | Traffic analysis, log reports, threat summaries |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Ubuntu 24.04 LTS                  │
+│                                                     │
+│  ┌───────────┐  ┌───────────┐  ┌────────────────┐  │
+│  │   Nginx   │──│ PostgREST │──│ PostgreSQL 16  │  │
+│  │ (TLS/RL)  │  │  (API)    │  │ (Hardened)     │  │
+│  │ :443/:80  │  │  :3000    │  │  :5432         │  │
+│  └───────────┘  └───────────┘  └────────────────┘  │
+│       │                              │              │
+│  ┌───────────┐               ┌──────────────┐      │
+│  │ Frontend  │               │ Aegis Agent  │      │
+│  │ (React)   │               │ (host daemon)│      │
+│  └───────────┘               └──────┬───────┘      │
+│                                     │               │
+│                      ┌──────────────┴────────┐      │
+│                      │ iptables · nftables   │      │
+│                      │ Suricata · strongSwan │      │
+│                      │ WireGuard             │      │
+│                      └───────────────────────┘      │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔧 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Recharts |
-| API | PostgREST v12 (auto-generated REST from PostgreSQL) |
-| Database | PostgreSQL 16 |
-| Web Server | Nginx 1.27 (reverse proxy, TLS, rate limiting) |
-| Agent | Bash daemon (metrics collection, rule sync) |
-| Container | Docker & Docker Compose |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Recharts |
+| **API** | PostgREST v12 — auto-generated REST API from PostgreSQL |
+| **Database** | PostgreSQL 16 — hardened configuration |
+| **Web Server** | Nginx 1.27 — reverse proxy, TLS 1.3, HSTS, CSP, rate limiting |
+| **Agent** | Bash daemon — metrics collection, rule sync, threat monitoring |
+| **Container** | Docker & Docker Compose |
 
 ---
 
-## Yêu cầu hệ thống
+## 📋 System Requirements
 
-| Thành phần | Tối thiểu | Khuyến nghị |
-|-----------|----------|-------------|
-| OS | Ubuntu 24.04 LTS | Ubuntu 24.04 LTS |
-| CPU | 2 cores | 4+ cores |
-| RAM | 2 GB | 4+ GB |
-| Disk | 20 GB | 50+ GB SSD |
-| Docker | 24.0+ | Latest |
-| Docker Compose | v2.20+ | Latest |
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| **OS** | Ubuntu 24.04 LTS | Ubuntu 24.04 LTS |
+| **CPU** | 2 cores | 4+ cores |
+| **RAM** | 2 GB | 4+ GB |
+| **Disk** | 20 GB | 50+ GB SSD |
+| **Network** | 1 NIC | 2+ NICs (WAN + LAN) |
 
----
-
-## Cài đặt nhanh
-
-### 1. Cài Docker (nếu chưa có)
-
-```bash
-# Cập nhật hệ thống
-sudo apt update && sudo apt upgrade -y
-
-# Cài Docker
-sudo apt install -y docker.io docker-compose-plugin
-
-# Thêm user vào group docker
-sudo usermod -aG docker $USER
-newgrp docker
-
-# Kiểm tra
-docker --version
-docker compose version
-```
-
-### 2. Clone repository
-
-```bash
-git clone https://github.com/your-org/aegis-ngfw.git
-cd aegis-ngfw
-```
+> Docker & Docker Compose are installed automatically by the deploy script.
 
 ---
 
-## Development Mode
+## 📦 Installation
 
-Chế độ phát triển sử dụng **mock data** — không cần Docker, không cần database.
-
-### Chạy frontend (mock data)
+### Option 1: One-Click Deploy (Recommended)
 
 ```bash
-# Cài dependencies
-npm install
+# Development mode (port 8080, no TLS)
+sudo bash scripts/deploy-oneclick.sh --dev --auto
 
-# Chạy dev server
-npm run dev
+# Production mode (TLS via Let's Encrypt)
+sudo bash scripts/deploy-oneclick.sh --domain firewall.yourdomain.com
+
+# See all options
+bash scripts/deploy-oneclick.sh --help
 ```
 
-Truy cập: `http://localhost:8080`
-
-**Login mặc định:** `admin@aegis.local` / `Admin123!`
-
-### Chạy full stack (Docker)
+### Option 2: Manual Docker Compose
 
 ```bash
-# Start tất cả services
+# Development
+cp docker/.env.example .env
 docker compose up -d
 
-# Xem logs
-docker compose logs -f
-
-# Rebuild sau khi sửa code
-docker compose up -d --build
-```
-
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:8080 |
-| API (PostgREST) | http://localhost:3000 |
-| Database | localhost:5432 |
-
-### Dừng services
-
-```bash
-docker compose down          # Giữ data
-docker compose down -v       # Xóa cả data (reset)
-```
-
----
-
-## Production Deployment
-
-### 1. Chuẩn bị cấu hình
-
-```bash
-# Tạo file cấu hình từ template
+# Production
 cp docker/.env.production.example .env.production
-
-# Sửa cấu hình
-nano .env.production
+# Edit .env.production with your domain and credentials
+docker compose -f docker-compose.production.yml --env-file .env.production up -d
 ```
 
-**Bắt buộc thay đổi:**
-
-```env
-# Domain của bạn (đã trỏ DNS về server IP)
-DOMAIN=firewall.yourdomain.com
-CERTBOT_EMAIL=admin@yourdomain.com
-
-# Database password (mạnh, >= 16 ký tự)
-POSTGRES_PASSWORD=$(openssl rand -base64 24)
-
-# JWT secret (>= 32 ký tự)
-JWT_SECRET=$(openssl rand -base64 48)
-
-# Agent secret key
-AGENT_SECRET_KEY=$(openssl rand -hex 32)
-```
-
-### 2. Deploy tự động
+### Option 3: Frontend Only (Mock Data)
 
 ```bash
-# Cấp quyền chạy
-chmod +x scripts/deploy-production.sh
-
-# Deploy
-sudo bash scripts/deploy-production.sh
+npm install
+npm run dev
+# → http://localhost:8080
 ```
-
-Script sẽ tự động:
-- ✅ Kiểm tra Docker, env vars
-- ✅ Lấy TLS certificate từ Let's Encrypt
-- ✅ Build và khởi chạy tất cả services
-- ✅ Chạy health check
-
-### 3. Kiểm tra sau deploy
-
-```bash
-# Status containers
-docker compose -f docker-compose.production.yml ps
-
-# Test HTTPS
-curl -I https://firewall.yourdomain.com/health
-
-# Xem logs
-docker compose -f docker-compose.production.yml logs -f
-
-# Kiểm tra backup
-docker exec aegis-backup ls -la /backups/
-```
-
-### Production Services
-
-| Service | Mô tả |
-|---------|-------|
-| `aegis-db` | PostgreSQL 16 — hardened config, statement timeout, slow query log |
-| `aegis-api` | PostgREST — connection pool 20, rate limited |
-| `aegis-frontend` | Nginx — TLS 1.2/1.3, HSTS, CSP, rate limit (API: 30r/s, Login: 5r/m) |
-| `aegis-certbot` | Auto-renew TLS certificate mỗi 12h |
-| `aegis-backup` | Auto backup database hàng ngày 02:00 UTC, giữ 30 ngày |
-| `aegis-logrotate` | Xoay log Nginx, giữ 14 ngày |
-
-### Hardened PostgreSQL
-
-- `scram-sha-256` password encryption
-- `max_connections = 100`
-- `statement_timeout = 60s`
-- `idle_in_transaction_session_timeout = 300s`
-- Slow query logging (> 1s)
-- Autovacuum tuned
-- WAL compression enabled
-
-### Security Headers (Nginx)
-
-- `Strict-Transport-Security` (HSTS 2 năm, preload)
-- `Content-Security-Policy` (restrict scripts, styles, connections)
-- `X-Frame-Options: SAMEORIGIN`
-- `X-Content-Type-Options: nosniff`
-- `Permissions-Policy` (block camera, microphone, geolocation)
-- Rate limit login endpoint: **5 requests/phút**
 
 ---
 
-## Cài đặt Aegis Agent
+## 🔒 Security
 
-Agent chạy trên host Ubuntu để thu thập metrics thật và đồng bộ firewall rules.
+### Production Hardening
+
+| Feature | Details |
+|---------|---------|
+| **TLS** | Let's Encrypt auto-provisioned, TLS 1.2/1.3, auto-renewal every 12h |
+| **HSTS** | 2 years, includeSubDomains, preload |
+| **CSP** | Strict Content-Security-Policy headers |
+| **Rate Limiting** | API: 30 req/s, Login: 5 req/min |
+| **Security Headers** | X-Frame-Options, X-Content-Type-Options, Permissions-Policy |
+| **Database** | scram-sha-256, statement timeout (60s), idle timeout (300s), WAL compression |
+| **Containers** | `no-new-privileges`, resource limits, internal network |
+| **Backup** | Automated daily, 30-day retention |
+
+### Reporting Vulnerabilities
+
+See [SECURITY.md](SECURITY.md) for our security policy and how to report vulnerabilities.
+
+---
+
+## 🕵️ Aegis Agent
+
+The agent runs on the host Ubuntu system to collect real metrics and enforce firewall rules.
 
 ```bash
-# Cài agent
-chmod +x scripts/install-agent.sh
+# Install agent (done automatically by one-click deploy)
 sudo bash scripts/install-agent.sh
 
-# Cấu hình
+# Configure
 sudo nano /opt/aegis/.env
-```
 
-Sửa file `/opt/aegis/.env`:
-
-```env
-API_URL=https://firewall.yourdomain.com/api
-AGENT_KEY=your_agent_secret_key_here
-INTERVAL=30
-
-IFACE_WAN=eth0
-IFACE_LAN=eth1
-IFACE_DMZ=eth2
-```
-
-```bash
-# Start agent
-sudo systemctl enable aegis-agent
-sudo systemctl start aegis-agent
-
-# Xem logs
+# Manage
+sudo systemctl status aegis-agent
 sudo journalctl -u aegis-agent -f
 ```
 
-### Agent thu thập gì?
+**Collects:** CPU, RAM, Disk, Load, Network bandwidth, Suricata alerts, VPN status
 
-| Metric | Nguồn |
-|--------|-------|
-| CPU usage, cores, temperature | `/proc/stat`, `sensors` |
-| Memory (total/used/free/cached) | `/proc/meminfo` |
-| Disk usage | `df` |
-| Load average | `/proc/loadavg` |
-| Network bandwidth (per interface) | `/proc/net/dev` |
-| Threat events | Suricata `eve.json` |
-| VPN status | `ipsec status`, `wg show` |
-
-### Agent đồng bộ gì?
-
-| Action | Mô tả |
-|--------|-------|
-| Firewall rules → iptables | Tải rules từ API, apply bằng iptables/nftables |
-| NAT rules → iptables | Port forward, SNAT, DNAT |
-| Static routes → ip route | Thêm/xóa route theo cấu hình |
+**Enforces:** Firewall rules → iptables, NAT rules, Static routes
 
 ---
 
-## Backup & Restore
-
-### Tự động (Production)
-
-Backup chạy tự động mỗi ngày lúc **02:00 UTC**, giữ **30 ngày**.
-
-```bash
-# Xem danh sách backup
-docker exec aegis-backup ls -lh /backups/
-
-# Restore từ backup
-docker exec -i aegis-db pg_restore \
-  -U aegis -d aegis_ngfw --clean --no-owner \
-  < /path/to/backup/aegis_20250206_020000.sql.gz
-```
-
-### Thủ công
-
-```bash
-# Backup
-docker exec aegis-db pg_dump -U aegis aegis_ngfw | gzip > backup_manual.sql.gz
-
-# Restore
-gunzip -c backup_manual.sql.gz | docker exec -i aegis-db psql -U aegis aegis_ngfw
-```
-
-### Backup cấu hình qua UI
-
-Trang **System > Config Backup** cho phép export/import toàn bộ cấu hình (firewall rules, NAT, routes, VPN...) dưới dạng file JSON.
-
----
-
-## Cấu trúc thư mục
+## 🗂️ Project Structure
 
 ```
 aegis-ngfw/
-├── docker/
-│   ├── init.sql                    # Database schema + seed data
+├── src/                            # React frontend
+│   ├── components/                 # UI components
+│   ├── pages/                      # Page views
+│   ├── hooks/                      # Data fetching hooks
+│   ├── lib/                        # Utilities & API client
+│   └── contexts/                   # Auth & state contexts
+├── docker/                         # Docker configurations
+│   ├── init.sql                    # Database schema & seed data
 │   ├── nginx.conf                  # Nginx dev config
 │   ├── nginx-production.conf       # Nginx production (TLS, rate limit)
-│   ├── postgresql-hardened.conf    # PostgreSQL hardened config
-│   ├── .env.example                # Dev env template
-│   └── .env.production.example     # Production env template
-├── scripts/
-│   ├── aegis-agent.sh              # Host agent daemon
-│   ├── aegis-agent.env.example     # Agent env template
-│   ├── aegis-agent.service         # Systemd service file
+│   └── postgresql-hardened.conf    # PostgreSQL hardened config
+├── scripts/                        # Automation scripts
+│   ├── deploy-oneclick.sh          # One-click deploy (main)
+│   ├── deploy-production.sh        # Production deploy
 │   ├── install-agent.sh            # Agent installer
-│   ├── backup.sh                   # Database backup script
-│   └── deploy-production.sh        # Production deploy script
-├── src/
-│   ├── components/                 # React components
-│   ├── contexts/                   # Auth context
-│   ├── data/                       # Mock data
-│   ├── hooks/                      # Custom hooks
-│   ├── lib/                        # API client, utilities
-│   ├── pages/                      # Page components
-│   └── types/                      # TypeScript types
+│   ├── backup.sh                   # Database backup
+│   └── aegis-agent.sh              # Agent daemon
 ├── docker-compose.yml              # Dev stack
-├── docker-compose.production.yml   # Production stack
+├── docker-compose.production.yml   # Production stack (hardened)
 ├── Dockerfile                      # Dev build
-├── Dockerfile.production           # Production build
-└── README.md
+└── Dockerfile.production           # Production build
 ```
 
 ---
 
-## Troubleshooting
+## 🔄 Backup & Restore
 
-### Container không start
+### Automated (Production)
+
+Runs daily at **02:00 UTC**, retains **30 days**.
 
 ```bash
-# Xem chi tiết lỗi
-docker compose -f docker-compose.production.yml logs db
-docker compose -f docker-compose.production.yml logs api
+# List backups
+docker exec aegis-backup ls -lh /backups/
 
-# Kiểm tra port conflict
+# Manual backup
+docker exec aegis-db pg_dump -U aegis aegis_ngfw | gzip > backup.sql.gz
+
+# Restore
+gunzip -c backup.sql.gz | docker exec -i aegis-db psql -U aegis aegis_ngfw
+```
+
+### Config Backup via UI
+
+Navigate to **System > Config Backup** to export/import all configuration as JSON.
+
+---
+
+## 🐛 Troubleshooting
+
+<details>
+<summary><strong>Containers won't start</strong></summary>
+
+```bash
+docker compose logs db api frontend
 sudo ss -tlnp | grep -E '80|443|5432|3000'
 ```
+</details>
 
-### TLS certificate lỗi
+<details>
+<summary><strong>TLS certificate issues</strong></summary>
 
 ```bash
-# Xem certificate status
 docker exec aegis-certbot certbot certificates
-
-# Force renew
 docker exec aegis-certbot certbot renew --force-renewal
-
-# Reload nginx
 docker exec aegis-frontend nginx -s reload
 ```
+</details>
 
-### Agent không kết nối
+<details>
+<summary><strong>Agent not connecting</strong></summary>
 
 ```bash
-# Test kết nối API từ host
-curl -H "Authorization: Bearer $(cat /opt/aegis/.env | grep AGENT_KEY | cut -d= -f2)" \
-  https://firewall.yourdomain.com/api/system_metrics
-
-# Kiểm tra agent log
 sudo journalctl -u aegis-agent --since "10 minutes ago"
+curl -sf http://localhost:8080/api/system_metrics
 ```
+</details>
 
-### Reset database
+<details>
+<summary><strong>Reset everything</strong></summary>
 
 ```bash
-docker compose -f docker-compose.production.yml down -v
-docker compose -f docker-compose.production.yml up -d
+docker compose down -v
+docker compose up -d
 ```
+</details>
 
 ---
 
-## License
+## 🤝 Contributing
 
-MIT License — xem file [LICENSE](LICENSE) để biết chi tiết.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and contribution guidelines.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  <strong>Aegis NGFW</strong> — Enterprise-grade firewall management, fully self-hosted.<br/>
+  No cloud. No subscriptions. Your network, your rules.
+</p>

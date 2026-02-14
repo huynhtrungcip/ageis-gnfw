@@ -5,5 +5,14 @@ dist
 *.md
 .env
 .env.*
+.env.production
 docker/
 !docker/nginx.conf
+!docker/nginx-production.conf
+scripts/
+*.log
+*.sql.gz
+.vscode
+.idea
+coverage
+.nyc_output
