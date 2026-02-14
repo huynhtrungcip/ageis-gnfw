@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Bell, 
@@ -7,24 +8,19 @@ import {
   ChevronDown, 
   LogOut, 
   Key,
-  HelpCircle,
-  Terminal,
-  Maximize2,
   ChevronRight,
   Home,
-  Menu
+  Database,
+  TestTube,
+  Settings
 } from 'lucide-react';
-
-interface HeaderProps {
-  onToggleSidebar: () => void;
-  sidebarCollapsed: boolean;
-}
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -39,7 +35,6 @@ const pathToLabel: Record<string, string> = {
   '/firewall/rules': 'IPv4 Policy',
   '/firewall/aliases': 'Addresses',
   '/firewall/wildcard-fqdn': 'Wildcard FQDN',
-  
   '/firewall/services': 'Services',
   '/firewall/schedules': 'Schedules',
   '/firewall/virtual-ips': 'Virtual IPs',
@@ -56,7 +51,6 @@ const pathToLabel: Record<string, string> = {
   '/security/ssl': 'SSL Inspection',
   '/vpn': 'VPN',
   '/vpn/ipsec': 'IPsec Tunnels',
-  
   '/system': 'System',
   '/system/general': 'Settings',
   '/system/admins': 'Administrators',
@@ -69,7 +63,6 @@ const pathToLabel: Record<string, string> = {
   '/system/full-backup': 'Full System Backup',
   '/users': 'User & Device',
   '/users/groups': 'User Groups',
-  
   '/interfaces': 'Interfaces',
   '/routing': 'Routing',
   '/dns': 'DNS',
@@ -93,8 +86,9 @@ const sectionMap: Record<string, string> = {
   'insights': 'AI Insights',
 };
 
-export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
+export function Header() {
   const location = useLocation();
+  const { demoMode, setDemoMode } = useDemoMode();
   const [alerts, setAlerts] = useState([
     { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago', link: '/monitoring/traffic' },
     { id: 2, type: 'high', message: 'New firmware available', time: '1h ago', link: '/system/firmware' },
@@ -102,7 +96,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
     { id: 4, type: 'low', message: 'Backup completed successfully', time: '3h ago', link: '/system/full-backup' },
   ]);
 
-  const { signOut, user, roles } = useAuth();
+  const { signOut, user } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
@@ -115,6 +109,20 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
     setAlerts(prev => prev.filter(a => a.id !== id));
   };
 
+  const handleClearAllAlerts = () => {
+    setAlerts([]);
+  };
+
+  const handleToggleDemoMode = () => {
+    const newMode = !demoMode;
+    setDemoMode(newMode);
+    toast.success(newMode ? 'Switched to Mock Data mode' : 'Switched to Live Data mode', {
+      description: newMode 
+        ? 'Using demo data for all pages' 
+        : 'Using real system data (requires Aegis Agent)',
+    });
+  };
+
   // Generate breadcrumbs
   const getBreadcrumbs = () => {
     const path = location.pathname;
@@ -125,7 +133,6 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
     const segments = path.split('/').filter(Boolean);
     const breadcrumbs: { label: string; path: string }[] = [];
 
-    // Add section
     if (segments.length > 0) {
       const section = sectionMap[segments[0]];
       if (section) {
@@ -133,7 +140,6 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
       }
     }
 
-    // Add page
     const pageLabel = pathToLabel[path];
     if (pageLabel) {
       breadcrumbs.push({ label: pageLabel, path });
@@ -146,15 +152,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
 
   return (
     <header className="h-9 flex items-center justify-between px-3" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
-      {/* Left: Toggle + Breadcrumb Navigation */}
+      {/* Left: Breadcrumb Navigation */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={onToggleSidebar}
-          className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
-          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <Menu size={14} />
-        </button>
         <Link to="/" className="text-gray-400 hover:text-white transition-colors">
           <Home size={14} />
         </Link>
@@ -183,25 +182,37 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
             <p className="text-muted-foreground">Tên định danh của thiết bị firewall đang được quản lý</p>
           </TooltipContent>
         </Tooltip>
+
+        {/* Data Mode Indicator */}
+        <div className="w-px h-4 bg-gray-600 ml-1" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleToggleDemoMode}
+              className={cn(
+                "flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium transition-colors",
+                demoMode 
+                  ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30" 
+                  : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+              )}
+            >
+              {demoMode ? <TestTube size={10} /> : <Database size={10} />}
+              {demoMode ? 'MOCK' : 'LIVE'}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            <p className="font-medium">{demoMode ? 'Mock Data Mode' : 'Live Data Mode'}</p>
+            <p className="text-muted-foreground">
+              {demoMode 
+                ? 'Đang sử dụng dữ liệu demo. Click để chuyển sang dữ liệu thật.' 
+                : 'Đang sử dụng dữ liệu thực. Click để chuyển sang demo.'}
+            </p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
-      {/* Right: Actions */}
+      {/* Right: Alerts + User */}
       <div className="flex items-center gap-1">
-        {/* CLI Console */}
-        <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors" title="CLI Console">
-          <Terminal size={14} />
-        </button>
-
-        {/* Fullscreen */}
-        <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors" title="Fullscreen">
-          <Maximize2 size={14} />
-        </button>
-
-        {/* Help */}
-        <button className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors" title="Help">
-          <HelpCircle size={14} />
-        </button>
-
         {/* Alerts */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -215,8 +226,16 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
-            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f5f5f5]">
+            <div className="px-3 py-2 border-b border-[#ddd] bg-[#f5f5f5] flex items-center justify-between">
               <span className="text-xs font-semibold text-[#333]">Alert Messages</span>
+              {alerts.length > 0 && (
+                <button 
+                  onClick={handleClearAllAlerts}
+                  className="text-[10px] text-[hsl(142,70%,35%)] hover:underline"
+                >
+                  Clear all
+                </button>
+              )}
             </div>
             {alerts.length === 0 ? (
               <div className="px-3 py-4 text-center text-xs text-gray-500">
@@ -273,16 +292,39 @@ export function Header({ onToggleSidebar, sidebarCollapsed }: HeaderProps) {
               <ChevronDown size={10} className="text-gray-400" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel className="text-[10px] text-muted-foreground font-normal">
+              {user?.email || 'admin@aegis.local'}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link to="/system/admins" className="flex items-center gap-2 cursor-pointer text-[11px]">
                 <User size={12} />
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/system/general" className="flex items-center gap-2 cursor-pointer text-[11px]">
+                <Settings size={12} />
+                <span>System Settings</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem className="flex items-center gap-2 cursor-pointer text-[11px]">
               <Key size={12} />
               <span>Change Password</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={handleToggleDemoMode}
+              className="flex items-center gap-2 cursor-pointer text-[11px]"
+            >
+              {demoMode ? <Database size={12} /> : <TestTube size={12} />}
+              <div className="flex flex-col">
+                <span>{demoMode ? 'Switch to Live Data' : 'Switch to Mock Data'}</span>
+                <span className="text-[9px] text-muted-foreground">
+                  {demoMode ? 'Use real system metrics' : 'Use demo data for testing'}
+                </span>
+              </div>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
