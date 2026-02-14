@@ -153,9 +153,11 @@ const FirewallRules = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<FirewallRule | null>(null);
   const [viewMode, setViewMode] = useState<'sequence' | 'interface'>('interface');
-  const [expandedPairs, setExpandedPairs] = useState<string[]>(['lan-wan1', 'vlan-kinhdoanh-vlan-kythuat']);
+  const [expandedPairs, setExpandedPairs] = useState<string[]>([]);
 
   const getInterfacePairs = (): InterfacePair[] => {
+    if (!demoMode || rules.length === 0) return [];
+
     const demoPairs: InterfacePair[] = [
       { from: 'lan', to: 'wan1', rules: rules.filter(r => r.interface === 'LAN').slice(0, 2), expanded: true },
       { from: 'Vlan-Kinhdoanh', to: 'Vlan-Kythuat', rules: rules.filter(r => r.interface === 'LAN').slice(0, 1), expanded: true },
