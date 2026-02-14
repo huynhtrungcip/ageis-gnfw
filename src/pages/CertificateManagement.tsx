@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Shield, 
@@ -121,7 +122,8 @@ const mockCertificates: Certificate[] = [
 ];
 
 const CertificateManagement = () => {
-  const [certificates, setCertificates] = useState<Certificate[]>(mockCertificates);
+  const { demoMode } = useDemoMode();
+  const [certificates, setCertificates] = useState<Certificate[]>(demoMode ? mockCertificates : []);
   const [activeTab, setActiveTab] = useState<'local' | 'ca' | 'remote' | 'csr'>('local');
   const [search, setSearch] = useState('');
   const [showCreateMenu, setShowCreateMenu] = useState(false);

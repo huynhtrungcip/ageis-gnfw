@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   HardDrive, Download, Upload, RefreshCw, Search, CheckCircle,
   Clock, Shield, Server, FileArchive, ArrowUpCircle,
@@ -55,12 +56,13 @@ const initialBackups: BackupEntry[] = [
 
 
 const FirmwareManagement = () => {
+  const { demoMode } = useDemoMode();
   const { info: firmwareInfo } = useFirmwareInfo();
   const [activeTab, setActiveTab] = useState('current');
   const [selectedFirmware, setSelectedFirmware] = useState<string | null>(null);
   const [backupBeforeUpgrade, setBackupBeforeUpgrade] = useState(true);
-  const [firmware, setFirmware] = useState<FirmwareVersion[]>(initialFirmware);
-  const [backups, setBackups] = useState<BackupEntry[]>(initialBackups);
+  const [firmware, setFirmware] = useState<FirmwareVersion[]>(demoMode ? initialFirmware : []);
+  const [backups, setBackups] = useState<BackupEntry[]>(demoMode ? initialBackups : []);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'firmware' | 'backup'; id: string } | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);

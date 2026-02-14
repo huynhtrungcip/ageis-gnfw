@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, Edit2, Trash2, RefreshCw, Search, ChevronDown, Globe, ArrowRightLeft, Server, X, Download, Upload, GripVertical
@@ -137,7 +138,8 @@ const SortableVIPRow = ({ vip, isSelected, onSelect, onToggle, onDoubleClick, ge
 };
 
 const VirtualIPs = () => {
-  const [vips, setVips] = useState<VirtualIP[]>(initialVIPs);
+  const { demoMode } = useDemoMode();
+  const [vips, setVips] = useState<VirtualIP[]>(demoMode ? initialVIPs : []);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);

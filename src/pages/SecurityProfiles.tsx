@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   Shield, 
   Search, 
@@ -100,10 +101,11 @@ const initialIPSSignatures: IPSSignature[] = [
 const ipsCategories = ['All', 'Application', 'Network', 'Web', 'DoS', 'Brute Force', 'SSL/TLS'];
 
 const SecurityProfiles = () => {
+  const { demoMode } = useDemoMode();
   const [activeTab, setActiveTab] = useState('antivirus');
-  const [avProfiles, setAvProfiles] = useState<AVProfile[]>(initialAVProfiles);
-  const [webProfiles, setWebProfiles] = useState<WebFilterProfile[]>(initialWebProfiles);
-  const [ipsSignatures, setIpsSignatures] = useState<IPSSignature[]>(initialIPSSignatures);
+  const [avProfiles, setAvProfiles] = useState<AVProfile[]>(demoMode ? initialAVProfiles : []);
+  const [webProfiles, setWebProfiles] = useState<WebFilterProfile[]>(demoMode ? initialWebProfiles : []);
+  const [ipsSignatures, setIpsSignatures] = useState<IPSSignature[]>(demoMode ? initialIPSSignatures : []);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [severity, setSeverity] = useState('all');

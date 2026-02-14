@@ -2,6 +2,7 @@ import { Shell } from '@/components/layout/Shell';
 import { Settings, Radio, RefreshCw, Save, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { FortiToggle } from '@/components/ui/forti-toggle';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 
 interface MulticastInterface {
   name: string;
@@ -19,17 +20,18 @@ interface MulticastGroup {
 }
 
 const MulticastConfig = () => {
-  const [enabled, setEnabled] = useState(true);
-  const [interfaces] = useState<MulticastInterface[]>([
+  const { demoMode } = useDemoMode();
+  const [enabled, setEnabled] = useState(demoMode);
+  const [interfaces] = useState<MulticastInterface[]>(demoMode ? [
     { name: 'internal', pimMode: 'sparse', igmpVersion: 2, enabled: true },
     { name: 'wan1', pimMode: 'sparse', igmpVersion: 2, enabled: false },
     { name: 'dmz', pimMode: 'dense', igmpVersion: 3, enabled: true },
-  ]);
-  const [groups] = useState<MulticastGroup[]>([
+  ] : []);
+  const [groups] = useState<MulticastGroup[]>(demoMode ? [
     { id: '1', group: '239.1.1.1', source: '10.0.0.100', interface: 'internal', members: 15 },
     { id: '2', group: '239.1.1.2', source: '10.0.0.101', interface: 'internal', members: 8 },
     { id: '3', group: '224.0.0.5', source: '0.0.0.0', interface: 'dmz', members: 3 },
-  ]);
+  ] : []);
 
   return (
     <Shell>

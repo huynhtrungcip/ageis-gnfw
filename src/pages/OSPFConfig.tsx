@@ -2,6 +2,7 @@ import { Shell } from '@/components/layout/Shell';
 import { Settings, Network, RefreshCw, Save, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { FortiToggle } from '@/components/ui/forti-toggle';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 
 interface OSPFArea {
   id: string;
@@ -21,16 +22,17 @@ interface OSPFInterface {
 }
 
 const OSPFConfig = () => {
-  const [enabled, setEnabled] = useState(true);
+  const { demoMode } = useDemoMode();
+  const [enabled, setEnabled] = useState(demoMode);
   const [routerId, setRouterId] = useState('10.0.0.1');
-  const [areas] = useState<OSPFArea[]>([
+  const [areas] = useState<OSPFArea[]>(demoMode ? [
     { id: '1', areaId: '0.0.0.0', type: 'regular', networks: ['10.0.0.0/8'] },
     { id: '2', areaId: '0.0.0.1', type: 'stub', networks: ['192.168.1.0/24'] },
-  ]);
-  const [interfaces] = useState<OSPFInterface[]>([
+  ] : []);
+  const [interfaces] = useState<OSPFInterface[]>(demoMode ? [
     { name: 'internal', area: '0.0.0.0', cost: 10, priority: 1, helloInterval: 10, deadInterval: 40, authentication: 'md5' },
     { name: 'wan1', area: '0.0.0.0', cost: 100, priority: 0, helloInterval: 10, deadInterval: 40, authentication: 'md5' },
-  ]);
+  ] : []);
 
   return (
     <Shell>

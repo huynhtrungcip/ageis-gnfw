@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -94,15 +95,16 @@ const geoData = [
 ];
 
 const TrafficAnalysis = () => {
-  const [bandwidthData, setBandwidthData] = useState(generateBandwidthData());
-  const [topTalkers, setTopTalkers] = useState(generateTopTalkers());
+  const { demoMode } = useDemoMode();
+  const [bandwidthData, setBandwidthData] = useState(demoMode ? generateBandwidthData() : []);
+  const [topTalkers, setTopTalkers] = useState(demoMode ? generateTopTalkers() : []);
   const [isLive, setIsLive] = useState(true);
   const [timeRange, setTimeRange] = useState('1h');
   const [selectedInterface, setSelectedInterface] = useState('all');
 
   // Real-time update effect
   useEffect(() => {
-    if (!isLive) return;
+    if (!isLive || !demoMode) return;
 
     const interval = setInterval(() => {
       setBandwidthData(prev => {
