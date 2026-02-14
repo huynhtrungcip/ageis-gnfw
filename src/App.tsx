@@ -15,6 +15,7 @@ import FirewallRules from "./pages/FirewallRules";
 import Aliases from "./pages/Aliases";
 import NATConfig from "./pages/NATConfig";
 import Interfaces from "./pages/Interfaces";
+import InterfaceAssignment from "./pages/InterfaceAssignment";
 import AISecurity from "./pages/AISecurity";
 import DHCP from "./pages/DHCP";
 import DNSServer from "./pages/DNSServer";
@@ -113,6 +114,7 @@ const App = () => (
             <Route path="/security/ssl" element={<P><SSLInspection /></P>} />
             
             <Route path="/interfaces" element={<P><Interfaces /></P>} />
+            <Route path="/interfaces/assignment" element={<P><InterfaceAssignment /></P>} />
             <Route path="/routing" element={<P><Routing /></P>} />
             <Route path="/routing/static" element={<P><StaticRoutes /></P>} />
             <Route path="/routing/policy" element={<P><PolicyRoutes /></P>} />

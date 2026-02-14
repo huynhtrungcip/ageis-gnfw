@@ -74,6 +74,7 @@ const navigation: NavSection[] = [
     defaultOpen: false,
     items: [
       { label: 'Interfaces', path: '/interfaces', starred: true },
+      { label: 'Interface Assignment', path: '/interfaces/assignment' },
       { label: 'DNS', path: '/dns' },
       { label: 'Packet Capture', path: '/packet-capture' },
       { label: 'Static Routes', path: '/routing/static' },
