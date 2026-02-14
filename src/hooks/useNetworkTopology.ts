@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db, isApiConfigured } from '@/lib/postgrest';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 
 export interface NetworkDevice {
@@ -35,23 +34,19 @@ const mockDevices: NetworkDevice[] = [
 
 export function useNetworkTopology() {
   const { demoMode } = useDemoMode();
-  const shouldMock = demoMode || !isApiConfigured();
   const [devices, setDevices] = useState<NetworkDevice[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDevices = useCallback(async () => {
-    if (shouldMock) {
+    if (demoMode) {
       setDevices(mockDevices);
       setLoading(false);
       return;
     }
-    try {
-      const { data, error } = await (db.from('network_devices').select('*').order('last_seen', { ascending: false }) as any);
-      if (error) throw error;
-      setDevices(data || []);
-    } catch { setDevices(mockDevices); }
+    // LIVE mode: no network_devices table in Supabase yet, show empty
+    setDevices([]);
     setLoading(false);
-  }, [shouldMock]);
+  }, [demoMode]);
 
   useEffect(() => { fetchDevices(); }, [fetchDevices]);
 

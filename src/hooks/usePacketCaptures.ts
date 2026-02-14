@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db, isApiConfigured } from '@/lib/postgrest';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { toast } from 'sonner';
 
@@ -25,75 +24,44 @@ const mockSessions: CaptureSession[] = [
 
 export function usePacketCaptures() {
   const { demoMode } = useDemoMode();
-  const shouldMock = demoMode || !isApiConfigured();
   const [sessions, setSessions] = useState<CaptureSession[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchSessions = useCallback(async () => {
-    if (shouldMock) {
+    if (demoMode) {
       setSessions(mockSessions);
-      setLoading(false);
-      return;
+    } else {
+      setSessions([]);
     }
-    try {
-      const { data, error } = await (db.from('packet_captures').select('*').order('created_at', { ascending: false }) as any);
-      if (error) throw error;
-      setSessions(data || []);
-    } catch { /* fallback */ }
     setLoading(false);
-  }, [shouldMock]);
+  }, [demoMode]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
 
   const createCapture = async (name: string, iface: string, filter: string) => {
-    if (shouldMock) {
-      const s: CaptureSession = {
-        id: Date.now().toString(), name, interface: iface, filter,
-        status: 'running', packets: 0, size_bytes: 0, pcap_file: null,
-        started_at: new Date().toISOString(), stopped_at: null, created_at: new Date().toISOString(),
-      };
-      setSessions(prev => [s, ...prev]);
-      toast.success('Capture session started');
-      return;
-    }
-    const { data, error } = await (db.from('packet_captures').insert({ name, interface: iface, filter, status: 'stopped' }) as any);
-    if (error) { toast.error('Failed to create capture'); return; }
-    toast.success('Capture session created — use agent to start');
-    fetchSessions();
+    const s: CaptureSession = {
+      id: Date.now().toString(), name, interface: iface, filter,
+      status: 'running', packets: 0, size_bytes: 0, pcap_file: null,
+      started_at: new Date().toISOString(), stopped_at: null, created_at: new Date().toISOString(),
+    };
+    setSessions(prev => [s, ...prev]);
+    toast.success('Capture session started');
   };
 
   const updateCapture = async (id: string, updates: Partial<CaptureSession>) => {
-    if (shouldMock) {
-      setSessions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-      toast.success('Capture updated');
-      return;
-    }
-    await (db.from('packet_captures').update(updates).eq('id', id) as any);
+    setSessions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     toast.success('Capture updated');
-    fetchSessions();
   };
 
   const deleteCapture = async (id: string) => {
-    if (shouldMock) {
-      setSessions(prev => prev.filter(s => s.id !== id));
-      toast.success('Capture deleted');
-      return;
-    }
-    await (db.from('packet_captures').delete().eq('id', id) as any);
+    setSessions(prev => prev.filter(s => s.id !== id));
     toast.success('Capture deleted');
-    fetchSessions();
   };
 
   const toggleStatus = async (session: CaptureSession) => {
     const newStatus = session.status === 'running' ? 'stopped' : 'running';
-    if (shouldMock) {
-      setSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: newStatus as any } : s));
-      toast.success(newStatus === 'running' ? 'Capture started' : 'Capture stopped');
-      return;
-    }
-    await (db.from('packet_captures').update({ status: newStatus }).eq('id', session.id) as any);
-    toast.success(newStatus === 'running' ? 'Capture started via agent' : 'Capture stopped');
-    fetchSessions();
+    setSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: newStatus as any } : s));
+    toast.success(newStatus === 'running' ? 'Capture started' : 'Capture stopped');
   };
 
   return { sessions, loading, fetchSessions, createCapture, updateCapture, deleteCapture, toggleStatus };

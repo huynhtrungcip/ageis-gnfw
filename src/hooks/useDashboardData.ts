@@ -1,20 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { db, isApiConfigured } from '@/lib/postgrest';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/contexts/DemoModeContext';
+import { supabase } from '@/integrations/supabase/client';
 import { mockSystemStatus, mockInterfaces, mockVPNTunnels, mockThreats, mockTrafficStats, mockAIAnalysis, mockFirewallRules } from '@/data/mockData';
-import type { SystemMetric, TrafficStat, NetworkInterface, VPNTunnel, ThreatEvent, AIAnalysis } from '@/lib/api';
 
 function useShouldMock(): boolean {
   const { demoMode } = useDemoMode();
-  return demoMode || !isApiConfigured();
+  return demoMode;
 }
 
 /** Latest system metrics (1 row) */
 export function useLatestMetrics() {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<SystemMetric | null>({
+  return useQuery({
     queryKey: ['latest-metrics', !!user, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -29,8 +28,9 @@ export function useLatestMetrics() {
           recorded_at: new Date().toISOString(),
         };
       }
-      const { data, error } = await (db.from<SystemMetric>('system_metrics')
-        .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle() as any);
+      const { data, error } = await supabase
+        .from('system_metrics')
+        .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -43,7 +43,7 @@ export function useLatestMetrics() {
 export function useTrafficHistory(hours = 24) {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<TrafficStat[]>({
+  return useQuery({
     queryKey: ['traffic-history', !!user, hours, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -54,8 +54,9 @@ export function useTrafficHistory(hours = 24) {
         }));
       }
       const since = new Date(Date.now() - hours * 3600000).toISOString();
-      const { data, error } = await (db.from<TrafficStat>('traffic_stats')
-        .select('*').gte('recorded_at', since).order('recorded_at') as any);
+      const { data, error } = await supabase
+        .from('traffic_stats')
+        .select('*').gte('recorded_at', since).order('recorded_at');
       if (error) throw error;
       return data ?? [];
     },
@@ -68,7 +69,7 @@ export function useTrafficHistory(hours = 24) {
 export function useInterfaces() {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<NetworkInterface[]>({
+  return useQuery({
     queryKey: ['dashboard-interfaces', !!user, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -81,8 +82,9 @@ export function useInterfaces() {
           created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }));
       }
-      const { data, error } = await (db.from<NetworkInterface>('network_interfaces')
-        .select('*').order('name') as any);
+      const { data, error } = await supabase
+        .from('network_interfaces')
+        .select('*').order('name');
       if (error) throw error;
       return data ?? [];
     },
@@ -95,7 +97,7 @@ export function useInterfaces() {
 export function useVPN() {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<VPNTunnel[]>({
+  return useQuery({
     queryKey: ['dashboard-vpn', !!user, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -106,8 +108,9 @@ export function useVPN() {
           uptime: v.uptime, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }));
       }
-      const { data, error } = await (db.from<VPNTunnel>('vpn_tunnels')
-        .select('*').order('name') as any);
+      const { data, error } = await supabase
+        .from('vpn_tunnels')
+        .select('*').order('name');
       if (error) throw error;
       return data ?? [];
     },
@@ -120,7 +123,7 @@ export function useVPN() {
 export function useRecentThreats() {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<ThreatEvent[]>({
+  return useQuery({
     queryKey: ['dashboard-threats', !!user, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -133,8 +136,9 @@ export function useRecentThreats() {
         }));
       }
       const since = new Date(Date.now() - 24 * 3600000).toISOString();
-      const { data, error } = await (db.from<ThreatEvent>('threat_events')
-        .select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(50) as any);
+      const { data, error } = await supabase
+        .from('threat_events')
+        .select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(50);
       if (error) throw error;
       return data ?? [];
     },
@@ -147,7 +151,7 @@ export function useRecentThreats() {
 export function useLatestAIAnalysis() {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<AIAnalysis | null>({
+  return useQuery({
     queryKey: ['dashboard-ai', !!user, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -160,8 +164,9 @@ export function useLatestAIAnalysis() {
           recorded_at: new Date().toISOString(),
         };
       }
-      const { data, error } = await (db.from<AIAnalysis>('ai_analysis')
-        .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle() as any);
+      const { data, error } = await supabase
+        .from('ai_analysis')
+        .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -183,9 +188,9 @@ export function useFirewallStats() {
           active: mockFirewallRules.filter(r => r.enabled).length,
         };
       }
-      const { data, error } = await (db.from('firewall_rules').select('enabled') as any);
+      const { data, error } = await supabase.from('firewall_rules').select('enabled');
       if (error) throw error;
-      const rules = (data as any[]) ?? [];
+      const rules = data ?? [];
       return { total: rules.length, active: rules.filter(r => r.enabled).length };
     },
     enabled: !!user,

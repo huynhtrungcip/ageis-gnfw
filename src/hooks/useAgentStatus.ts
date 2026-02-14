@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { db, isApiConfigured } from '@/lib/postgrest';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 
@@ -18,16 +18,14 @@ export interface AgentStatus {
 export function useAgentStatus() {
   const { user } = useAuth();
   const { demoMode } = useDemoMode();
-  const shouldMock = demoMode || !isApiConfigured();
 
   return useQuery<AgentStatus>({
-    queryKey: ['agent-status', !!user, shouldMock],
+    queryKey: ['agent-status', !!user, demoMode],
     queryFn: async () => {
-      if (shouldMock) {
-        // Mock mode — simulate a connected agent
+      if (demoMode) {
         return {
           connected: true,
-          lastSyncTime: new Date(Date.now() - 15000).toISOString(), // 15s ago
+          lastSyncTime: new Date(Date.now() - 15000).toISOString(),
           lastMetricTime: new Date(Date.now() - 8000).toISOString(),
           appliedRules: 24,
           activeInterfaces: 4,
@@ -38,31 +36,31 @@ export function useAgentStatus() {
         };
       }
 
-      // Real mode — gather from multiple tables
+      // Real mode — gather from multiple Supabase tables
       const [metricsRes, rulesRes, ifacesRes, vpnRes, threatsRes] = await Promise.all([
-        db.from('system_metrics').select('recorded_at,hostname').order('recorded_at', { ascending: false }).limit(1).maybeSingle() as any,
-        db.from('firewall_rules').select('id').eq('enabled', true) as any,
-        db.from('network_interfaces').select('id').eq('status', 'up') as any,
-        db.from('vpn_tunnels').select('id').eq('status', 'connected') as any,
-        db.from('threat_events').select('id').gte('created_at', new Date(Date.now() - 86400000).toISOString()) as any,
+        supabase.from('system_metrics').select('recorded_at,hostname').order('recorded_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('firewall_rules').select('id').eq('enabled', true),
+        supabase.from('network_interfaces').select('id').eq('status', 'up'),
+        supabase.from('vpn_tunnels').select('id').eq('status', 'connected'),
+        supabase.from('threat_events').select('id').gte('created_at', new Date(Date.now() - 86400000).toISOString()),
       ]);
 
       const lastMetric = metricsRes.data;
-      const isConnected = lastMetric && (Date.now() - new Date(lastMetric.recorded_at).getTime()) < 120000; // 2 min threshold
+      const isConnected = lastMetric && (Date.now() - new Date(lastMetric.recorded_at).getTime()) < 120000;
 
       return {
         connected: !!isConnected,
         lastSyncTime: lastMetric?.recorded_at ?? null,
         lastMetricTime: lastMetric?.recorded_at ?? null,
-        appliedRules: (rulesRes.data as any[])?.length ?? 0,
-        activeInterfaces: (ifacesRes.data as any[])?.length ?? 0,
-        vpnTunnels: (vpnRes.data as any[])?.length ?? 0,
-        threatEventsToday: (threatsRes.data as any[])?.length ?? 0,
+        appliedRules: rulesRes.data?.length ?? 0,
+        activeInterfaces: ifacesRes.data?.length ?? 0,
+        vpnTunnels: vpnRes.data?.length ?? 0,
+        threatEventsToday: threatsRes.data?.length ?? 0,
         hostname: lastMetric?.hostname ?? 'unknown',
         agentVersion: '1.0.0',
       };
     },
     enabled: !!user,
-    refetchInterval: 10000, // Check every 10s
+    refetchInterval: 10000,
   });
 }

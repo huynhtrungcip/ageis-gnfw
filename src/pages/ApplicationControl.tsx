@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { 
   Search, 
@@ -84,7 +85,8 @@ const categories = [
 ];
 
 const ApplicationControl = () => {
-  const [signatures, setSignatures] = useState<AppSignature[]>(mockSignatures);
+  const { demoMode } = useDemoMode();
+  const [signatures, setSignatures] = useState<AppSignature[]>(demoMode ? mockSignatures : []);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedRisk, setSelectedRisk] = useState('all');

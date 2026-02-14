@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
@@ -106,7 +107,8 @@ const mockProfiles: DNSFilterProfile[] = [
 ];
 
 const DNSFilter = () => {
-  const [profiles, setProfiles] = useState<DNSFilterProfile[]>(mockProfiles);
+  const { demoMode } = useDemoMode();
+  const [profiles, setProfiles] = useState<DNSFilterProfile[]>(demoMode ? mockProfiles : []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showCreateMenu, setShowCreateMenu] = useState(false);

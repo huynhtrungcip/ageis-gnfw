@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { Plus, Pencil, Trash2, Clock, Calendar, Sun, Moon } from 'lucide-react';
 import {
@@ -113,7 +114,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const Schedules = () => {
-  const [schedules, setSchedules] = useState<Schedule[]>(mockSchedules);
+  const { demoMode } = useDemoMode();
+  const [schedules, setSchedules] = useState<Schedule[]>(demoMode ? mockSchedules : []);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);

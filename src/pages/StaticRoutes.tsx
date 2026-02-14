@@ -1,6 +1,7 @@
 import { Shell } from '@/components/layout/Shell';
 import { Plus, Edit2, Trash2, RefreshCw, Search, Network, ArrowRight, Copy, Download, Upload, X } from 'lucide-react';
 import { useState } from 'react';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -36,7 +37,8 @@ const mockRoutes: StaticRoute[] = [
 const interfaces = ['wan1', 'wan2', 'internal', 'dmz', 'port1', 'port2', 'port3', 'port4'];
 
 const StaticRoutes = () => {
-  const [routes, setRoutes] = useState<StaticRoute[]>(mockRoutes);
+  const { demoMode } = useDemoMode();
+  const [routes, setRoutes] = useState<StaticRoute[]>(demoMode ? mockRoutes : []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   

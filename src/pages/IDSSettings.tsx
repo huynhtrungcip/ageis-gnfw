@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   Shield, 
   Search, 
@@ -65,7 +66,8 @@ const categories = [
 ];
 
 const IDSSettings = () => {
-  const [signatures, setSignatures] = useState<Signature[]>(mockSignatures);
+  const { demoMode } = useDemoMode();
+  const [signatures, setSignatures] = useState<Signature[]>(demoMode ? mockSignatures : []);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All Categories');
   const [severity, setSeverity] = useState('all');
