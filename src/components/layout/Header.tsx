@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { AegisLogo } from './AegisLogo';
 import { toast } from 'sonner';
 import { CLIConsole } from './CLIConsole';
 import { HelpPanel } from './HelpPanel';
@@ -92,18 +93,24 @@ const sectionMap: Record<string, string> = {
   'insights': 'AI Insights',
 };
 
-export function Header() {
+interface HeaderProps {
+  sidebarCollapsed?: boolean;
+}
+
+const mockAlerts = [
+  { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago', link: '/monitoring/traffic' },
+  { id: 2, type: 'high', message: 'New firmware available', time: '1h ago', link: '/system/firmware' },
+  { id: 3, type: 'medium', message: '3 blocked intrusion attempts', time: '15m ago', link: '/threats' },
+  { id: 4, type: 'low', message: 'Backup completed successfully', time: '3h ago', link: '/system/full-backup' },
+];
+
+export function Header({ sidebarCollapsed = false }: HeaderProps) {
   const location = useLocation();
   const { demoMode, setDemoMode } = useDemoMode();
   const [cliOpen, setCliOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [alerts, setAlerts] = useState([
-    { id: 1, type: 'critical', message: 'High CPU usage detected', time: '2m ago', link: '/monitoring/traffic' },
-    { id: 2, type: 'high', message: 'New firmware available', time: '1h ago', link: '/system/firmware' },
-    { id: 3, type: 'medium', message: '3 blocked intrusion attempts', time: '15m ago', link: '/threats' },
-    { id: 4, type: 'low', message: 'Backup completed successfully', time: '3h ago', link: '/system/full-backup' },
-  ]);
+  const [alerts, setAlerts] = useState(demoMode ? mockAlerts : []);
 
   const { signOut, user } = useAuth();
 
@@ -188,9 +195,15 @@ export function Header() {
 
   return (
     <>
-      <header className="h-9 flex items-center justify-between px-3" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
-        {/* Left: Breadcrumb Navigation */}
+      <header className="h-9 flex items-center justify-between px-3 sticky top-0 z-30" style={{ background: 'linear-gradient(180deg, #2d3e50 0%, #1e2d3d 100%)' }}>
+        {/* Left: Logo (when sidebar collapsed) + Breadcrumb Navigation */}
         <div className="flex items-center gap-2">
+          {sidebarCollapsed && (
+            <>
+              <AegisLogo size="sm" />
+              <div className="w-px h-4 bg-gray-600" />
+            </>
+          )}
           <Link to="/" className="text-gray-400 hover:text-white transition-colors">
             <Home size={14} />
           </Link>

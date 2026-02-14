@@ -216,10 +216,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       "fixed left-0 top-0 h-screen flex flex-col z-40 transition-all duration-300",
       collapsed ? "w-[48px]" : "w-[200px]"
     )} style={{ background: '#1e2d3d' }}>
-      {/* Logo Header */}
-      <div className="h-10 flex items-center justify-center border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
-        <AegisLogo size="sm" collapsed={collapsed} />
-      </div>
+      {/* Logo Header - hidden when collapsed (moves to header) */}
+      {!collapsed && (
+        <div className="h-10 flex items-center justify-center border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
+          <AegisLogo size="sm" />
+        </div>
+      )}
+      {collapsed && (
+        <div className="h-9 shrink-0" />
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-1">
