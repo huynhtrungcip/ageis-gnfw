@@ -3,11 +3,12 @@ import { cn } from '@/lib/utils';
 interface AegisLogoProps {
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
+  collapsed?: boolean;
   showVersion?: boolean;
   className?: string;
 }
 
-export function AegisLogo({ size = 'md', showText = true, showVersion = false, className }: AegisLogoProps) {
+export function AegisLogo({ size = 'md', showText = true, collapsed = false, showVersion = false, className }: AegisLogoProps) {
   const textSize = {
     sm: 'text-[13px]',
     md: 'text-[15px]',
@@ -19,6 +20,14 @@ export function AegisLogo({ size = 'md', showText = true, showVersion = false, c
     md: 'text-[8px]',
     lg: 'text-[10px]'
   };
+
+  if (collapsed) {
+    return (
+      <div className={cn("flex items-center justify-center select-none", className)}>
+        <span className="text-white font-extrabold text-[15px] tracking-wider">A</span>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
