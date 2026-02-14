@@ -540,7 +540,7 @@
 
   /* Tags */
   .tag {
-    @apply text-[10px] font-semibold px-2 py-0.5 uppercase;
+    @apply text-[10px] font-semibold px-2 py-0.5 uppercase inline-block min-w-[72px] text-center;
   }
 
   .tag-critical {

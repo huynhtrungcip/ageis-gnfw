@@ -441,7 +441,7 @@ const SecurityProfiles = () => {
                     </td>
                     <td>
                       <span className={cn(
-                        "forti-tag",
+                        "forti-tag inline-block min-w-[72px] text-center",
                         profile.action === 'block' ? 'bg-red-100 text-red-700 border-red-200' :
                         profile.action === 'quarantine' ? 'bg-orange-100 text-orange-700 border-orange-200' :
                         'bg-yellow-100 text-yellow-700 border-yellow-200'
@@ -495,13 +495,13 @@ const SecurityProfiles = () => {
                     <td className="font-medium text-[#333]">{profile.name}</td>
                     <td className="text-[#666]">{profile.comment}</td>
                     <td>
-                      <span className="forti-tag bg-purple-100 text-purple-700 border-purple-200">
+                      <span className="forti-tag inline-block min-w-[72px] text-center bg-purple-100 text-purple-700 border-purple-200">
                         {profile.mode.toUpperCase()}
                       </span>
                     </td>
                     <td>
                       <span className={cn(
-                        "forti-tag",
+                        "forti-tag inline-block min-w-[72px] text-center",
                         profile.action === 'block' ? 'bg-red-100 text-red-700 border-red-200' :
                         profile.action === 'warning' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
                         'bg-blue-100 text-blue-700 border-blue-200'
@@ -610,7 +610,7 @@ const SecurityProfiles = () => {
                     </td>
                     <td>
                       <span className={cn(
-                        "forti-tag",
+                        "forti-tag inline-block min-w-[72px] text-center",
                         sig.severity === 'critical' ? "bg-red-100 text-red-700 border-red-200" :
                         sig.severity === 'high' ? "bg-orange-100 text-orange-700 border-orange-200" :
                         sig.severity === 'medium' ? "bg-yellow-100 text-yellow-700 border-yellow-200" :
@@ -622,7 +622,7 @@ const SecurityProfiles = () => {
                     <td className="mono text-[10px] text-blue-600">{sig.cve || '-'}</td>
                     <td>
                       <span className={cn(
-                        "forti-tag",
+                        "forti-tag inline-block min-w-[72px] text-center",
                         sig.action === 'block' ? "bg-red-100 text-red-700 border-red-200" :
                         sig.action === 'monitor' ? "bg-blue-100 text-blue-700 border-blue-200" :
                         "bg-gray-100 text-gray-600 border-gray-200"
