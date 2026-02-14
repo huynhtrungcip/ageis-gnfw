@@ -741,3 +741,90 @@ INSERT INTO public.ai_analysis (risk_score, anomalies_detected, threats_blocked,
   (72, 15, 1247,
    '[{"id":"pred-1","type":"DDoS Attack","probability":35,"description":"Unusual traffic pattern detected"}]'::jsonb,
    '[{"id":"rec-1","priority":"high","category":"Security","title":"Enable GeoIP Blocking","description":"Block traffic from high-risk countries","action":"Configure GeoIP rules"}]'::jsonb);
+
+-- ── Packet Captures ──
+CREATE TABLE IF NOT EXISTS public.packet_captures (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  interface TEXT NOT NULL DEFAULT 'any',
+  filter TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'stopped' CHECK (status IN ('running', 'stopped', 'completed', 'error')),
+  packets BIGINT NOT NULL DEFAULT 0,
+  size_bytes BIGINT NOT NULL DEFAULT 0,
+  pcap_file TEXT,
+  pid INT,
+  max_packets INT DEFAULT 0,
+  duration_seconds INT DEFAULT 0,
+  started_at TIMESTAMPTZ,
+  stopped_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Network Topology (discovered devices) ──
+CREATE TABLE IF NOT EXISTS public.network_devices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL DEFAULT '',
+  ip_address TEXT NOT NULL,
+  mac_address TEXT NOT NULL DEFAULT '',
+  device_type TEXT NOT NULL DEFAULT 'unknown' CHECK (device_type IN ('firewall', 'switch', 'router', 'server', 'client', 'ap', 'printer', 'iot', 'unknown')),
+  status TEXT NOT NULL DEFAULT 'online' CHECK (status IN ('online', 'offline', 'warning')),
+  interface TEXT NOT NULL DEFAULT '',
+  vlan TEXT,
+  vendor TEXT,
+  hostname TEXT,
+  os_hint TEXT,
+  open_ports INT[] DEFAULT '{}',
+  last_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
+  first_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_network_devices_ip ON public.network_devices(ip_address);
+
+-- ── Firmware Info ──
+CREATE TABLE IF NOT EXISTS public.firmware_info (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  hostname TEXT NOT NULL DEFAULT '',
+  model TEXT NOT NULL DEFAULT 'Aegis-NGFW',
+  serial_number TEXT NOT NULL DEFAULT '',
+  current_version TEXT NOT NULL DEFAULT '',
+  build_number TEXT NOT NULL DEFAULT '',
+  kernel_version TEXT NOT NULL DEFAULT '',
+  os_version TEXT NOT NULL DEFAULT '',
+  uptime_seconds BIGINT NOT NULL DEFAULT 0,
+  last_updated TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── System Backups (config backups tracked by agent) ──
+CREATE TABLE IF NOT EXISTS public.config_backups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  filename TEXT NOT NULL,
+  filepath TEXT NOT NULL DEFAULT '',
+  size_bytes BIGINT NOT NULL DEFAULT 0,
+  type TEXT NOT NULL DEFAULT 'manual' CHECK (type IN ('manual', 'auto', 'pre-upgrade', 'scheduled')),
+  status TEXT NOT NULL DEFAULT 'success' CHECK (status IN ('success', 'failed', 'in_progress')),
+  firmware_version TEXT NOT NULL DEFAULT '',
+  sections TEXT[] DEFAULT '{}',
+  notes TEXT NOT NULL DEFAULT '',
+  created_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_config_backups_created ON public.config_backups(created_at DESC);
+
+-- Grant on new tables
+GRANT ALL ON public.packet_captures TO authenticated;
+GRANT SELECT ON public.packet_captures TO anon;
+GRANT ALL ON public.network_devices TO authenticated;
+GRANT SELECT ON public.network_devices TO anon;
+GRANT ALL ON public.firmware_info TO authenticated;
+GRANT SELECT ON public.firmware_info TO anon;
+GRANT ALL ON public.config_backups TO authenticated;
+GRANT SELECT ON public.config_backups TO anon;
+
+-- Seed firmware info
+INSERT INTO public.firmware_info (hostname, model, current_version, build_number, kernel_version, os_version) VALUES
+  ('AEGIS-PRIMARY', 'Aegis-NGFW', '2.0.0', '2571', '', '')
+ON CONFLICT DO NOTHING;

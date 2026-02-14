@@ -1487,6 +1487,399 @@ backup_rules() {
   log_info "Rules backed up (${ts})"
 }
 
+# ════════════════════════════════════════════════════════════
+#  PACKET CAPTURE (tcpdump management)
+# ════════════════════════════════════════════════════════════
+
+start_packet_capture() {
+  local capture_id="$1"
+  if [[ -z "$capture_id" ]]; then
+    log_error "capture_id required"
+    return 1
+  fi
+
+  local capture
+  capture=$(api_get "/packet_captures?id=eq.${capture_id}" 2>/dev/null) || return 1
+  local name=$(echo "$capture" | jq -r '.[0].name')
+  local iface=$(echo "$capture" | jq -r '.[0].interface')
+  local filter=$(echo "$capture" | jq -r '.[0].filter // ""')
+  local max_pkts=$(echo "$capture" | jq -r '.[0].max_packets // 0')
+
+  local linux_iface="${IFACE_MAP[$iface]:-$iface}"
+  [[ "$iface" == "any" ]] && linux_iface="any"
+
+  local pcap_dir="${AEGIS_DIR}/captures"
+  mkdir -p "$pcap_dir"
+  local ts=$(date +%Y%m%d_%H%M%S)
+  local pcap_file="${pcap_dir}/${name//[^a-zA-Z0-9_-]/_}_${ts}.pcap"
+
+  local tcpdump_cmd="tcpdump -i $linux_iface -w $pcap_file -U"
+  [[ -n "$filter" && "$filter" != "null" ]] && tcpdump_cmd+=" $filter"
+  [[ "$max_pkts" -gt 0 ]] && tcpdump_cmd+=" -c $max_pkts"
+
+  log_info "Starting capture: $name on $linux_iface (filter: ${filter:-none})"
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "[DRY-RUN] $tcpdump_cmd"
+    return 0
+  fi
+
+  # Start tcpdump in background
+  $tcpdump_cmd &>/dev/null &
+  local pid=$!
+
+  api_patch "/packet_captures" \
+    "$(jq -n --argjson pid "$pid" --arg pcap "$pcap_file" --arg status "running" \
+      '{status:$status, pid:$pid, pcap_file:$pcap, started_at: (now | todate)}')" \
+    "?id=eq.${capture_id}" >/dev/null 2>&1
+
+  log_ok "Capture started: PID=$pid file=$pcap_file"
+}
+
+stop_packet_capture() {
+  local capture_id="$1"
+  local capture
+  capture=$(api_get "/packet_captures?id=eq.${capture_id}" 2>/dev/null) || return 1
+  local pid=$(echo "$capture" | jq -r '.[0].pid // 0')
+  local pcap_file=$(echo "$capture" | jq -r '.[0].pcap_file // ""')
+
+  if [[ "$pid" -gt 0 ]]; then
+    kill "$pid" 2>/dev/null || true
+    sleep 1
+  fi
+
+  local packets=0 size_bytes=0
+  if [[ -n "$pcap_file" && -f "$pcap_file" ]]; then
+    size_bytes=$(stat -c%s "$pcap_file" 2>/dev/null || stat -f%z "$pcap_file" 2>/dev/null || echo 0)
+    packets=$(tcpdump -r "$pcap_file" 2>/dev/null | wc -l || echo 0)
+  fi
+
+  api_patch "/packet_captures" \
+    "$(jq -n --argjson packets "$packets" --argjson size "$size_bytes" \
+      '{status:"completed", pid:0, packets:$packets, size_bytes:$size, stopped_at: (now | todate)}')" \
+    "?id=eq.${capture_id}" >/dev/null 2>&1
+
+  log_ok "Capture stopped: packets=$packets size=$size_bytes"
+}
+
+# Update running capture stats periodically
+update_capture_stats() {
+  local captures
+  captures=$(api_get "/packet_captures?status=eq.running" 2>/dev/null) || return 0
+
+  echo "$captures" | jq -c '.[]' 2>/dev/null | while read -r cap; do
+    local cap_id=$(echo "$cap" | jq -r '.id')
+    local pid=$(echo "$cap" | jq -r '.pid // 0')
+    local pcap_file=$(echo "$cap" | jq -r '.pcap_file // ""')
+
+    # Check if process still running
+    if [[ "$pid" -gt 0 ]] && ! kill -0 "$pid" 2>/dev/null; then
+      # Process died, mark completed
+      stop_packet_capture "$cap_id"
+      continue
+    fi
+
+    # Update file stats
+    if [[ -n "$pcap_file" && -f "$pcap_file" ]]; then
+      local size_bytes=$(stat -c%s "$pcap_file" 2>/dev/null || echo 0)
+      api_patch "/packet_captures" \
+        "$(jq -n --argjson size "$size_bytes" '{size_bytes:$size}')" \
+        "?id=eq.${cap_id}" >/dev/null 2>&1
+    fi
+  done
+}
+
+# ════════════════════════════════════════════════════════════
+#  NETWORK TOPOLOGY DISCOVERY
+# ════════════════════════════════════════════════════════════
+
+collect_network_topology() {
+  log_info "Discovering network devices..."
+
+  # Collect ARP table
+  local arp_entries
+  arp_entries=$(ip neigh show 2>/dev/null | grep -v FAILED || arp -an 2>/dev/null || echo "")
+  [[ -z "$arp_entries" ]] && { log_warn "No ARP entries found"; return 0; }
+
+  # Also add the firewall itself
+  local hostname_val=$(hostname)
+  local fw_ip=$(ip -4 addr show "${IFACE_MAP[LAN]:-eth1}" 2>/dev/null | grep -oP 'inet \K[0-9.]+' | head -1 || echo "10.0.0.1")
+  local fw_mac=$(cat "/sys/class/net/${IFACE_MAP[LAN]:-eth1}/address" 2>/dev/null || echo "")
+
+  # Upsert firewall node
+  local fw_payload=$(jq -n \
+    --arg name "$hostname_val" \
+    --arg ip "$fw_ip" \
+    --arg mac "$fw_mac" \
+    --arg dtype "firewall" \
+    --arg status "online" \
+    --arg iface "LAN" \
+    --arg hostname "$hostname_val" \
+    '{name:$name, ip_address:$ip, mac_address:$mac, device_type:$dtype, status:$status, interface:$iface, hostname:$hostname}')
+  api_post "/network_devices" "$fw_payload" >/dev/null 2>&1 || \
+    api_patch "/network_devices" "$fw_payload" "?ip_address=eq.${fw_ip}" >/dev/null 2>&1
+
+  # Parse ARP entries
+  echo "$arp_entries" | while read -r line; do
+    local ip_addr=$(echo "$line" | grep -oP '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    local mac_addr=$(echo "$line" | grep -oiP '([0-9a-f]{2}:){5}[0-9a-f]{2}' | head -1)
+    local dev=$(echo "$line" | grep -oP 'dev \K\S+' || echo "")
+    local state=$(echo "$line" | grep -oP '(REACHABLE|STALE|DELAY|PROBE|PERMANENT)' || echo "STALE")
+
+    [[ -z "$ip_addr" || -z "$mac_addr" ]] && continue
+
+    # Determine interface name from reverse map
+    local iface_name=""
+    for key in "${!IFACE_MAP[@]}"; do
+      if [[ "${IFACE_MAP[$key]}" == "$dev" ]]; then
+        iface_name="$key"
+        break
+      fi
+    done
+    [[ -z "$iface_name" ]] && iface_name="$dev"
+
+    # Try reverse DNS
+    local hostname_guess=""
+    hostname_guess=$(getent hosts "$ip_addr" 2>/dev/null | awk '{print $2}' || echo "")
+
+    # Detect vendor from MAC OUI (first 3 bytes)
+    local vendor=""
+    local oui_file="/usr/share/ieee-data/oui.txt"
+    if [[ -f "$oui_file" ]]; then
+      local oui_prefix=$(echo "$mac_addr" | tr -d ':' | cut -c1-6 | tr '[:lower:]' '[:upper:]')
+      vendor=$(grep -i "^$oui_prefix" "$oui_file" 2>/dev/null | head -1 | sed 's/.*\t//' || echo "")
+    fi
+
+    local status="online"
+    [[ "$state" == "STALE" || "$state" == "FAILED" ]] && status="offline"
+
+    local device_type="unknown"
+    # Simple heuristics
+    if echo "$hostname_guess" | grep -qi "printer\|hp\|epson\|canon"; then
+      device_type="printer"
+    elif echo "$hostname_guess" | grep -qi "ap\|access\|wifi"; then
+      device_type="ap"
+    elif echo "$hostname_guess" | grep -qi "server\|srv\|db\|web\|mail"; then
+      device_type="server"
+    elif echo "$hostname_guess" | grep -qi "switch\|sw"; then
+      device_type="switch"
+    elif echo "$hostname_guess" | grep -qi "router\|gw\|gateway"; then
+      device_type="router"
+    fi
+
+    local payload=$(jq -n \
+      --arg ip "$ip_addr" \
+      --arg mac "$mac_addr" \
+      --arg dtype "$device_type" \
+      --arg status "$status" \
+      --arg iface "$iface_name" \
+      --arg hostname "$hostname_guess" \
+      --arg vendor "$vendor" \
+      --arg name "${hostname_guess:-$ip_addr}" \
+      '{
+        name: $name, ip_address:$ip, mac_address:$mac,
+        device_type:$dtype, status:$status, interface:$iface,
+        hostname:$hostname, vendor:$vendor, last_seen: (now | todate)
+      }')
+
+    # Upsert by IP
+    local existing
+    existing=$(api_get "/network_devices?ip_address=eq.${ip_addr}&select=id" 2>/dev/null)
+    local existing_id=$(echo "$existing" | jq -r '.[0].id // empty' 2>/dev/null)
+
+    if [[ -n "$existing_id" ]]; then
+      api_patch "/network_devices" "$payload" "?id=eq.${existing_id}" >/dev/null 2>&1
+    else
+      api_post "/network_devices" "$payload" >/dev/null 2>&1
+    fi
+  done
+
+  # Optional: nmap scan for more details (if installed)
+  if command -v nmap &>/dev/null; then
+    local lan_subnet=$(ip -4 addr show "${IFACE_MAP[LAN]:-eth1}" 2>/dev/null | grep -oP 'inet \K[0-9./]+' | head -1)
+    if [[ -n "$lan_subnet" ]]; then
+      log_info "Running nmap ping scan on $lan_subnet..."
+      nmap -sn "$lan_subnet" -oG - 2>/dev/null | grep "Host:" | while read -r line; do
+        local ip=$(echo "$line" | grep -oP '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
+        local nmap_hostname=$(echo "$line" | grep -oP '\((\S+)\)' | tr -d '()' || echo "")
+        if [[ -n "$ip" && -n "$nmap_hostname" && "$nmap_hostname" != "()" ]]; then
+          api_patch "/network_devices" \
+            "$(jq -n --arg h "$nmap_hostname" --arg s "online" '{hostname:$h, status:$s, last_seen:(now|todate)}')" \
+            "?ip_address=eq.${ip}" >/dev/null 2>&1
+        fi
+      done
+    fi
+  fi
+
+  log_ok "Network topology discovery complete"
+}
+
+# ════════════════════════════════════════════════════════════
+#  FIRMWARE / SYSTEM INFO COLLECTION
+# ════════════════════════════════════════════════════════════
+
+collect_firmware_info() {
+  log_info "Collecting firmware/system info..."
+
+  local hostname_val=$(hostname)
+  local kernel_ver=$(uname -r)
+  local os_ver=""
+  if [[ -f /etc/os-release ]]; then
+    os_ver=$(grep PRETTY_NAME /etc/os-release | cut -d'"' -f2)
+  fi
+  local uptime_secs=$(awk '{print int($1)}' /proc/uptime)
+
+  # Check for agent version as firmware version
+  local fw_version="2.0.0"
+  local build_num=$(date -r "$0" +%Y%m%d 2>/dev/null || echo "0")
+  local serial="AEGIS-$(hostname | md5sum | cut -c1-12 | tr '[:lower:]' '[:upper:]')"
+
+  local payload=$(jq -n \
+    --arg hostname "$hostname_val" \
+    --arg model "Aegis-NGFW" \
+    --arg serial "$serial" \
+    --arg version "$fw_version" \
+    --arg build "$build_num" \
+    --arg kernel "$kernel_ver" \
+    --arg os "$os_ver" \
+    --argjson uptime "$uptime_secs" \
+    '{
+      hostname:$hostname, model:$model, serial_number:$serial,
+      current_version:$version, build_number:$build,
+      kernel_version:$kernel, os_version:$os,
+      uptime_seconds:$uptime
+    }')
+
+  # Upsert — check if exists first
+  local existing
+  existing=$(api_get "/firmware_info?select=id&limit=1" 2>/dev/null)
+  local existing_id=$(echo "$existing" | jq -r '.[0].id // empty' 2>/dev/null)
+
+  if [[ -n "$existing_id" ]]; then
+    api_patch "/firmware_info" "$payload" "?id=eq.${existing_id}" >/dev/null 2>&1
+  else
+    api_post "/firmware_info" "$payload" >/dev/null 2>&1
+  fi
+
+  log_ok "Firmware info collected: $hostname_val v$fw_version kernel=$kernel_ver"
+}
+
+# ════════════════════════════════════════════════════════════
+#  CONFIG BACKUP MANAGEMENT
+# ════════════════════════════════════════════════════════════
+
+create_config_backup() {
+  local backup_type="${1:-manual}"
+  local notes="${2:-}"
+  local backup_dir="${AEGIS_DIR}/backups/configs"
+  mkdir -p "$backup_dir"
+
+  local ts=$(date +%Y%m%d_%H%M%S)
+  local filename="aegis_config_${ts}.tar.gz"
+  local filepath="${backup_dir}/${filename}"
+
+  log_info "Creating config backup: $filename ($backup_type)"
+
+  # Collect all configs
+  local temp_dir=$(mktemp -d)
+
+  # System info
+  hostname > "${temp_dir}/hostname" 2>/dev/null || true
+  cp /etc/os-release "${temp_dir}/" 2>/dev/null || true
+
+  # Firewall rules
+  if [[ "$FIREWALL_BACKEND" == "nft" ]]; then
+    nft list ruleset > "${temp_dir}/nftables.conf" 2>/dev/null || true
+  else
+    iptables-save > "${temp_dir}/iptables.rules" 2>/dev/null || true
+  fi
+
+  # Routes
+  ip route show > "${temp_dir}/routes.txt" 2>/dev/null || true
+  ip rule show > "${temp_dir}/policy_routes.txt" 2>/dev/null || true
+
+  # Network config
+  ip addr show > "${temp_dir}/interfaces.txt" 2>/dev/null || true
+
+  # DHCP/DNS configs
+  cp -r "${DNSMASQ_CONF_DIR}/" "${temp_dir}/dnsmasq.d/" 2>/dev/null || true
+  cp "${DNSMASQ_MAIN_CONF}" "${temp_dir}/dnsmasq.conf" 2>/dev/null || true
+
+  # Suricata rules
+  cp /etc/suricata/rules/aegis-custom.rules "${temp_dir}/" 2>/dev/null || true
+
+  # Agent config
+  cp "${AEGIS_DIR}/.env" "${temp_dir}/agent.env" 2>/dev/null || true
+
+  # VPN configs
+  cp -r /etc/ipsec.d/ "${temp_dir}/ipsec.d/" 2>/dev/null || true
+  cp -r /etc/wireguard/ "${temp_dir}/wireguard/" 2>/dev/null || true
+
+  # Create tarball
+  tar -czf "$filepath" -C "$temp_dir" . 2>/dev/null
+  rm -rf "$temp_dir"
+
+  local size_bytes=0
+  [[ -f "$filepath" ]] && size_bytes=$(stat -c%s "$filepath" 2>/dev/null || stat -f%z "$filepath" 2>/dev/null || echo 0)
+
+  local fw_version="2.0.0"
+  local sections='{"firewall","routes","interfaces","dhcp","dns","vpn","agent"}'
+
+  local payload=$(jq -n \
+    --arg filename "$filename" \
+    --arg filepath "$filepath" \
+    --argjson size "$size_bytes" \
+    --arg type "$backup_type" \
+    --arg status "success" \
+    --arg fw_ver "$fw_version" \
+    --arg notes "$notes" \
+    '{
+      filename:$filename, filepath:$filepath, size_bytes:$size,
+      type:$type, status:$status, firmware_version:$fw_ver,
+      notes:$notes
+    }')
+
+  api_post "/config_backups" "$payload" >/dev/null 2>&1
+  log_ok "Config backup created: $filename ($size_bytes bytes)"
+
+  # Cleanup old backups (keep last 30)
+  ls -t "${backup_dir}"/aegis_config_*.tar.gz 2>/dev/null | tail -n +31 | xargs rm -f 2>/dev/null || true
+}
+
+restore_config_backup() {
+  local backup_id="$1"
+  local backup
+  backup=$(api_get "/config_backups?id=eq.${backup_id}" 2>/dev/null) || return 1
+  local filepath=$(echo "$backup" | jq -r '.[0].filepath // ""')
+
+  if [[ ! -f "$filepath" ]]; then
+    log_error "Backup file not found: $filepath"
+    return 1
+  fi
+
+  log_info "Restoring config from: $filepath"
+
+  local temp_dir=$(mktemp -d)
+  tar -xzf "$filepath" -C "$temp_dir" 2>/dev/null || { log_error "Failed to extract backup"; return 1; }
+
+  # Restore firewall rules
+  if [[ -f "${temp_dir}/nftables.conf" ]]; then
+    nft -f "${temp_dir}/nftables.conf" 2>/dev/null && log_ok "nftables restored" || log_warn "nftables restore failed"
+  elif [[ -f "${temp_dir}/iptables.rules" ]]; then
+    iptables-restore < "${temp_dir}/iptables.rules" 2>/dev/null && log_ok "iptables restored" || log_warn "iptables restore failed"
+  fi
+
+  # Restore DHCP/DNS
+  if [[ -d "${temp_dir}/dnsmasq.d" ]]; then
+    cp -r "${temp_dir}/dnsmasq.d/"* "${DNSMASQ_CONF_DIR}/" 2>/dev/null
+    systemctl restart dnsmasq 2>/dev/null || true
+    log_ok "dnsmasq config restored"
+  fi
+
+  rm -rf "$temp_dir"
+  log_ok "Config restore complete"
+}
+
 # ── Cleanup old metrics ──────────────────────────────────────
 cleanup_old_data() {
   local cutoff=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || \
@@ -1576,6 +1969,13 @@ do_metrics() {
   collect_vpn_status
   collect_dhcp_leases
   collect_threats
+  collect_firmware_info
+  update_capture_stats
+}
+
+# Extended collection (less frequent)
+do_discovery() {
+  collect_network_topology
 }
 
 # Daemon: run both sync and metrics on their intervals
@@ -1587,11 +1987,14 @@ run_daemon() {
   local last_sync=0
   local last_metrics=0
   local last_cleanup=0
+  local last_discovery=0
   local cleanup_interval=3600  # 1 hour
+  local discovery_interval=300  # 5 minutes
 
   # Initial run
   do_metrics || log_warn "Initial metrics collection failed"
   do_sync || log_warn "Initial sync failed"
+  do_discovery || log_warn "Initial discovery failed"
 
   while true; do
     local now=$(date +%s)
@@ -1614,6 +2017,12 @@ run_daemon() {
         echo "$new_hash" > "${AEGIS_DIR}/.rules_hash"
       fi
       last_sync=$now
+    fi
+
+    # Network discovery (less frequent)
+    if (( now - last_discovery >= discovery_interval )); then
+      do_discovery || log_warn "Discovery failed"
+      last_discovery=$now
     fi
 
     # Periodic cleanup
@@ -1753,32 +2162,63 @@ case "${1:-daemon}" in
     init
     apply_ids_config
     ;;
+  capture-start)
+    init
+    start_packet_capture "$2"
+    ;;
+  capture-stop)
+    init
+    stop_packet_capture "$2"
+    ;;
+  discover)
+    init
+    collect_network_topology
+    ;;
+  firmware-info)
+    init
+    collect_firmware_info
+    ;;
+  config-backup)
+    init
+    create_config_backup "${2:-manual}" "${3:-}"
+    ;;
+  config-restore)
+    init
+    restore_config_backup "$2"
+    ;;
   test)
     DRY_RUN=true
     init
     do_sync
     ;;
   *)
-    echo "Aegis NGFW Agent v2.0 — Self-Hosted Firewall Management"
+    echo "Aegis NGFW Agent v3.0 — Self-Hosted Firewall Management"
     echo ""
-    echo "Usage: $0 {daemon|sync|metrics|status|fetch|backup|test|apply-*}"
+    echo "Usage: $0 {daemon|sync|metrics|status|fetch|backup|test|apply-*|capture-*|discover|...}"
     echo ""
-    echo "  daemon        Run as background service (default)"
-    echo "  sync          Pull ALL config from DB and apply"
-    echo "  metrics       Collect system metrics and push to DB"
-    echo "  status        Show agent and system status"
-    echo "  fetch         Fetch firewall rules and display JSON"
-    echo "  backup        Backup current iptables/nftables rules"
-    echo "  test          Dry-run: generate config without applying"
+    echo "  daemon          Run as background service (default)"
+    echo "  sync            Pull ALL config from DB and apply"
+    echo "  metrics         Collect system metrics and push to DB"
+    echo "  status          Show agent and system status"
+    echo "  fetch           Fetch firewall rules and display JSON"
+    echo "  backup          Backup current iptables/nftables rules"
+    echo "  test            Dry-run: generate config without applying"
     echo ""
-    echo "  apply-fw      Apply firewall rules only"
-    echo "  apply-nat     Apply NAT rules only"
-    echo "  apply-routes  Apply static + policy routes"
-    echo "  apply-tc      Apply traffic shaping only"
-    echo "  apply-iface   Apply interface configuration"
-    echo "  apply-dhcp    Apply DHCP server config"
-    echo "  apply-dns     Apply DNS server config"
-    echo "  apply-ids     Apply IDS/IPS (Suricata) rules"
+    echo "  apply-fw        Apply firewall rules only"
+    echo "  apply-nat       Apply NAT rules only"
+    echo "  apply-routes    Apply static + policy routes"
+    echo "  apply-tc        Apply traffic shaping only"
+    echo "  apply-iface     Apply interface configuration"
+    echo "  apply-dhcp      Apply DHCP server config"
+    echo "  apply-dns       Apply DNS server config"
+    echo "  apply-ids       Apply IDS/IPS (Suricata) rules"
+    echo ""
+    echo "  capture-start ID  Start packet capture by DB ID"
+    echo "  capture-stop ID   Stop packet capture by DB ID"
+    echo "  discover          Run network topology discovery"
+    echo "  firmware-info     Collect and push firmware info"
+    echo "  config-backup [type] [notes]  Create config backup"
+    echo "  config-restore ID Restore config from backup ID"
     echo ""
     echo "All config is read from PostgREST local API."
     echo "No cloud dependencies required."
