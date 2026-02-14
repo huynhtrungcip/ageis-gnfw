@@ -71,7 +71,7 @@ const FirmwareManagement = () => {
 
   const currentVersion = firmwareInfo?.current_version || '2.0.0';
   const currentBuild = firmwareInfo?.build_number || '2571';
-  const currentHostname = firmwareInfo?.hostname || 'AEGIS-PRIMARY';
+  const currentHostname = firmwareInfo?.hostname || 'AEGIS-NGFW-500';
   const currentModel = firmwareInfo?.model || 'Aegis-NGFW';
   const currentSerial = firmwareInfo?.serial_number || 'AEGIS-A1B2C3D4E5F6';
   const currentUptime = firmwareInfo?.uptime_seconds ? formatUptime(firmwareInfo.uptime_seconds) : '0 days';

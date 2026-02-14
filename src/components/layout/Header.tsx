@@ -224,11 +224,11 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1.5 cursor-default">
                 <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                <span className="text-[10px] text-gray-400">AEGIS-PRIMARY</span>
+                <span className="text-[10px] text-gray-400">AEGIS-NGFW-500</span>
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
-              <p className="font-medium">Hostname: AEGIS-PRIMARY</p>
+              <p className="font-medium">Hostname: AEGIS-NGFW-500</p>
               <p className="text-muted-foreground">Tên định danh của thiết bị firewall đang được quản lý</p>
             </TooltipContent>
           </Tooltip>

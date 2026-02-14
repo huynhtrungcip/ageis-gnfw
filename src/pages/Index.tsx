@@ -122,7 +122,7 @@ const Dashboard = () => {
           <Widget title="System Information" className="col-span-2" loading={metrics.isLoading}>
             <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[11px]">
               {[
-                ['Hostname', m?.hostname ?? '—'], ['Serial Number', 'AEGIS-NGFW-001'],
+                ['Hostname', m?.hostname ?? '—'], ['Serial Number', 'AEGIS-NGFW-500'],
                 ['Operation Mode', 'NAT'], ['HA Status', 'Standalone'],
                 ['Firmware', 'v7.0.5 build0304 (GA)'], ['System Time', new Date().toLocaleString()],
                 ['Uptime', m ? formatUptime(m.uptime) : '—'],
