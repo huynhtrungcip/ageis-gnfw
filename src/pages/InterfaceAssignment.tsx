@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { useDemoMode } from '@/contexts/DemoModeContext';
-import { supabase } from '@/integrations/supabase/client';
+import { db, isApiConfigured } from '@/lib/postgrest';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -107,17 +107,16 @@ const InterfaceAssignment = () => {
   }, [demoMode]);
 
   const loadFromDB = async () => {
+    if (!isApiConfigured()) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('network_interfaces')
-        .select('*');
+      const { data, error } = await (db.from('network_interfaces').select('*') as any);
 
       if (error) throw error;
 
       if (data && data.length > 0) {
         setZones(prev => prev.map(zone => {
-          const dbIface = data.find(d => d.name === zone.zone || d.type === zone.zone);
+          const dbIface = (data as any[]).find((d: any) => d.name === zone.zone || d.type === zone.zone);
           if (dbIface) {
             return {
               ...zone,
@@ -130,8 +129,7 @@ const InterfaceAssignment = () => {
           return zone;
         }));
 
-        // Build detected NICs from DB data
-        const nics: DetectedNIC[] = data.map(d => ({
+        const nics: DetectedNIC[] = (data as any[]).map((d: any) => ({
           name: d.name,
           mac: d.mac || '',
           ip: d.ip_address || '',
@@ -190,21 +188,18 @@ const InterfaceAssignment = () => {
         };
 
         // Upsert: check if exists
-        const { data: existing } = await supabase
-          .from('network_interfaces')
+        const { data: existing } = await (db.from('network_interfaces')
           .select('id')
           .eq('name', zone.zone)
-          .maybeSingle();
+          .maybeSingle() as any);
 
         if (existing) {
-          await supabase
-            .from('network_interfaces')
+          await (db.from('network_interfaces')
             .update(payload)
-            .eq('id', existing.id);
+            .eq('id', existing.id) as any);
         } else {
-          await supabase
-            .from('network_interfaces')
-            .insert(payload);
+          await (db.from('network_interfaces')
+            .insert(payload) as any);
         }
       }
 
