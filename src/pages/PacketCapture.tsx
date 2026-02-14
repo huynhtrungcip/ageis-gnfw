@@ -21,25 +21,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { usePacketCaptures } from '@/hooks/usePacketCaptures';
-
-const formatSize = (bytes: number) => {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-};
-
-const formatDuration = (start: string | null, stop: string | null) => {
-  if (!start) return '00:00:00';
-  const s = new Date(start).getTime();
-  const e = stop ? new Date(stop).getTime() : Date.now();
-  const diff = Math.floor((e - s) / 1000);
-  const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-  const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-  const sec = String(diff % 60).padStart(2, '0');
-  return `${h}:${m}:${sec}`;
-};
+import { formatFileSize as formatSize, formatDuration } from '@/lib/formatters';
 
 const PacketCapture = () => {
   const { sessions, loading, fetchSessions, createCapture, updateCapture, deleteCapture, toggleStatus } = usePacketCaptures();

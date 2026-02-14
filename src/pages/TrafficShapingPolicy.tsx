@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTrafficShapingPolicies } from '@/hooks/useDbData';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { formatBytes } from '@/lib/formatters';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
@@ -78,12 +79,7 @@ const TrafficShapingPolicy = () => {
     policy.trafficShaper.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const formatBytes = (bytes: number) => {
-    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
-    if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
-    return bytes + ' B';
-  };
+  
 
   return (
     <Shell>

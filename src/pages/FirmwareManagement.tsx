@@ -13,6 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useFirmwareInfo } from '@/hooks/useFirmwareInfo';
+import { formatUptime } from '@/lib/formatters';
 
 // Available Firmware
 interface FirmwareVersion {
@@ -51,12 +52,7 @@ const initialBackups: BackupEntry[] = [
   { id: 'bk-4', filename: 'config_backup_20240101_120000.conf', date: '2024-01-01 12:00:00', size: '2.1 MB', type: 'auto', firmwareVersion: '1.9.0', status: 'success' },
 ];
 
-const formatUptime = (seconds: number) => {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  return `${days} days ${hours} hours ${mins} minutes`;
-};
+
 
 const FirmwareManagement = () => {
   const { info: firmwareInfo, loading: fwLoading, fetchInfo } = useFirmwareInfo();

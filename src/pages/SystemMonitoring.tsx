@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { AgentStatus } from '@/components/monitoring/AgentStatus';
 import { useLatestMetrics, useTrafficHistory } from '@/hooks/useDashboardData';
 import { useDemoMode } from '@/contexts/DemoModeContext';
+import { formatUptime } from '@/lib/formatters';
 
 const SystemMonitoring = () => {
   const { demoMode } = useDemoMode();
@@ -56,12 +57,7 @@ const SystemMonitoring = () => {
     }
   }, [metrics, demoMode]);
 
-  const formatUptime = (seconds: number) => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return `${days} days, ${hours} hours, ${mins} minutes`;
-  };
+  
 
   const memPercent = memory ? Math.round((memory.used / memory.total) * 100) : 0;
   const diskPercent = disk ? Math.round((disk.used / disk.total) * 100) : 0;

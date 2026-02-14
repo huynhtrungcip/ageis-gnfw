@@ -3,6 +3,7 @@ import { Shell } from '@/components/layout/Shell';
 import { mockFirewallRules } from '@/data/mockData';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
+import { formatBytes } from '@/lib/formatters';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
@@ -53,11 +54,10 @@ interface SortableRowProps {
   onSelect: (id: string) => void;
   onEdit: (rule: FirewallRule) => void;
   onToggle: (id: string) => void;
-  formatBytes: (n: number) => string;
   isDraggingDisabled: boolean;
 }
 
-function SortableRow({ rule, index, isSelected, onSelect, onEdit, onToggle, formatBytes, isDraggingDisabled }: SortableRowProps) {
+function SortableRow({ rule, index, isSelected, onSelect, onEdit, onToggle, isDraggingDisabled }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -178,12 +178,7 @@ const FirewallRules = () => {
     })
   );
 
-  const formatBytes = (bytes: number) => {
-    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
-    if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
-    return bytes + ' B';
-  };
+  
 
   const handleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -389,7 +384,6 @@ const FirewallRules = () => {
                                 onSelect={handleSelect}
                                 onEdit={handleEditRule}
                                 onToggle={handleToggleRule}
-                                formatBytes={formatBytes}
                                 isDraggingDisabled={isDraggingDisabled}
                               />
                             ))}
@@ -417,7 +411,6 @@ const FirewallRules = () => {
                           onSelect={handleSelect}
                           onEdit={handleEditRule}
                           onToggle={handleToggleRule}
-                          formatBytes={formatBytes}
                           isDraggingDisabled={isDraggingDisabled}
                         />
                       ))}

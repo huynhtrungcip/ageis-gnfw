@@ -3,6 +3,7 @@ import { Shell } from '@/components/layout/Shell';
 import { mockVPNTunnels } from '@/data/mockData';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
+import { formatBytes, formatUptimeShort as formatUptime } from '@/lib/formatters';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Plus, 
@@ -65,11 +66,9 @@ interface SortableTunnelRowProps {
   toggleRowSelection: (id: string) => void;
   handleConnect: (id: string) => void;
   handleDelete: (id: string) => void;
-  formatBytes: (bytes: number) => string;
-  formatUptime: (seconds: number) => string;
 }
 
-const SortableTunnelRow = ({ tunnel, selectedRows, toggleRowSelection, handleConnect, handleDelete, formatBytes, formatUptime }: SortableTunnelRowProps) => {
+const SortableTunnelRow = ({ tunnel, selectedRows, toggleRowSelection, handleConnect, handleDelete }: SortableTunnelRowProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tunnel.id });
   
   const style = {
@@ -169,20 +168,7 @@ const VPN = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const formatBytes = (bytes: number): string => {
-    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-    if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
-    return (bytes / 1024).toFixed(2) + ' KB';
-  };
-
-  const formatUptime = (seconds: number): string => {
-    if (seconds === 0) return '--';
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    if (days > 0) return `${days}d ${hours}h ${mins}m`;
-    return `${hours}h ${mins}m`;
-  };
+  
 
 
 
@@ -396,8 +382,6 @@ const VPN = () => {
                         toggleRowSelection={toggleRowSelection}
                         handleConnect={handleConnect}
                         handleDelete={handleDelete}
-                        formatBytes={formatBytes}
-                        formatUptime={formatUptime}
                       />
                     ))}
                   </tbody>
