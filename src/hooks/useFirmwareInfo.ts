@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db, isApiConfigured } from '@/lib/postgrest';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 
 export interface FirmwareInfo {
@@ -30,23 +29,18 @@ const mockInfo: FirmwareInfo = {
 
 export function useFirmwareInfo() {
   const { demoMode } = useDemoMode();
-  const shouldMock = demoMode || !isApiConfigured();
   const [info, setInfo] = useState<FirmwareInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchInfo = useCallback(async () => {
-    if (shouldMock) {
+    if (demoMode) {
       setInfo(mockInfo);
-      setLoading(false);
-      return;
+    } else {
+      // LIVE mode: no firmware_info table in Supabase yet
+      setInfo(null);
     }
-    try {
-      const { data, error } = await (db.from('firmware_info').select('*').limit(1) as any);
-      if (error) throw error;
-      setInfo(data?.[0] || mockInfo);
-    } catch { setInfo(mockInfo); }
     setLoading(false);
-  }, [shouldMock]);
+  }, [demoMode]);
 
   useEffect(() => { fetchInfo(); }, [fetchInfo]);
 

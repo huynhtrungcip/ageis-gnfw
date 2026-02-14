@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db, isApiConfigured } from '@/lib/postgrest';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { toast } from 'sonner';
 
@@ -25,35 +24,24 @@ const mockBackups: ConfigBackup[] = [
 
 export function useConfigBackups() {
   const { demoMode } = useDemoMode();
-  const shouldMock = demoMode || !isApiConfigured();
   const [backups, setBackups] = useState<ConfigBackup[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBackups = useCallback(async () => {
-    if (shouldMock) {
+    if (demoMode) {
       setBackups(mockBackups);
-      setLoading(false);
-      return;
+    } else {
+      // LIVE mode: no config_backups table in Supabase yet
+      setBackups([]);
     }
-    try {
-      const { data, error } = await (db.from('config_backups').select('*').order('created_at', { ascending: false }) as any);
-      if (error) throw error;
-      setBackups(data || []);
-    } catch { setBackups(mockBackups); }
     setLoading(false);
-  }, [shouldMock]);
+  }, [demoMode]);
 
   useEffect(() => { fetchBackups(); }, [fetchBackups]);
 
   const deleteBackup = async (id: string) => {
-    if (shouldMock) {
-      setBackups(prev => prev.filter(b => b.id !== id));
-      toast.success('Backup deleted');
-      return;
-    }
-    await (db.from('config_backups').delete().eq('id', id) as any);
+    setBackups(prev => prev.filter(b => b.id !== id));
     toast.success('Backup deleted');
-    fetchBackups();
   };
 
   return { backups, loading, fetchBackups, deleteBackup };

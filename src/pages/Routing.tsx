@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
@@ -42,7 +43,8 @@ const mockRoutes: Route[] = [
 ];
 
 const Routing = () => {
-  const [routes, setRoutes] = useState<Route[]>(mockRoutes);
+  const { demoMode } = useDemoMode();
+  const [routes, setRoutes] = useState<Route[]>(demoMode ? mockRoutes : []);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
   const [filter, setFilter] = useState<'all' | 'static' | 'connected'>('all');

@@ -1,29 +1,26 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/contexts/DemoModeContext';
-import { db, isApiConfigured } from '@/lib/postgrest';
-import { mockInterfaces, mockFirewallRules, mockNATRules, mockVPNTunnels, mockThreats, mockSystemStatus, mockTrafficStats, mockAIAnalysis, mockDHCPLeases } from '@/data/mockData';
-import type {
-  FirewallRule, NATRule, NetworkInterface, VPNTunnel, ThreatEvent,
-  SystemMetric, TrafficStat, AIAnalysis
-} from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+import { mockInterfaces, mockFirewallRules, mockNATRules, mockVPNTunnels, mockThreats, mockSystemStatus, mockTrafficStats, mockAIAnalysis } from '@/data/mockData';
+
+type TableName = keyof Database['public']['Tables'];
 
 /**
- * Returns true when mock data should be used:
- * - Demo mode is ON, OR
- * - API is not configured (no VITE_API_URL)
+ * Returns true when mock data should be used — ONLY when demoMode is ON.
  */
 function useShouldMock(): boolean {
   const { demoMode } = useDemoMode();
-  return demoMode || !isApiConfigured();
+  return demoMode;
 }
 
 /**
- * Generic hook for fetching from PostgREST or falling back to mock data.
+ * Generic hook for fetching from Supabase or falling back to mock data.
  */
 function useDbQuery<T = any>(
   key: string,
-  tableName: string,
+  tableName: TableName,
   orderBy = 'created_at',
   options?: { ascending?: boolean; limit?: number },
   mockFallback?: T[]
@@ -37,10 +34,11 @@ function useDbQuery<T = any>(
       if (shouldMock) {
         return mockFallback ?? [];
       }
-      const { data, error } = await (db.from<T>(tableName)
+      const { data, error } = await supabase
+        .from(tableName)
         .select('*')
         .order(orderBy, { ascending: options?.ascending ?? true })
-        .limit(options?.limit ?? 1000) as any);
+        .limit(options?.limit ?? 1000);
       if (error) throw error;
       return (data as T[]) ?? [];
     },
@@ -50,7 +48,7 @@ function useDbQuery<T = any>(
 
 // ── Core tables ─────────────────────────────────
 export function useFirewallRules() {
-  return useDbQuery<FirewallRule>('firewall-rules', 'firewall_rules', 'rule_order', undefined,
+  return useDbQuery('firewall-rules', 'firewall_rules', 'rule_order', undefined,
     mockFirewallRules.map(r => ({
       id: r.id, rule_order: r.order, enabled: r.enabled, action: r.action,
       interface: r.interface, direction: r.direction, protocol: r.protocol,
@@ -60,12 +58,12 @@ export function useFirewallRules() {
       description: r.description, logging: r.logging, hits: r.hits ?? 0,
       last_hit: r.lastHit?.toISOString() ?? null, created_at: r.created.toISOString(),
       updated_at: r.created.toISOString(), created_by: null,
-    }))
+    })) as any[]
   );
 }
 
 export function useNATRules() {
-  return useDbQuery<NATRule>('nat-rules', 'nat_rules', 'created_at', undefined,
+  return useDbQuery('nat-rules', 'nat_rules', 'created_at', undefined,
     mockNATRules.map(r => ({
       id: r.id, type: r.type, enabled: r.enabled, interface: r.interface,
       protocol: r.protocol, external_address: r.externalAddress ?? null,
@@ -73,12 +71,12 @@ export function useNATRules() {
       internal_port: r.internalPort, description: r.description,
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       created_by: null,
-    }))
+    })) as any[]
   );
 }
 
 export function useNetworkInterfaces() {
-  return useDbQuery<NetworkInterface>('network-interfaces', 'network_interfaces', 'name', undefined,
+  return useDbQuery('network-interfaces', 'network_interfaces', 'name', undefined,
     mockInterfaces.map(i => ({
       id: i.id, name: i.name, type: i.type, status: i.status,
       ip_address: i.ipAddress, subnet: i.subnet ?? null, gateway: i.gateway ?? null,
@@ -86,25 +84,25 @@ export function useNetworkInterfaces() {
       vlan: i.vlan ?? null, rx_bytes: i.rxBytes, tx_bytes: i.txBytes,
       rx_packets: i.rxPackets, tx_packets: i.txPackets,
       created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-    }))
+    })) as any[]
   );
 }
 
 export function useVPNTunnels() {
-  return useDbQuery<VPNTunnel>('vpn-tunnels', 'vpn_tunnels', 'name', undefined,
+  return useDbQuery('vpn-tunnels', 'vpn_tunnels', 'name', undefined,
     mockVPNTunnels.map(v => ({
       id: v.id, name: v.name, type: v.type, status: v.status,
       remote_gateway: v.remoteGateway, local_network: v.localNetwork,
       remote_network: v.remoteNetwork, bytes_in: v.bytesIn, bytes_out: v.bytesOut,
       uptime: v.uptime, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-    }))
+    })) as any[]
   );
 }
 
 export function useThreatEvents(limit = 100) {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<ThreatEvent[]>({
+  return useQuery({
     queryKey: ['threat-events', !!user, limit, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -117,8 +115,9 @@ export function useThreatEvents(limit = 100) {
           created_at: t.timestamp.toISOString(),
         }));
       }
-      const { data, error } = await (db.from<ThreatEvent>('threat_events')
-        .select('*').order('created_at', { ascending: false }).limit(limit) as any);
+      const { data, error } = await supabase
+        .from('threat_events')
+        .select('*').order('created_at', { ascending: false }).limit(limit);
       if (error) throw error;
       return data ?? [];
     },
@@ -198,7 +197,7 @@ export function useTrafficShapingPolicies() {
 export function useSystemMetrics(count = 1) {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<SystemMetric[]>({
+  return useQuery({
     queryKey: ['system-metrics', !!user, count, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -214,8 +213,9 @@ export function useSystemMetrics(count = 1) {
           load_15m: mockSystemStatus.load[2], recorded_at: new Date().toISOString(),
         }];
       }
-      const { data, error } = await (db.from<SystemMetric>('system_metrics')
-        .select('*').order('recorded_at', { ascending: false }).limit(count) as any);
+      const { data, error } = await supabase
+        .from('system_metrics')
+        .select('*').order('recorded_at', { ascending: false }).limit(count);
       if (error) throw error;
       return data ?? [];
     },
@@ -227,7 +227,7 @@ export function useSystemMetrics(count = 1) {
 export function useTrafficStats(hours = 24) {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<TrafficStat[]>({
+  return useQuery({
     queryKey: ['traffic-stats', !!user, hours, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -239,8 +239,9 @@ export function useTrafficStats(hours = 24) {
         }));
       }
       const since = new Date(Date.now() - hours * 3600000).toISOString();
-      const { data, error } = await (db.from<TrafficStat>('traffic_stats')
-        .select('*').gte('recorded_at', since).order('recorded_at') as any);
+      const { data, error } = await supabase
+        .from('traffic_stats')
+        .select('*').gte('recorded_at', since).order('recorded_at');
       if (error) throw error;
       return data ?? [];
     },
@@ -252,7 +253,7 @@ export function useTrafficStats(hours = 24) {
 export function useAIAnalysis() {
   const { user } = useAuth();
   const shouldMock = useShouldMock();
-  return useQuery<AIAnalysis | null>({
+  return useQuery({
     queryKey: ['ai-analysis', !!user, shouldMock],
     queryFn: async () => {
       if (shouldMock) {
@@ -265,8 +266,9 @@ export function useAIAnalysis() {
           recorded_at: new Date().toISOString(),
         };
       }
-      const { data, error } = await (db.from<AIAnalysis>('ai_analysis')
-        .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle() as any);
+      const { data, error } = await supabase
+        .from('ai_analysis')
+        .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -281,8 +283,9 @@ export function useAuditLogs(limit = 200) {
     queryKey: ['audit-logs', !!user, limit, shouldMock],
     queryFn: async () => {
       if (shouldMock) return [];
-      const { data, error } = await (db.from('audit_logs')
-        .select('*').order('created_at', { ascending: false }).limit(limit) as any);
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*').order('created_at', { ascending: false }).limit(limit);
       if (error) throw error;
       return data ?? [];
     },

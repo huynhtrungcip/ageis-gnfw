@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { formatUptimeShort as formatUptime } from '@/lib/formatters';
 import { FortiToggle } from '@/components/ui/forti-toggle';
@@ -75,9 +76,10 @@ const mockClusterMembers: ClusterMember[] = [
 ];
 
 const HighAvailability = () => {
+  const { demoMode } = useDemoMode();
   const [haEnabled, setHaEnabled] = useState(true);
   const [haMode, setHaMode] = useState<'active-passive' | 'active-active'>('active-passive');
-  const [members, setMembers] = useState<ClusterMember[]>(mockClusterMembers);
+  const [members, setMembers] = useState<ClusterMember[]>(demoMode ? mockClusterMembers : []);
   const [activeTab, setActiveTab] = useState<'status' | 'settings' | 'history'>('status');
   
   // Modal states

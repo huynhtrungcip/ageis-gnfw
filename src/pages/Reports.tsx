@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
+import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { 
   BarChart3, 
@@ -43,7 +44,8 @@ const mockReports: Report[] = [
 ];
 
 const Reports = () => {
-  const [reports] = useState<Report[]>(mockReports);
+  const { demoMode } = useDemoMode();
+  const [reports] = useState<Report[]>(demoMode ? mockReports : []);
   const [filter, setFilter] = useState<'all' | 'security' | 'traffic' | 'system' | 'compliance'>('all');
   const [timeRange, setTimeRange] = useState('7d');
 
