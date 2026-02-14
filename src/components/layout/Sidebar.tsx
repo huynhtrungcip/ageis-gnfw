@@ -218,7 +218,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     )} style={{ background: '#1e2d3d' }}>
       {/* Logo Header */}
       <div className="h-10 flex items-center justify-center border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
-        <AegisLogo size="sm" showText={!collapsed} />
+        <AegisLogo size="sm" collapsed={collapsed} />
       </div>
 
       {/* Navigation */}
