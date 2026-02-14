@@ -85,7 +85,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
         <div className="px-4 py-3 border-b bg-muted/50">
-          <h2 className="text-sm font-semibold">Aegis Firewall — Help Center</h2>
+          <h2 className="text-sm font-semibold">Aegis NGFW — Help Center</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">Hướng dẫn sử dụng các tính năng chính</p>
         </div>
         <ScrollArea className="h-[60vh]">
@@ -125,7 +125,7 @@ export function HelpPanel({ open, onOpenChange }: HelpPanelProps) {
             </div>
 
             <div className="text-[10px] text-muted-foreground text-center pt-2 border-t">
-              Aegis Firewall Management v7.4.2 — © 2026 Aegis Security
+              Aegis NGFW v2.0.0 — © 2026 Aegis Security
             </div>
           </div>
         </ScrollArea>
