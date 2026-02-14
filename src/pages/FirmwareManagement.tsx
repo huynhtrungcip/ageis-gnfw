@@ -3,7 +3,7 @@ import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { 
   HardDrive, Download, Upload, RefreshCw, Search, CheckCircle,
-  AlertTriangle, Clock, Shield, Server, FileArchive, ArrowUpCircle,
+  Clock, Shield, Server, FileArchive, ArrowUpCircle,
   History, Trash2, X
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -55,7 +55,7 @@ const initialBackups: BackupEntry[] = [
 
 
 const FirmwareManagement = () => {
-  const { info: firmwareInfo, loading: fwLoading, fetchInfo } = useFirmwareInfo();
+  const { info: firmwareInfo } = useFirmwareInfo();
   const [activeTab, setActiveTab] = useState('current');
   const [selectedFirmware, setSelectedFirmware] = useState<string | null>(null);
   const [backupBeforeUpgrade, setBackupBeforeUpgrade] = useState(true);
