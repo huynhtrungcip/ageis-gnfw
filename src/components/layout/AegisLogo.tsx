@@ -3,127 +3,80 @@ import { cn } from '@/lib/utils';
 interface AegisLogoProps {
   size?: 'sm' | 'md' | 'lg';
   showText?: boolean;
+  showVersion?: boolean;
   className?: string;
 }
 
-export function AegisLogo({ size = 'md', showText = true, className }: AegisLogoProps) {
-  const sizeClasses = {
+export function AegisLogo({ size = 'md', showText = true, showVersion = false, className }: AegisLogoProps) {
+  const iconSize = {
     sm: 'w-6 h-6',
     md: 'w-8 h-8',
-    lg: 'w-12 h-12'
+    lg: 'w-10 h-10'
   };
 
-  const textClasses = {
-    sm: 'text-xs',
-    md: 'text-sm',
-    lg: 'text-lg'
+  const textSize = {
+    sm: 'text-sm',
+    md: 'text-base',
+    lg: 'text-xl'
+  };
+
+  const subTextSize = {
+    sm: 'text-[7px]',
+    md: 'text-[8px]',
+    lg: 'text-[10px]'
   };
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      {/* Modern Shield Logo */}
-      <div className={cn("relative", sizeClasses[size])}>
-        <svg
-          viewBox="0 0 48 48"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full"
-        >
-          {/* Gradient Definitions */}
-          <defs>
-            <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#4ade80" />
-              <stop offset="50%" stopColor="#22c55e" />
-              <stop offset="100%" stopColor="#16a34a" />
-            </linearGradient>
-            <linearGradient id="innerGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#0f172a" />
-              <stop offset="100%" stopColor="#1e293b" />
-            </linearGradient>
-            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* Outer Shield Shape */}
+    <div className={cn("flex items-center gap-2.5", className)}>
+      {/* Icon Mark */}
+      <div className={cn(
+        "relative rounded-lg flex items-center justify-center shrink-0 shadow-md",
+        "bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800",
+        iconSize[size]
+      )}>
+        {/* Inner shield "A" */}
+        <svg viewBox="0 0 32 32" fill="none" className="w-[65%] h-[65%]">
           <path
-            d="M24 2L6 10V22C6 34.36 13.68 45.64 24 48C34.32 45.64 42 34.36 42 22V10L24 2Z"
-            fill="url(#shieldGradient)"
-            filter="url(#glow)"
+            d="M16 3L6 8v7c0 7.73 4.66 14.56 10 17 5.34-2.44 10-9.27 10-17V8L16 3z"
+            fill="rgba(255,255,255,0.15)"
+            stroke="rgba(255,255,255,0.5)"
+            strokeWidth="1"
           />
-
-          {/* Inner Shield */}
-          <path
-            d="M24 6L10 12.5V22.5C10 32.5 16.2 41.5 24 44C31.8 41.5 38 32.5 38 22.5V12.5L24 6Z"
-            fill="url(#innerGradient)"
-          />
-
-          {/* Center A Letter - Stylized */}
-          <path
-            d="M24 14L17 32H20.5L21.8 28H26.2L27.5 32H31L24 14ZM22.6 25L24 20.5L25.4 25H22.6Z"
-            fill="url(#shieldGradient)"
-          />
-
-          {/* Decorative Lines */}
-          <path
-            d="M14 20H18"
-            stroke="#4ade80"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            opacity="0.6"
-          />
-          <path
-            d="M30 20H34"
-            stroke="#4ade80"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            opacity="0.6"
-          />
-          <path
-            d="M14 26H16"
-            stroke="#4ade80"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            opacity="0.4"
-          />
-          <path
-            d="M32 26H34"
-            stroke="#4ade80"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            opacity="0.4"
-          />
-
-          {/* Status Dot */}
-          <circle
-            cx="24"
-            cy="38"
-            r="2"
-            fill="#4ade80"
-            className="animate-pulse"
-          />
+          <text
+            x="16"
+            y="21"
+            textAnchor="middle"
+            fill="white"
+            fontSize="13"
+            fontWeight="700"
+            fontFamily="system-ui, -apple-system, sans-serif"
+          >
+            A
+          </text>
         </svg>
       </div>
 
       {showText && (
-        <div className="flex flex-col">
+        <div className="flex flex-col leading-none">
           <span className={cn(
-            "font-bold leading-tight tracking-tight text-white",
-            textClasses[size]
+            "font-extrabold tracking-[0.08em] text-white",
+            textSize[size]
           )}>
-            Aegis
-            <span className="text-emerald-400 ml-0.5">NGFW</span>
+            AEGIS
           </span>
-          {size !== 'sm' && (
-            <span className="text-[9px] text-gray-500 font-mono tracking-wider">
-              NEXT-GEN FIREWALL
-            </span>
-          )}
+          <span className={cn(
+            "font-semibold tracking-[0.2em] text-emerald-400 mt-px",
+            subTextSize[size]
+          )}>
+            NGFW
+          </span>
         </div>
+      )}
+
+      {showVersion && (
+        <span className="text-[9px] text-emerald-400/80 px-1.5 py-0.5 bg-emerald-500/15 rounded border border-emerald-500/25 font-medium ml-auto">
+          v1.0
+        </span>
       )}
     </div>
   );

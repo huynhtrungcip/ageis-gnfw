@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { AegisLogo } from '@/components/layout/AegisLogo';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, 
@@ -216,24 +217,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       collapsed ? "w-[48px]" : "w-[200px]"
     )} style={{ background: '#1e2d3d' }}>
       {/* Logo Header */}
-      <div className="h-10 flex items-center gap-2 px-3 border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-lg flex items-center justify-center shadow-lg shrink-0">
-            <span className="text-white text-base font-bold">A</span>
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="text-white text-[13px] font-bold tracking-wide">AEGIS</span>
-              <span className="text-emerald-400 text-[8px] font-semibold tracking-widest -mt-0.5">NGFW</span>
-            </div>
-          )}
-        </div>
-        {!collapsed && (
-          <>
-            <div className="flex-1" />
-            <span className="text-[9px] text-emerald-400/80 px-1.5 py-0.5 bg-emerald-500/20 rounded border border-emerald-500/30 font-medium">v1.0</span>
-          </>
-        )}
+      <div className="h-10 flex items-center px-3 border-b border-[#16232f]" style={{ background: 'linear-gradient(135deg, #0d4f3c 0%, #1e2d3d 100%)' }}>
+        <AegisLogo size="sm" showText={!collapsed} showVersion={!collapsed} />
       </div>
 
       {/* Navigation */}
