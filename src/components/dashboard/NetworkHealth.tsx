@@ -2,12 +2,7 @@ import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useInterfaces } from '@/hooks/useDashboardData';
-
-function formatSpeed(bytesPerSec: number): string {
-  if (bytesPerSec >= 1073741824) return (bytesPerSec / 1073741824).toFixed(1) + ' Gbps';
-  if (bytesPerSec >= 1048576) return (bytesPerSec / 1048576).toFixed(0) + ' Mbps';
-  return (bytesPerSec / 1024).toFixed(0) + ' Kbps';
-}
+import { formatSpeed } from '@/lib/formatters';
 
 export function NetworkHealth() {
   const { data: ifaces = [] } = useInterfaces();

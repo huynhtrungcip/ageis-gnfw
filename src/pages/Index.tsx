@@ -13,24 +13,10 @@ import {
 } from 'recharts';
 import {
   useLatestMetrics, useTrafficHistory, useInterfaces,
-  useVPN, useRecentThreats, useLatestAIAnalysis, useFirewallStats
+  useVPN, useRecentThreats, useFirewallStats
 } from '@/hooks/useDashboardData';
 import { useQueryClient } from '@tanstack/react-query';
-
-// ─── Helpers ────────────────────────────────────
-const formatUptime = (seconds: number) => {
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  return `${days}d ${hours}h ${mins}m`;
-};
-
-const formatBytes = (bytes: number | null) => {
-  if (!bytes) return '0 B';
-  if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-  if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
-  return (bytes / 1024).toFixed(2) + ' KB';
-};
+import { formatUptime, formatBytes } from '@/lib/formatters';
 
 // ─── Widget wrapper ─────────────────────────────
 const Widget = ({

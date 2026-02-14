@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { formatUptimeShort as formatUptime } from '@/lib/formatters';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { 
   Server, 
@@ -99,12 +100,7 @@ const HighAvailability = () => {
   const [overrideEnabled, setOverrideEnabled] = useState(false);
   const [pingServer, setPingServer] = useState('8.8.8.8');
 
-  const formatUptime = (seconds: number): string => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    return `${days}d ${hours}h ${mins}m`;
-  };
+  
 
   const formatSyncTime = (date: Date): string => {
     const diff = Date.now() - date.getTime();

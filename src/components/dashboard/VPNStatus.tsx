@@ -1,21 +1,6 @@
 import { cn } from '@/lib/utils';
 import { useVPN } from '@/hooks/useDashboardData';
-
-function formatBytes(bytes: number | null): string {
-  if (!bytes) return '0 B';
-  if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + ' GB';
-  if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
-  return (bytes / 1024).toFixed(1) + ' KB';
-}
-
-function formatUptime(seconds: number | null): string {
-  if (!seconds) return '--';
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  if (days > 0) return `${days}d ${hours}h`;
-  const mins = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${mins}m`;
-}
+import { formatBytes, formatUptimeShort as formatUptime } from '@/lib/formatters';
 
 export function VPNStatus() {
   const { data: vpnTunnels = [], isLoading } = useVPN();

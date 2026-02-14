@@ -48,6 +48,7 @@ import {
 import { toast } from 'sonner';
 import { mockFirewallRules, mockNATRules } from '@/data/mockData';
 import { useConfigBackups } from '@/hooks/useConfigBackups';
+import { formatFileSize as formatSize } from '@/lib/formatters';
 
 // Comprehensive mock data for full system backup
 const mockSystemConfig = {
@@ -212,13 +213,7 @@ const initialScheduledBackups: ScheduledBackup[] = [
 const SystemBackup = () => {
   const { backups: dbBackups, loading: backupsLoading, fetchBackups, deleteBackup } = useConfigBackups();
 
-  const formatSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  };
+  
 
   const recentBackups = dbBackups.length > 0
     ? dbBackups.slice(0, 4).map(b => ({

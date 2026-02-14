@@ -1,12 +1,11 @@
 import { cn } from '@/lib/utils';
-import { useVPN, useRecentThreats, useFirewallStats } from '@/hooks/useDashboardData';
-import { useNetworkInterfaces } from '@/hooks/useDbData';
+import { useVPN, useRecentThreats, useFirewallStats, useInterfaces } from '@/hooks/useDashboardData';
 
 export function QuickStats() {
   const fwStats = useFirewallStats();
   const { data: vpnTunnels = [] } = useVPN();
   const { data: threats = [] } = useRecentThreats();
-  const { data: ifaces = [] } = useNetworkInterfaces();
+  const { data: ifaces = [] } = useInterfaces();
 
   const connectedVPNs = vpnTunnels.filter(v => v.status === 'connected').length;
 
