@@ -1,11 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/contexts/DemoModeContext';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import { db, isApiConfigured } from '@/lib/postgrest';
 import { mockInterfaces, mockFirewallRules, mockNATRules, mockVPNTunnels, mockThreats, mockSystemStatus, mockTrafficStats, mockAIAnalysis } from '@/data/mockData';
-
-type TableName = keyof Database['public']['Tables'];
 
 /**
  * Returns true when mock data should be used — ONLY when demoMode is ON.
@@ -16,11 +13,11 @@ function useShouldMock(): boolean {
 }
 
 /**
- * Generic hook for fetching from Supabase or falling back to mock data.
+ * Generic hook for fetching from PostgREST or falling back to mock data.
  */
 function useDbQuery<T = any>(
   key: string,
-  tableName: TableName,
+  tableName: string,
   orderBy = 'created_at',
   options?: { ascending?: boolean; limit?: number },
   mockFallback?: T[]
@@ -34,7 +31,7 @@ function useDbQuery<T = any>(
       if (shouldMock) {
         return mockFallback ?? [];
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from(tableName)
         .select('*')
         .order(orderBy, { ascending: options?.ascending ?? true })
@@ -115,7 +112,7 @@ export function useThreatEvents(limit = 100) {
           created_at: t.timestamp.toISOString(),
         }));
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('threat_events')
         .select('*').order('created_at', { ascending: false }).limit(limit);
       if (error) throw error;
@@ -247,7 +244,7 @@ export function useSystemMetrics(count = 1) {
           load_15m: mockSystemStatus.load[2], recorded_at: new Date().toISOString(),
         }];
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('system_metrics')
         .select('*').order('recorded_at', { ascending: false }).limit(count);
       if (error) throw error;
@@ -273,7 +270,7 @@ export function useTrafficStats(hours = 24) {
         }));
       }
       const since = new Date(Date.now() - hours * 3600000).toISOString();
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('traffic_stats')
         .select('*').gte('recorded_at', since).order('recorded_at');
       if (error) throw error;
@@ -300,7 +297,7 @@ export function useAIAnalysis() {
           recorded_at: new Date().toISOString(),
         };
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('ai_analysis')
         .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
@@ -317,7 +314,7 @@ export function useAuditLogs(limit = 200) {
     queryKey: ['audit-logs', !!user, limit, shouldMock],
     queryFn: async () => {
       if (shouldMock) return [];
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('audit_logs')
         .select('*').order('created_at', { ascending: false }).limit(limit);
       if (error) throw error;

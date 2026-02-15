@@ -56,9 +56,22 @@ async function request<T = any>(
     return { data: null, error: new Error('API_URL not configured') };
   }
 
-  const url = new URL(path, API_URL);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  // Build URL: support both absolute (http://...) and relative (/api) base URLs
+  let urlStr: string;
+  if (API_URL.startsWith('http')) {
+    const url = new URL(path, API_URL);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    }
+    urlStr = url.toString();
+  } else {
+    // Relative base like "/api" — construct manually
+    const base = API_URL.replace(/\/$/, '');
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const qs = params
+      ? '?' + Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
+      : '';
+    urlStr = `${base}${cleanPath}${qs}`;
   }
 
   const token = getStoredToken();
@@ -76,7 +89,7 @@ async function request<T = any>(
   }
 
   try {
-    const res = await fetch(url.toString(), { ...options, headers });
+    const res = await fetch(urlStr, { ...options, headers });
     if (!res.ok) {
       const body = await res.text();
       return { data: null, error: new Error(`${res.status}: ${body}`) };

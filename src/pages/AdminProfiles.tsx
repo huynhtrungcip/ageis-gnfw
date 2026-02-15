@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/postgrest';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import {
@@ -53,26 +53,26 @@ const mockAuditLogs: any[] = [
 
 // ── Fetch from DB ───────────────────────────────
 async function fetchAdminUsers(): Promise<AdminUser[]> {
-  const { data: roles, error: rolesErr } = await supabase
+  const { data: roles, error: rolesErr } = await db
     .from('user_roles')
     .select('user_id, role, created_at');
   if (rolesErr) throw rolesErr;
 
-  const userIds = [...new Set(roles?.map(r => r.user_id) ?? [])];
+  const userIds = [...new Set((roles as any[])?.map((r: any) => r.user_id) ?? [])];
   if (userIds.length === 0) return [];
 
-  const { data: profiles, error: profErr } = await supabase
+  const { data: profiles, error: profErr } = await db
     .from('profiles')
     .select('*')
     .in('user_id', userIds);
   if (profErr) throw profErr;
 
-  const profileMap = new Map((profiles ?? []).map(p => [p.user_id, p]));
+  const profileMap = new Map((profiles as any[] ?? []).map((p: any) => [p.user_id, p]));
 
   const userMap = new Map<string, AdminUser>();
-  for (const r of roles ?? []) {
+  for (const r of (roles as any[]) ?? []) {
     if (!userMap.has(r.user_id)) {
-      const p = profileMap.get(r.user_id);
+      const p = profileMap.get(r.user_id) as any;
       userMap.set(r.user_id, {
         userId: r.user_id,
         fullName: p?.full_name || '',
@@ -88,7 +88,7 @@ async function fetchAdminUsers(): Promise<AdminUser[]> {
 }
 
 async function fetchAuditLogs(limit = 50) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('audit_logs')
     .select('*')
     .order('created_at', { ascending: false })
@@ -149,47 +149,29 @@ const AdminProfiles = () => {
   // ── Mutations ───────────────────────────────
   const createMutation = useMutation({
     mutationFn: async (input: { fullName: string; email: string; password: string; role: AppRole }) => {
-      // 1. Sign up user via Supabase Auth
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email: input.email,
-        password: input.password,
-        options: { data: { full_name: input.fullName } },
+      // Self-hosted: create user via PostgREST RPC
+      const { data, error: authErr } = await db.from('rpc/create_admin_user').insert({
+        p_email: input.email, p_password: input.password, p_full_name: input.fullName, p_role: input.role,
       });
       if (authErr) throw authErr;
-      const uid = authData.user?.id;
-      if (!uid) throw new Error('Failed to create user');
-
-      // 2. Upsert profile
-      const { error: profErr } = await supabase
-        .from('profiles')
-        .upsert({ user_id: uid, email: input.email, full_name: input.fullName });
-      if (profErr) throw profErr;
-
-      // 3. Assign role
-      const { error: roleErr } = await supabase
-        .from('user_roles')
-        .insert({ user_id: uid, role: input.role });
-      if (roleErr) throw roleErr;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setCreateOpen(false);
       setNewUser({ fullName: '', email: '', password: '', confirmPassword: '', role: 'operator' });
-      toast.success('Administrator created — confirmation email sent');
+      toast.success('Administrator created');
     },
     onError: (err: any) => toast.error(err.message || 'Failed to create user'),
   });
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      // Remove existing roles and assign new one
-      const { error: delErr } = await supabase.from('user_roles').delete().eq('user_id', userId);
+      const { error: delErr } = await db.from('user_roles').delete().eq('user_id', userId);
       if (delErr) throw delErr;
-      const { error: insErr } = await supabase.from('user_roles').insert({ user_id: userId, role });
+      const { error: insErr } = await db.from('user_roles').insert({ user_id: userId, role });
       if (insErr) throw insErr;
-      // Update profile if name changed
       if (newUser.fullName) {
-        await supabase.from('profiles').update({ full_name: newUser.fullName }).eq('user_id', userId);
+        await db.from('profiles').update({ full_name: newUser.fullName }).eq('user_id', userId);
       }
     },
     onSuccess: () => {
@@ -202,8 +184,7 @@ const AdminProfiles = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // Delete roles first (profile stays for audit trail)
-      const { error } = await supabase.from('user_roles').delete().eq('user_id', userId);
+      const { error } = await db.from('user_roles').delete().eq('user_id', userId);
       if (error) throw error;
     },
     onSuccess: () => {
