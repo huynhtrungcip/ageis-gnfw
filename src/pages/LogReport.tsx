@@ -95,19 +95,36 @@ const LogReport = () => {
     }
   };
 
+  const escapeCSV = (value: string) => {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
+  };
+
   const handleExport = (format: 'csv' | 'pdf') => {
     if (format === 'csv') {
       const csv = ['Timestamp,Type,Level,Source,Message,Details']
         .concat(filteredLogs.map(log => 
-          `${log.timestamp.toISOString()},${log.type},${log.level},${log.source},${log.message},${log.details || ''}`
+          [
+            log.timestamp.toISOString(),
+            log.type,
+            log.level,
+            escapeCSV(log.source),
+            escapeCSV(log.message),
+            escapeCSV(log.details || ''),
+          ].join(',')
         )).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `logs-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      toast.success(`Exported ${filteredLogs.length} log entries to CSV`);
     }
   };
 

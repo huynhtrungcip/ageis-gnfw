@@ -165,14 +165,23 @@ const PolicyRoutes = () => {
   };
 
   const handleExport = () => {
-    const data = JSON.stringify(routes, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
+    const exportData = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      type: 'policy_routes',
+      count: routes.length,
+      data: routes,
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'policy_routes.json';
+    a.download = `policy_routes-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
     a.click();
-    toast.success('Policy routes exported');
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${routes.length} policy routes`);
   };
 
   const handleImport = () => {
@@ -185,11 +194,20 @@ const PolicyRoutes = () => {
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
-            const data = JSON.parse(e.target?.result as string);
-            setRoutes(prev => [...prev, ...data]);
-            toast.success('Policy routes imported');
+            const parsed = JSON.parse(e.target?.result as string);
+            const data = parsed.data && Array.isArray(parsed.data) ? parsed.data : Array.isArray(parsed) ? parsed : null;
+            if (!data) {
+              toast.error('Invalid file format: expected an array or object with data property');
+              return;
+            }
+            const newRoutes = data.map((r: any) => ({
+              ...r,
+              id: `route-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            }));
+            setRoutes(prev => [...prev, ...newRoutes]);
+            toast.success(`Imported ${newRoutes.length} policy routes`);
           } catch {
-            toast.error('Invalid file format');
+            toast.error('Failed to parse JSON file');
           }
         };
         reader.readAsText(file);
