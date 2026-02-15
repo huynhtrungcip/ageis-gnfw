@@ -19,6 +19,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-aegis_ngfw}
       POSTGRES_USER: ${POSTGRES_USER:-aegis}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production!}
+      POSTGRES_INITDB_ARGS: "--auth-host=md5"
+    command:
+      - "postgres"
+      - "-c"
+      - "app.jwt_secret=${JWT_SECRET:-super-secret-jwt-key-change-in-production-min-32-chars!}"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
