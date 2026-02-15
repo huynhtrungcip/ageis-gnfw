@@ -284,16 +284,18 @@ const Dashboard = () => {
         {/* Row 6 - Stats */}
         <div className="grid grid-cols-4 gap-3">
         {[
-            { label: 'Firewall Rules', value: fwStats.data?.total ?? 0, sub: `${fwStats.data?.active ?? 0} active` },
-            { label: 'VPN Tunnels', value: connectedVPNs, sub: `of ${vpnTunnels.length}` },
-            { label: 'Threats (24h)', value: threatEvents.length, sub: `${threatCounts.critical} critical` },
-            { label: 'Interfaces', value: activePortCount, sub: `of ${ifaces.length} up` },
-          ].map(({ label, value, sub }) => (
-            <div key={label} className="widget">
+            { label: 'Firewall Rules', value: fwStats.data?.total ?? 0, sub: `${fwStats.data?.active ?? 0} active`, color: '#4caf50' },
+            { label: 'VPN Tunnels', value: connectedVPNs, sub: `of ${vpnTunnels.length}`, color: '#2196f3' },
+            { label: 'Threats (24h)', value: threatEvents.length, sub: `${threatCounts.critical} critical`, color: threatCounts.critical > 0 ? '#f44336' : '#ff9800' },
+            { label: 'Interfaces', value: activePortCount, sub: `of ${ifaces.length} up`, color: '#9c27b0' },
+          ].map(({ label, value, sub, color }) => (
+            <div key={label} className="widget overflow-hidden" style={{ borderLeft: `3px solid ${color}` }}>
               <div className="widget-body py-3 px-4">
-                <div className="text-lg font-bold">{value}</div>
-                <div className="text-[11px] text-[#666]">{label}</div>
-                <div className="text-[9px] text-[#999]">{sub}</div>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-2xl font-bold" style={{ color }}>{value}</span>
+                  <span className="text-[9px] text-[#999] bg-[#f5f5f5] px-1.5 py-0.5 rounded">{sub}</span>
+                </div>
+                <div className="text-[11px] font-medium text-[#444] mt-1">{label}</div>
               </div>
             </div>
           ))}
