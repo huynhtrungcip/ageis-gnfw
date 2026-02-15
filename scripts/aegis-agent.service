@@ -18,11 +18,9 @@ StandardOutput=append:/opt/aegis/agent.log
 StandardError=append:/opt/aegis/agent.log
 TimeoutStopSec=15
 
-# Security hardening
-ProtectSystem=strict
-ReadWritePaths=/opt/aegis /etc/suricata/rules /var/lib/dhcp
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_ADMIN
+# Security hardening (relaxed — agent needs access to /proc, /sys, docker)
+# ProtectSystem=strict causes NAMESPACE errors on many systems
+ProtectSystem=false
 NoNewPrivileges=false
 
 [Install]
