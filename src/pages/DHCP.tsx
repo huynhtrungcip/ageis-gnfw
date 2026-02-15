@@ -360,11 +360,11 @@ const DHCP = () => {
             <Plus className="w-3 h-3" />
             Create New
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" disabled onClick={() => toast.info('Select an item to edit')}>
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn text-red-600">
+          <button className="forti-toolbar-btn text-red-600" disabled onClick={() => toast.info('Select an item to delete')}>
             <Trash2 className="w-3 h-3" />
             Delete
           </button>

@@ -273,14 +273,25 @@ const FirewallRules = () => {
           >
             <Trash2 size={12} /> Delete
           </button>
-          <button className="forti-toolbar-btn">
+          <button 
+            className="forti-toolbar-btn"
+            disabled={selectedIds.length !== 1}
+            onClick={() => {
+              const rule = rules.find(r => r.id === selectedIds[0]);
+              if (rule) {
+                const clone = { ...rule, id: `rule-${Date.now()}`, description: `${rule.description} (copy)` };
+                setRules(prev => [...prev, clone]);
+                toast.success(`Cloned rule "${rule.description}"`);
+              }
+            }}
+          >
             <Copy size={12} /> Clone
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => toast.info('Policy Lookup: Enter source/destination to find matching policies')}>
             <Search size={12} /> Policy Lookup
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => { setRules(demoMode ? mockFirewallRules : []); toast.success('Firewall rules refreshed'); }}>
             <RefreshCw size={12} /> Refresh
           </button>
           

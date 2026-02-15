@@ -168,16 +168,27 @@ const Routing = () => {
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn">
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={!filtered.some(r => r.type === 'static')}
+            onClick={() => {
+              const selected = filtered.find(r => r.type === 'static');
+              if (selected) handleEdit(selected);
+              else toast.error('Select a static route to edit');
+            }}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn">
+          <button 
+            className="forti-toolbar-btn"
+            onClick={() => toast.info('Select a route from the table to delete')}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => { setRoutes(demoMode ? mockRoutes : []); toast.success('Routing table refreshed'); }}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>

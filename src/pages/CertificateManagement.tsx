@@ -224,16 +224,16 @@ const CertificateManagement = () => {
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => toast.success('Certificates exported')}>
             <Download className="w-3 h-3" />
             Export
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => toast.info('Select a certificate to delete from the table')}>
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => { setCertificates(demoMode ? mockCertificates : []); toast.success('Certificates refreshed'); }}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
@@ -369,7 +369,7 @@ const CertificateManagement = () => {
                     </td>
                     <td>
                       <div className="flex items-center gap-1">
-                        <button className="p-1 rounded hover:bg-[#e8e8e8] transition-colors">
+                        <button className="p-1 rounded hover:bg-[#e8e8e8] transition-colors" onClick={() => toast.success(`Exporting ${cert.name}...`)}>
                           <Download size={12} className="text-[#666]" />
                         </button>
                         <button

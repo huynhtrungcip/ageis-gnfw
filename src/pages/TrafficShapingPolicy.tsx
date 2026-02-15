@@ -13,6 +13,7 @@ import {
   ArrowUpDown,
   Network
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ShapingPolicy {
   id: string;
@@ -86,20 +87,28 @@ const TrafficShapingPolicy = () => {
       <div className="space-y-0 animate-slide-in">
         {/* FortiGate Toolbar */}
         <div className="forti-toolbar">
-          <button className="forti-toolbar-btn primary">
+          <button className="forti-toolbar-btn primary" onClick={() => toast.info('Create New Traffic Shaping Policy')}>
             <Plus className="w-3 h-3" />
             Create New
           </button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1}>
+          <button className="forti-toolbar-btn" disabled={selectedIds.length !== 1} onClick={() => toast.info('Edit selected policy')}>
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn" disabled={selectedIds.length === 0}>
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length === 0}
+            onClick={() => {
+              setPolicies(prev => prev.filter(p => !selectedIds.includes(p.id)));
+              toast.success(`Deleted ${selectedIds.length} policy(ies)`);
+              setSelectedIds([]);
+            }}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => toast.success('Data refreshed')}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>

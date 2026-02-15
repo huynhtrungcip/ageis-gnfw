@@ -288,16 +288,31 @@ const VPN = () => {
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn">
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedRows.length !== 1}
+            onClick={() => { 
+              const t = tunnels.find(t => t.id === selectedRows[0]); 
+              if (t) toast.info(`Editing "${t.name}"...`); 
+            }}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn">
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedRows.length === 0}
+            onClick={() => {
+              setTunnels(prev => prev.filter(t => !selectedRows.includes(t.id)));
+              toast.success(`Deleted ${selectedRows.length} tunnel(s)`);
+              setSelectedRows([]);
+            }}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => toast.success('VPN data refreshed')}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>

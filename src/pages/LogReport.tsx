@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface LogEntry {
   id: string;
@@ -140,7 +141,7 @@ const LogReport = () => {
             <Download size={12} />
             <span>Export CSV</span>
           </button>
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => toast.info('PDF export is not available in demo mode')}>
             <Download size={12} />
             <span>Export PDF</span>
           </button>

@@ -7,11 +7,15 @@ import { cn } from '@/lib/utils';
 import { FortiToggle } from '@/components/ui/forti-toggle';
 import { ChevronDown, Plus, Edit2, Trash2, RefreshCw, Search, ArrowRightLeft, Globe, Network } from 'lucide-react';
 
+import { toast } from 'sonner';
+
 const NATConfig = () => {
   const { demoMode } = useDemoMode();
   const [rules, setRules] = useState<NATRule[]>(demoMode ? mockNATRules : []);
   const [activeTab, setActiveTab] = useState<'port-forward' | 'outbound' | '1:1' | 'npt'>('port-forward');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const tabs = [
     { id: 'port-forward', label: 'Port Forward', count: rules.filter(r => r.type === 'port-forward').length, icon: ArrowRightLeft },
@@ -61,23 +65,35 @@ const NATConfig = () => {
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn">
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length !== 1}
+            onClick={() => toast.info('Edit functionality - select a rule first')}
+          >
             <Edit2 className="w-3 h-3" />
             Edit
           </button>
-          <button className="forti-toolbar-btn">
+          <button 
+            className="forti-toolbar-btn" 
+            disabled={selectedIds.length === 0}
+            onClick={() => {
+              setRules(prev => prev.filter(r => !selectedIds.includes(r.id)));
+              toast.success(`Deleted ${selectedIds.length} rule(s)`);
+              setSelectedIds([]);
+            }}
+          >
             <Trash2 className="w-3 h-3" />
             Delete
           </button>
           <div className="forti-toolbar-separator" />
-          <button className="forti-toolbar-btn">
+          <button className="forti-toolbar-btn" onClick={() => { setRules(demoMode ? mockNATRules : []); toast.success('Refreshed'); }}>
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
           <div className="flex-1" />
           <div className="forti-search">
             <Search className="w-3 h-3 text-[#999]" />
-            <input type="text" placeholder="Search..." className="w-40" />
+            <input type="text" placeholder="Search..." className="w-40" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
         </div>
 
