@@ -93,8 +93,7 @@ const navigation: NavSection[] = [
     defaultOpen: false,
     items: [
       { label: 'Feature Visibility', path: '/system/feature-visibility' },
-      { label: 'Administrators', path: '/system/admins' },
-      { label: 'Admin Profiles', path: '/system/admin-profiles' },
+      { label: 'Administrators', path: '/system/admins', starred: true },
       { label: 'Settings', path: '/system/general' },
       { label: 'High Availability', path: '/system/ha', starred: true },
       { label: 'Certificates', path: '/system/certificates' },
@@ -145,7 +144,7 @@ const navigation: NavSection[] = [
     icon: Users,
     defaultOpen: false,
     items: [
-      { label: 'User Definition', path: '/system/users' },
+      { label: 'User Definition', path: '/system/admins' },
       { label: 'User Groups', path: '/users/groups' },
     ],
   },

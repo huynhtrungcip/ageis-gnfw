@@ -40,7 +40,7 @@ import PacketCapture from "./pages/PacketCapture";
 import Reports from "./pages/Reports";
 import SystemSettings from "./pages/SystemSettings";
 import TrafficAnalysis from "./pages/TrafficAnalysis";
-import UserManagement from "./pages/UserManagement";
+
 import PacketFlow from "./pages/PacketFlow";
 import FeatureVisibility from "./pages/FeatureVisibility";
 import ApplicationControl from "./pages/ApplicationControl";
@@ -148,9 +148,9 @@ const App = () => (
             <Route path="/system/general" element={<P><SystemSettings /></P>} />
             <Route path="/system/backup" element={<P><ConfigBackup /></P>} />
             <Route path="/system/full-backup" element={<P><SystemBackup /></P>} />
-            <Route path="/system/users" element={<P><UserManagement /></P>} />
+            <Route path="/system/users" element={<Navigate to="/system/admins" replace />} />
             <Route path="/system/admins" element={<P><AdminProfiles /></P>} />
-            <Route path="/system/admin-profiles" element={<P><AdminProfiles /></P>} />
+            <Route path="/system/admin-profiles" element={<Navigate to="/system/admins" replace />} />
             <Route path="/system/firmware" element={<P><FirmwareManagement /></P>} />
             <Route path="/system/feature-visibility" element={<P><FeatureVisibility /></P>} />
             <Route path="/system/ha" element={<P><HighAvailability /></P>} />
