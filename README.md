@@ -66,6 +66,8 @@ That's it. Open **http://localhost:8080** → Login with `admin@aegis.local` / `
 | 📡 **Routing** | Static Routes, Policy Routes, OSPF, BGP, RIP |
 | 🔐 **VPN** | IPsec (strongSwan), WireGuard, tunnel monitoring |
 | 🔍 **Security** | IDS/IPS (Suricata), SSL Inspection, Application Control, Web/DNS Filtering |
+| 🦠 **Antivirus** | ClamAV integration, protocol-level scanning (HTTP/SMTP/FTP/IMAP/POP3) |
+| 🌐 **Web Filter** | Squid proxy, squidclamav HTTP scanning, URL filtering |
 | 🤖 **AI Security** | Threat scoring, anomaly detection, predictive analysis |
 | 📊 **Monitoring** | Real-time CPU/RAM/Disk/Traffic, Network Topology, Packet Capture |
 | 🔑 **Auth & RBAC** | Role-based access: Super Admin, Admin, Operator, Auditor |

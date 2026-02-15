@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================
 # Aegis NGFW — One-Click Deploy Script for Ubuntu 24.04 LTS
-# Version: 1.0
+# Version: 2.0 — Includes ClamAV, Squid, Suricata, VPN
 # ============================================================
 # Usage:
 #   curl -sSL <url>/deploy-oneclick.sh | sudo bash
@@ -499,6 +499,8 @@ echo -e "    Stop:          ${CYAN}docker compose down${NC}"
 echo -e "    Restart:       ${CYAN}docker compose restart${NC}"
 echo -e "    Agent logs:    ${CYAN}tail -f /opt/aegis/agent.log${NC}"
 echo -e "    Agent status:  ${CYAN}systemctl status aegis-agent${NC}"
+echo -e "    Agent test:    ${CYAN}/opt/aegis/aegis-agent.sh test${NC}"
+echo -e "    Apply AV:      ${CYAN}/opt/aegis/aegis-agent.sh apply-av${NC}"
 echo ""
 
 if [[ $TESTS_FAILED -gt 0 ]]; then
