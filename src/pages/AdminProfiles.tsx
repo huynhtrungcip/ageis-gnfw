@@ -1,20 +1,57 @@
 import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
-import { 
-  Users, Plus, RefreshCw, Search, Edit, Trash2, Shield, Key, Eye,
-  Clock, CheckCircle, XCircle, FileText, Settings, Copy
+import {
+  Users, Plus, RefreshCw, Search, Edit, Trash2, Shield, Key,
+  Clock, CheckCircle, XCircle
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemoMode } from '@/contexts/DemoModeContext';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 
 type AppRole = 'super_admin' | 'admin' | 'operator' | 'auditor';
 
-// Fetch all admins: profiles joined with their roles
-async function fetchAdminUsers() {
+interface AdminUser {
+  userId: string;
+  fullName: string;
+  email: string;
+  roles: AppRole[];
+  createdAt: string;
+  avatarUrl: string | null;
+}
+
+// ── Mock data for demo mode ─────────────────────
+const mockAdminUsers: AdminUser[] = [
+  { userId: 'mock-1', fullName: 'System Administrator', email: 'admin@aegis-ngfw.local', roles: ['super_admin', 'admin'], createdAt: '2024-01-01T00:00:00Z', avatarUrl: null },
+  { userId: 'mock-2', fullName: 'Network Operations', email: 'netops@company.com', roles: ['operator'], createdAt: '2024-02-15T00:00:00Z', avatarUrl: null },
+  { userId: 'mock-3', fullName: 'Security Auditor', email: 'audit@company.com', roles: ['auditor'], createdAt: '2024-03-01T00:00:00Z', avatarUrl: null },
+  { userId: 'mock-4', fullName: 'Junior Admin', email: 'junior@company.com', roles: ['admin'], createdAt: '2024-06-10T00:00:00Z', avatarUrl: null },
+];
+
+const mockAuditLogs: any[] = [
+  { id: 'log-1', created_at: new Date(Date.now() - 300000).toISOString(), action: 'login', resource_type: 'auth', details: null, ip_address: '192.168.1.100', resource_id: null, user_id: null },
+  { id: 'log-2', created_at: new Date(Date.now() - 3600000).toISOString(), action: 'config_change', resource_type: 'firewall_rules', details: 'Updated rule #3', ip_address: '192.168.1.100', resource_id: null, user_id: null },
+  { id: 'log-3', created_at: new Date(Date.now() - 7200000).toISOString(), action: 'user_create', resource_type: 'profiles', details: 'Created junior@company.com', ip_address: '10.0.0.1', resource_id: null, user_id: null },
+];
+
+// ── Fetch from DB ───────────────────────────────
+async function fetchAdminUsers(): Promise<AdminUser[]> {
   const { data: roles, error: rolesErr } = await supabase
     .from('user_roles')
     .select('user_id, role, created_at');
@@ -29,20 +66,24 @@ async function fetchAdminUsers() {
     .in('user_id', userIds);
   if (profErr) throw profErr;
 
-  const profileMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p]));
+  const profileMap = new Map((profiles ?? []).map(p => [p.user_id, p]));
 
-  const userMapTyped = new Map<string, { profile: any; roles: AppRole[]; createdAt: string }>();
+  const userMap = new Map<string, AdminUser>();
   for (const r of roles ?? []) {
-    if (!userMapTyped.has(r.user_id)) {
-      userMapTyped.set(r.user_id, {
-        profile: profileMap.get(r.user_id),
+    if (!userMap.has(r.user_id)) {
+      const p = profileMap.get(r.user_id);
+      userMap.set(r.user_id, {
+        userId: r.user_id,
+        fullName: p?.full_name || '',
+        email: p?.email || '',
         roles: [],
         createdAt: r.created_at,
+        avatarUrl: p?.avatar_url ?? null,
       });
     }
-    userMapTyped.get(r.user_id)!.roles.push(r.role as AppRole);
+    userMap.get(r.user_id)!.roles.push(r.role as AppRole);
   }
-  return Array.from(userMapTyped.values());
+  return Array.from(userMap.values());
 }
 
 async function fetchAuditLogs(limit = 50) {
@@ -55,11 +96,19 @@ async function fetchAuditLogs(limit = 50) {
   return data ?? [];
 }
 
+// ── Style maps ──────────────────────────────────
 const roleColors: Record<string, string> = {
   super_admin: 'bg-red-100 text-red-700 border-red-200',
   admin: 'bg-orange-100 text-orange-700 border-orange-200',
   operator: 'bg-blue-100 text-blue-700 border-blue-200',
   auditor: 'bg-gray-100 text-gray-600 border-gray-200',
+};
+
+const roleDescriptions: Record<string, string> = {
+  super_admin: 'Full system access including user management and security settings',
+  admin: 'System configuration, firewall management, and monitoring',
+  operator: 'Can configure firewall, VPN, routing and view logs',
+  auditor: 'Read-only access to logs, reports and audit trails',
 };
 
 const actionColors: Record<string, string> = {
@@ -75,38 +124,117 @@ const actionColors: Record<string, string> = {
 const AdminProfiles = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '', confirmPassword: '', role: 'operator' as AppRole });
+
   const { isAdminOrSuper } = useAuth();
+  const { demoMode } = useDemoMode();
   const queryClient = useQueryClient();
 
+  // ── Queries ─────────────────────────────────
   const { data: adminUsers = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: fetchAdminUsers,
+    queryKey: ['admin-users', demoMode],
+    queryFn: () => demoMode ? Promise.resolve(mockAdminUsers) : fetchAdminUsers(),
   });
 
-  const { data: auditLogs = [], isLoading: loadingLogs } = useQuery({
-    queryKey: ['audit-logs'],
-    queryFn: () => fetchAuditLogs(50),
+  const { data: auditLogs = [], isLoading: loadingLogs } = useQuery<any[]>({
+    queryKey: ['audit-logs-admin', demoMode],
+    queryFn: () => demoMode ? Promise.resolve(mockAuditLogs) : fetchAuditLogs(100),
   });
+
+  // ── Mutations ───────────────────────────────
+  const createMutation = useMutation({
+    mutationFn: async (input: { fullName: string; email: string; password: string; role: AppRole }) => {
+      // 1. Sign up user via Supabase Auth
+      const { data: authData, error: authErr } = await supabase.auth.signUp({
+        email: input.email,
+        password: input.password,
+        options: { data: { full_name: input.fullName } },
+      });
+      if (authErr) throw authErr;
+      const uid = authData.user?.id;
+      if (!uid) throw new Error('Failed to create user');
+
+      // 2. Upsert profile
+      const { error: profErr } = await supabase
+        .from('profiles')
+        .upsert({ user_id: uid, email: input.email, full_name: input.fullName });
+      if (profErr) throw profErr;
+
+      // 3. Assign role
+      const { error: roleErr } = await supabase
+        .from('user_roles')
+        .insert({ user_id: uid, role: input.role });
+      if (roleErr) throw roleErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setCreateOpen(false);
+      setNewUser({ fullName: '', email: '', password: '', confirmPassword: '', role: 'operator' });
+      toast.success('Administrator created — confirmation email sent');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to create user'),
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+      // Remove existing roles and assign new one
+      const { error: delErr } = await supabase.from('user_roles').delete().eq('user_id', userId);
+      if (delErr) throw delErr;
+      const { error: insErr } = await supabase.from('user_roles').insert({ user_id: userId, role });
+      if (insErr) throw insErr;
+      // Update profile if name changed
+      if (newUser.fullName) {
+        await supabase.from('profiles').update({ full_name: newUser.fullName }).eq('user_id', userId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setEditOpen(false);
+      toast.success('User updated');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to update'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      // Delete roles first (profile stays for audit trail)
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setDeleteConfirm(null);
+      setSelectedUserId(null);
+      toast.success('Administrator removed');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to delete'),
+  });
+
+  // ── Helpers ─────────────────────────────────
+  const selectedUser = adminUsers.find(u => u.userId === selectedUserId);
 
   const filteredUsers = adminUsers.filter(u =>
-    !searchQuery || 
-    u.profile?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.profile?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    !searchQuery ||
+    u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.roles.some(r => r.includes(searchQuery.toLowerCase()))
   );
 
-  const filteredLogs = auditLogs.filter(l =>
+  const filteredLogs = auditLogs.filter((l: any) =>
     !searchQuery ||
     l.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     l.resource_type?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const stats = {
-    totalUsers: adminUsers.length,
+    total: adminUsers.length,
     superAdmins: adminUsers.filter(u => u.roles.includes('super_admin')).length,
     admins: adminUsers.filter(u => u.roles.includes('admin')).length,
-    recentLogs: auditLogs.filter(l => new Date(l.created_at).getTime() > Date.now() - 86400000).length,
+    recentLogs: auditLogs.filter((l: any) => new Date(l.created_at).getTime() > Date.now() - 86400000).length,
   };
 
   const formatTime = (dateStr: string) => {
@@ -120,8 +248,33 @@ const AdminProfiles = () => {
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
-    toast.success('Đã làm mới dữ liệu');
+    queryClient.invalidateQueries({ queryKey: ['audit-logs-admin'] });
+    toast.success('Data refreshed');
+  };
+
+  const handleCreate = () => {
+    if (!newUser.email || !newUser.password) { toast.error('Email and password are required'); return; }
+    if (newUser.password !== newUser.confirmPassword) { toast.error('Passwords do not match'); return; }
+    if (newUser.password.length < 8) { toast.error('Password must be at least 8 characters'); return; }
+    if (demoMode) { toast.info('Cannot create users in demo mode'); return; }
+    createMutation.mutate(newUser);
+  };
+
+  const handleEdit = () => {
+    if (!selectedUser) return;
+    if (demoMode) { toast.info('Cannot edit users in demo mode'); return; }
+    updateRoleMutation.mutate({ userId: selectedUser.userId, role: newUser.role });
+  };
+
+  const openEditModal = () => {
+    if (!selectedUser) { toast.info('Select a user first'); return; }
+    setNewUser({
+      fullName: selectedUser.fullName,
+      email: selectedUser.email,
+      password: '', confirmPassword: '',
+      role: selectedUser.roles[0] || 'operator',
+    });
+    setEditOpen(true);
   };
 
   return (
@@ -131,8 +284,8 @@ const AdminProfiles = () => {
         <div className="section-header-neutral">
           <div className="flex items-center gap-2">
             <Shield size={14} />
-            <span className="font-semibold">Admin Profiles</span>
-            <span className="text-[10px] text-[#888]">Role-Based Access Control</span>
+            <span className="font-semibold">Administrators</span>
+            <span className="text-[10px] text-[#888]">User & Role Management</span>
           </div>
         </div>
 
@@ -140,13 +293,23 @@ const AdminProfiles = () => {
         <div className="forti-toolbar">
           {isAdminOrSuper && (
             <>
-              <button className="forti-toolbar-btn primary" onClick={() => toast.info('Tạo user mới qua trang User Management')}>
+              <button className="forti-toolbar-btn primary" onClick={() => {
+                setNewUser({ fullName: '', email: '', password: '', confirmPassword: '', role: 'operator' });
+                setCreateOpen(true);
+              }}>
                 <Plus size={12} />
                 <span>Create New</span>
               </button>
-              <button className="forti-toolbar-btn" onClick={() => toast.info('Chọn user để chỉnh sửa')}>
+              <button className="forti-toolbar-btn" onClick={openEditModal}>
                 <Edit size={12} />
                 <span>Edit</span>
+              </button>
+              <button className="forti-toolbar-btn" onClick={() => {
+                if (!selectedUserId) { toast.info('Select a user to delete'); return; }
+                setDeleteConfirm(selectedUserId);
+              }}>
+                <Trash2 size={12} />
+                <span>Delete</span>
               </button>
               <div className="forti-toolbar-separator" />
             </>
@@ -171,8 +334,8 @@ const AdminProfiles = () => {
         <div className="flex items-center gap-0 border-x border-[#ddd]">
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
             <Users size={14} className="text-blue-600" />
-            <span className="text-lg font-bold text-blue-600">{stats.totalUsers}</span>
-            <span className="text-[11px] text-[#666]">Administrators</span>
+            <span className="text-lg font-bold text-blue-600">{stats.total}</span>
+            <span className="text-[11px] text-[#666]">Total</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
             <Shield size={14} className="text-red-600" />
@@ -207,11 +370,12 @@ const AdminProfiles = () => {
             </TabsList>
           </div>
 
-          {/* Admin Users Tab */}
+          {/* Users Tab */}
           <TabsContent value="users" className="mt-0">
             <table className="data-table">
               <thead>
                 <tr>
+                  <th className="w-8"></th>
                   <th>Name</th>
                   <th>Email</th>
                   <th>Roles</th>
@@ -220,21 +384,25 @@ const AdminProfiles = () => {
               </thead>
               <tbody>
                 {loadingUsers ? (
-                  <tr><td colSpan={4} className="text-center text-[#999] py-4">Loading...</td></tr>
+                  <tr><td colSpan={5} className="text-center text-[#999] py-4">Loading...</td></tr>
                 ) : filteredUsers.length === 0 ? (
-                  <tr><td colSpan={4} className="text-center text-[#999] py-4">No administrators found</td></tr>
+                  <tr><td colSpan={5} className="text-center text-[#999] py-4">No administrators found</td></tr>
                 ) : filteredUsers.map((u) => (
                   <tr
-                    key={u.profile?.user_id}
-                    onClick={() => setSelectedUser(u.profile?.user_id ?? null)}
-                    className={cn("cursor-pointer", selectedUser === u.profile?.user_id && "bg-[#fff8e1]")}
+                    key={u.userId}
+                    onClick={() => setSelectedUserId(u.userId)}
+                    className={cn("cursor-pointer", selectedUserId === u.userId && "bg-[#fff8e1]")}
                   >
-                    <td className="font-medium text-[#333]">{u.profile?.full_name || '—'}</td>
-                    <td className="text-[#666]">{u.profile?.email || '—'}</td>
+                    <td className="text-center">
+                      <input type="radio" name="user-select" checked={selectedUserId === u.userId}
+                        onChange={() => setSelectedUserId(u.userId)} className="accent-[hsl(142,70%,35%)]" />
+                    </td>
+                    <td className="font-medium text-[#333]">{u.fullName || '—'}</td>
+                    <td className="text-[#666]">{u.email || '—'}</td>
                     <td>
                       <div className="flex items-center gap-1 flex-wrap">
                         {u.roles.map(role => (
-                          <span key={role} className={cn("forti-tag", roleColors[role] || 'bg-gray-100 text-gray-600 border-gray-200')}>
+                          <span key={role} className={cn("forti-tag", roleColors[role])}>
                             {role.toUpperCase().replace('_', ' ')}
                           </span>
                         ))}
@@ -245,6 +413,38 @@ const AdminProfiles = () => {
                 ))}
               </tbody>
             </table>
+
+            {/* Selected user detail */}
+            {selectedUser && (
+              <div className="border-x border-b border-[#ddd] bg-white">
+                <div className="px-3 py-1.5 bg-[#e8e8e8] border-b border-[#ccc] text-[11px] font-semibold text-[#333] flex items-center gap-2">
+                  <Shield size={12} />
+                  <span>Details — {selectedUser.fullName || selectedUser.email}</span>
+                </div>
+                <div className="p-3 grid grid-cols-4 gap-x-6 gap-y-2 text-[11px]">
+                  <div>
+                    <span className="text-[#888] block">Full Name</span>
+                    <span className="text-[#333] font-medium">{selectedUser.fullName || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#888] block">Email</span>
+                    <span className="text-[#333] font-medium">{selectedUser.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#888] block">Roles</span>
+                    <div className="flex gap-1 flex-wrap">
+                      {selectedUser.roles.map(r => (
+                        <span key={r} className={cn("forti-tag", roleColors[r])}>{r.toUpperCase().replace('_', ' ')}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[#888] block">Created</span>
+                    <span className="text-[#333] font-medium">{new Date(selectedUser.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* Role Matrix Tab */}
@@ -263,11 +463,11 @@ const AdminProfiles = () => {
                 {loadingUsers ? (
                   <tr><td colSpan={5} className="text-center text-[#999] py-4">Loading...</td></tr>
                 ) : filteredUsers.map((u) => (
-                  <tr key={u.profile?.user_id}>
+                  <tr key={u.userId}>
                     <td className="font-medium text-[#333]">
                       <div className="flex items-center gap-2">
                         <Shield size={12} className="text-[#666]" />
-                        {u.profile?.full_name || u.profile?.email || '—'}
+                        {u.fullName || u.email || '—'}
                       </div>
                     </td>
                     {(['super_admin', 'admin', 'operator', 'auditor'] as AppRole[]).map(role => (
@@ -283,6 +483,19 @@ const AdminProfiles = () => {
                 ))}
               </tbody>
             </table>
+
+            {/* Role Descriptions */}
+            <div className="border-x border-b border-[#ddd] bg-white p-3">
+              <div className="text-[11px] font-semibold text-[#333] mb-2">Role Descriptions</div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                {Object.entries(roleDescriptions).map(([role, desc]) => (
+                  <div key={role} className="flex items-start gap-2 p-2 bg-[#fafafa] border border-[#eee]">
+                    <span className={cn("forti-tag mt-0.5", roleColors[role])}>{role.toUpperCase().replace('_', ' ')}</span>
+                    <span className="text-[#666]">{desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </TabsContent>
 
           {/* Audit Logs Tab */}
@@ -302,16 +515,16 @@ const AdminProfiles = () => {
                   <tr><td colSpan={5} className="text-center text-[#999] py-4">Loading...</td></tr>
                 ) : filteredLogs.length === 0 ? (
                   <tr><td colSpan={5} className="text-center text-[#999] py-4">No audit logs found</td></tr>
-                ) : filteredLogs.map((log) => (
+                ) : filteredLogs.map((log: any) => (
                   <tr key={log.id}>
                     <td className="text-[#666]">{formatTime(log.created_at)}</td>
                     <td>
                       <span className={cn("forti-tag", actionColors[log.action] || 'bg-gray-100 text-gray-600 border-gray-200')}>
-                        {log.action.toUpperCase().replace(/_/g, ' ')}
+                        {(log.action || '').toUpperCase().replace(/_/g, ' ')}
                       </span>
                     </td>
                     <td className="text-[#666]">{log.resource_type}</td>
-                    <td className="text-[#666]">{typeof log.details === 'string' ? log.details : JSON.stringify(log.details) || '—'}</td>
+                    <td className="text-[#666]">{typeof log.details === 'string' ? log.details : log.details ? JSON.stringify(log.details) : '—'}</td>
                     <td className="mono text-[#666]">{log.ip_address || '—'}</td>
                   </tr>
                 ))}
@@ -320,6 +533,121 @@ const AdminProfiles = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Create User Modal */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Create New Administrator</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-[11px]">
+            <div className="space-y-1">
+              <Label className="text-[11px]">Full Name</Label>
+              <Input className="h-7 text-[11px]" placeholder="John Doe"
+                value={newUser.fullName} onChange={e => setNewUser(p => ({ ...p, fullName: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Email</Label>
+              <Input className="h-7 text-[11px]" type="email" placeholder="user@company.com"
+                value={newUser.email} onChange={e => setNewUser(p => ({ ...p, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Role</Label>
+              <Select value={newUser.role} onValueChange={(v: AppRole) => setNewUser(p => ({ ...p, role: v }))}>
+                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="operator">Operator</SelectItem>
+                  <SelectItem value="auditor">Auditor</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-[#999]">{roleDescriptions[newUser.role]}</p>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Password</Label>
+              <Input className="h-7 text-[11px]" type="password"
+                value={newUser.password} onChange={e => setNewUser(p => ({ ...p, password: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Confirm Password</Label>
+              <Input className="h-7 text-[11px]" type="password"
+                value={newUser.confirmPassword} onChange={e => setNewUser(p => ({ ...p, confirmPassword: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#eee]">
+              <button className="forti-toolbar-btn" onClick={() => setCreateOpen(false)}>Cancel</button>
+              <button className="forti-toolbar-btn primary" onClick={handleCreate} disabled={createMutation.isPending}>
+                {createMutation.isPending ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Edit Administrator</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-[11px]">
+            <div className="space-y-1">
+              <Label className="text-[11px]">Email</Label>
+              <Input className="h-7 text-[11px] bg-[#f5f5f5]" value={newUser.email} disabled />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Full Name</Label>
+              <Input className="h-7 text-[11px]" value={newUser.fullName}
+                onChange={e => setNewUser(p => ({ ...p, fullName: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Role</Label>
+              <Select value={newUser.role} onValueChange={(v: AppRole) => setNewUser(p => ({ ...p, role: v }))}>
+                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="operator">Operator</SelectItem>
+                  <SelectItem value="auditor">Auditor</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-[#999]">{roleDescriptions[newUser.role]}</p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#eee]">
+              <button className="forti-toolbar-btn" onClick={() => setEditOpen(false)}>Cancel</button>
+              <button className="forti-toolbar-btn primary" onClick={handleEdit} disabled={updateRoleMutation.isPending}>
+                {updateRoleMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm">Remove Administrator</AlertDialogTitle>
+            <AlertDialogDescription className="text-[11px]">
+              Remove all roles from "{adminUsers.find(u => u.userId === deleteConfirm)?.fullName || adminUsers.find(u => u.userId === deleteConfirm)?.email}"? They will lose access to the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-[11px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="h-7 text-[11px] bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (deleteConfirm) {
+                  if (demoMode) { toast.info('Cannot delete in demo mode'); setDeleteConfirm(null); return; }
+                  deleteMutation.mutate(deleteConfirm);
+                }
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };
