@@ -67,6 +67,7 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Traffic', path: '/monitoring/traffic' },
       { label: 'Threats', path: '/threats' },
+      { label: 'AI Security', path: '/ai-security', starred: true },
     ],
   },
   {
