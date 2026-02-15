@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { mockVPNTunnels } from '@/data/mockData';
 import { useDemoMode } from '@/contexts/DemoModeContext';
@@ -329,20 +330,11 @@ const VPN = () => {
           </div>
         </div>
 
-        {/* Stats Strip - Fixed horizontal layout */}
-        <div className="flex items-center gap-4 px-4 py-3 bg-white border-b border-[#ddd]">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[hsl(142,70%,35%)]" />
-            <span className="text-lg font-bold">{stats.ipsecTotal}</span>
-            <span className="text-[11px] text-[#666]">IPsec Tunnels</span>
-          </div>
-          <div className="w-px h-6 bg-[#ddd]" />
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-            <span className="text-lg font-bold text-green-600">{stats.ipsecUp}</span>
-            <span className="text-[11px] text-[#666]">Up</span>
-          </div>
-        </div>
+        {/* Stats Strip */}
+        <StatsBar items={[
+          { icon: Shield, value: stats.ipsecTotal, label: 'IPsec Tunnels', color: 'text-[hsl(142,70%,35%)]' },
+          { iconNode: <span className="w-2.5 h-2.5 rounded-full bg-green-500" />, value: stats.ipsecUp, label: 'Up', color: 'text-green-600' },
+        ]} />
 
         {/* Tabs */}
         <div className="flex items-center bg-[#e8e8e8] border-b border-[#ccc]">

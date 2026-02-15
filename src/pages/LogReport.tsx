@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
@@ -189,24 +190,12 @@ const LogReport = () => {
         </div>
 
         {/* Stats Bar */}
-        <div className="flex items-center gap-0 border-x border-[#ddd]">
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <span className="text-lg font-bold text-[#333]">{stats.total}</span>
-            <span className="text-[11px] text-[#666]">Total Logs</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <span className="text-lg font-bold text-red-600">{stats.critical}</span>
-            <span className="text-[11px] text-[#666]">Critical</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <span className="text-lg font-bold text-orange-600">{stats.errors}</span>
-            <span className="text-[11px] text-[#666]">Errors</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <span className="text-lg font-bold text-yellow-600">{stats.warnings}</span>
-            <span className="text-[11px] text-[#666]">Warnings</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { value: stats.total, label: 'Total Logs' },
+          { value: stats.critical, label: 'Critical', color: 'text-red-600' },
+          { value: stats.errors, label: 'Errors', color: 'text-orange-600' },
+          { value: stats.warnings, label: 'Warnings', color: 'text-yellow-600' },
+        ]} />
 
         {/* Tabs */}
         <Tabs defaultValue="logs" className="w-full">

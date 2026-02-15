@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { useDemoMode } from '@/contexts/DemoModeContext';
@@ -193,25 +194,12 @@ const FirmwareManagement = () => {
         </div>
 
         {/* System Info Bar */}
-        <div className="flex items-center gap-0 border-x border-[#ddd]">
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Server size={14} className="text-blue-600" />
-            <span className="text-sm font-bold text-blue-600">{currentModel}</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Shield size={14} className="text-green-600" />
-            <span className="text-lg font-bold text-green-600">v{currentVersion}</span>
-            <span className="text-[11px] text-[#333]">Current</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Clock size={14} className="text-purple-600" />
-            <span className="text-[11px] text-[#333]">{currentUptime}</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <CheckCircle size={14} className="text-green-600" />
-            <span className="text-[11px] text-[#333]">System Active</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { icon: Server, value: currentModel, label: '', color: 'text-blue-600' },
+          { icon: Shield, value: `v${currentVersion}`, label: 'Current', color: 'text-green-600' },
+          { icon: Clock, value: currentUptime, label: '', color: 'text-purple-600' },
+          { icon: CheckCircle, value: 'Active', label: 'System', color: 'text-green-600' },
+        ]} />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
