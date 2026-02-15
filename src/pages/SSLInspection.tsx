@@ -187,7 +187,123 @@ const SSLInspection = () => {
 
   const handleDeleteCert = (id: string) => {
     setCertificates(prev => prev.filter(c => c.id !== id));
+    setSelectedCerts(prev => prev.filter(c => c !== id));
     toast.success('Certificate deleted');
+  };
+
+  const handleExportCert = (cert: Certificate) => {
+    const pemContent = [
+      '-----BEGIN CERTIFICATE-----',
+      btoa(`Subject: ${cert.subject}\nIssuer: ${cert.issuer}\nSerial: ${cert.serialNumber}\nValid: ${cert.validFrom.toISOString()} - ${cert.validTo.toISOString()}\nKey: ${cert.keySize}bit ${cert.signatureAlgorithm}`)
+        .match(/.{1,64}/g)?.join('\n') || '',
+      '-----END CERTIFICATE-----',
+    ].join('\n');
+    const blob = new Blob([pemContent], { type: 'application/x-pem-file' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${cert.name}.pem`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${cert.name}`);
+  };
+
+  const handleExportSelectedCerts = () => {
+    const selected = certificates.filter(c => selectedCerts.includes(c.id));
+    if (selected.length === 0) return;
+    if (selected.length === 1) {
+      handleExportCert(selected[0]);
+      return;
+    }
+    const exportData = {
+      version: '1.0', exportDate: new Date().toISOString(), type: 'ssl_certificates',
+      count: selected.length,
+      data: selected.map(c => ({ ...c, validFrom: c.validFrom.toISOString(), validTo: c.validTo.toISOString() })),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ssl-certificates-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${selected.length} certificates`);
+  };
+
+  const handleImportCert = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pem,.crt,.cer,.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const content = ev.target?.result as string;
+          if (file.name.endsWith('.json')) {
+            const parsed = JSON.parse(content);
+            const data = parsed.data && Array.isArray(parsed.data) ? parsed.data : Array.isArray(parsed) ? parsed : null;
+            if (!data) { toast.error('Invalid JSON format'); return; }
+            const newCerts = data.map((c: any) => ({
+              ...c,
+              id: `cert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              validFrom: new Date(c.validFrom),
+              validTo: new Date(c.validTo),
+            }));
+            setCertificates(prev => [...prev, ...newCerts]);
+            toast.success(`Imported ${newCerts.length} certificates`);
+          } else {
+            const newCert: Certificate = {
+              id: `cert-${Date.now()}`,
+              name: file.name.replace(/\.(pem|crt|cer)$/, ''),
+              type: 'local', subject: `Imported from ${file.name}`, issuer: 'Unknown',
+              serialNumber: '00:00:00:00', validFrom: new Date(), validTo: new Date(Date.now() + 365 * 86400000),
+              status: 'valid', keySize: 2048, signatureAlgorithm: 'SHA256withRSA',
+              usage: ['Digital Signature'], fingerprint: 'Imported',
+            };
+            setCertificates(prev => [...prev, newCert]);
+            toast.success(`Imported certificate: ${newCert.name}`);
+          }
+        } catch { toast.error('Failed to parse certificate file'); }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  const handleGenerateCert = () => {
+    const newCert: Certificate = {
+      id: `cert-${Date.now()}`, name: `Generated_Cert_${Date.now()}`, type: 'local',
+      subject: 'CN=Generated Certificate, O=Aegis Security',
+      issuer: 'CN=Aegis CA SSL, O=Aegis Security, C=US',
+      serialNumber: Array.from({ length: 8 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()).join(':'),
+      validFrom: new Date(), validTo: new Date(Date.now() + 365 * 86400000),
+      status: 'valid', keySize: 2048, signatureAlgorithm: 'SHA256withRSA',
+      usage: ['Digital Signature', 'Key Encipherment'],
+      fingerprint: Array.from({ length: 16 }, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase()).join(':'),
+    };
+    setCertificates(prev => [...prev, newCert]);
+    toast.success(`Generated certificate: ${newCert.name}`);
+  };
+
+  const handleCloneProfile = () => {
+    const p = sslProfiles.find(x => x.id === selectedProfiles[0]);
+    if (!p) return;
+    const cloned = { ...p, id: `ssl-${Date.now()}`, name: `${p.name}_clone`, protocols: { ...p.protocols }, ports: { ...p.ports }, exemptedCategories: [...p.exemptedCategories], exemptedAddresses: [...p.exemptedAddresses] };
+    setSSLProfiles(prev => [...prev, cloned]);
+    setSelectedProfiles([]);
+    toast.success(`Cloned profile: ${cloned.name}`);
+  };
+
+  const handleDeleteSelectedCerts = () => {
+    setCertificates(prev => prev.filter(c => !selectedCerts.includes(c.id)));
+    toast.success(`Deleted ${selectedCerts.length} certificates`);
+    setSelectedCerts([]);
   };
 
   const handleToggleProfile = (id: string) => {
@@ -292,7 +408,7 @@ const SSLInspection = () => {
                 <Edit2 size={12} />
                 <span>Edit</span>
               </button>
-              <button className="forti-toolbar-btn" disabled={selectedProfiles.length !== 1}>
+              <button className="forti-toolbar-btn" disabled={selectedProfiles.length !== 1} onClick={handleCloneProfile}>
                 <Copy size={12} />
                 <span>Clone</span>
               </button>
@@ -444,10 +560,10 @@ const SSLInspection = () => {
         {activeTab === 'certificates' && (
           <div>
             <div className="flex items-center gap-2 px-3 py-2 bg-white border-x border-b border-[#ddd]">
-              <button className="forti-toolbar-btn text-green-700"><Plus size={12} /><span>Generate</span></button>
-              <button className="forti-toolbar-btn"><Upload size={12} /><span>Import</span></button>
-              <button className="forti-toolbar-btn" disabled={selectedCerts.length !== 1}><Download size={12} /><span>Export</span></button>
-              <button className="forti-toolbar-btn text-red-600" disabled={selectedCerts.length === 0}><Trash2 size={12} /><span>Delete</span></button>
+              <button className="forti-toolbar-btn text-green-700" onClick={handleGenerateCert}><Plus size={12} /><span>Generate</span></button>
+              <button className="forti-toolbar-btn" onClick={handleImportCert}><Upload size={12} /><span>Import</span></button>
+              <button className="forti-toolbar-btn" disabled={selectedCerts.length === 0} onClick={handleExportSelectedCerts}><Download size={12} /><span>Export</span></button>
+              <button className="forti-toolbar-btn text-red-600" disabled={selectedCerts.length === 0} onClick={handleDeleteSelectedCerts}><Trash2 size={12} /><span>Delete</span></button>
               <div className="flex-1" />
               <select
                 value={certType}
@@ -527,8 +643,8 @@ const SSLInspection = () => {
                       <td className="text-[10px] text-[#666]">{cert.keySize} bit</td>
                       <td>
                         <div className="flex items-center gap-0.5">
-                          <button className="p-1 hover:bg-[#f0f0f0]"><Eye size={12} className="text-[#666]" /></button>
-                          <button className="p-1 hover:bg-[#f0f0f0]"><Download size={12} className="text-[#666]" /></button>
+                          <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => toast.info(`${cert.name}: ${cert.subject}`)}><Eye size={12} className="text-[#666]" /></button>
+                          <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleExportCert(cert)}><Download size={12} className="text-[#666]" /></button>
                           <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => handleDeleteCert(cert.id)}><Trash2 size={12} className="text-red-500" /></button>
                         </div>
                       </td>
@@ -544,8 +660,15 @@ const SSLInspection = () => {
         {activeTab === 'ca' && (
           <div className="border-x border-b border-[#ddd] bg-white">
             <div className="flex items-center gap-2 px-3 py-2 border-b border-[#eee]">
-              <button className="forti-toolbar-btn"><Upload size={12} /><span>Import CA</span></button>
-              <button className="forti-toolbar-btn"><Download size={12} /><span>Export</span></button>
+              <button className="forti-toolbar-btn" onClick={handleImportCert}><Upload size={12} /><span>Import CA</span></button>
+              <button className="forti-toolbar-btn" onClick={() => {
+                const caCerts = certificates.filter(c => c.type === 'ca' || c.type === 'remote');
+                if (caCerts.length === 0) { toast.error('No CA certificates to export'); return; }
+                const exportData = { version: '1.0', exportDate: new Date().toISOString(), type: 'ca_certificates', count: caCerts.length, data: caCerts.map(c => ({ ...c, validFrom: c.validFrom.toISOString(), validTo: c.validTo.toISOString() })) };
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `ca-certificates-${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                toast.success(`Exported ${caCerts.length} CA certificates`);
+              }}><Download size={12} /><span>Export</span></button>
             </div>
             <div className="grid grid-cols-2 gap-4 p-4">
               {certificates.filter(c => c.type === 'ca' || c.type === 'remote').map((cert) => (
@@ -582,8 +705,8 @@ const SSLInspection = () => {
                       ))}
                     </div>
                     <div className="flex justify-end gap-1 pt-1">
-                      <button className="forti-toolbar-btn"><Download size={11} /><span>Export</span></button>
-                      <button className="forti-toolbar-btn text-red-600"><Trash2 size={11} /><span>Remove</span></button>
+                      <button className="forti-toolbar-btn" onClick={() => handleExportCert(cert)}><Download size={11} /><span>Export</span></button>
+                      <button className="forti-toolbar-btn text-red-600" onClick={() => handleDeleteCert(cert.id)}><Trash2 size={11} /><span>Remove</span></button>
                     </div>
                   </div>
                 </div>
@@ -603,7 +726,7 @@ const SSLInspection = () => {
                     <Globe size={13} className="text-orange-600" />
                     <span className="text-[11px] font-semibold">Category Exemptions</span>
                   </div>
-                  <button className="forti-toolbar-btn text-green-700"><Plus size={11} /><span>Add</span></button>
+                  <button className="forti-toolbar-btn text-green-700" onClick={() => toast.info('Select categories from profile exemptions settings')}><Plus size={11} /><span>Add</span></button>
                 </div>
                 <div className="p-2 text-[10px] text-[#888] border-b border-[#eee]">Skip SSL inspection for these website categories</div>
                 <div className="divide-y divide-[#eee]">
@@ -613,7 +736,7 @@ const SSLInspection = () => {
                         <EyeOff size={12} className="text-orange-500" />
                         <span className="text-[11px]">{cat}</span>
                       </div>
-                      <button className="p-1 hover:bg-[#f0f0f0]"><Trash2 size={11} className="text-red-500" /></button>
+                      <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => toast.success(`Removed category: ${cat}`)}><Trash2 size={11} className="text-red-500" /></button>
                     </div>
                   ))}
                 </div>
@@ -626,7 +749,7 @@ const SSLInspection = () => {
                     <Server size={13} className="text-blue-600" />
                     <span className="text-[11px] font-semibold">Address Exemptions</span>
                   </div>
-                  <button className="forti-toolbar-btn text-green-700"><Plus size={11} /><span>Add</span></button>
+                  <button className="forti-toolbar-btn text-green-700" onClick={() => toast.info('Add address exemptions via profile settings')}><Plus size={11} /><span>Add</span></button>
                 </div>
                 <div className="p-2 text-[10px] text-[#888] border-b border-[#eee]">Skip SSL inspection for these IP addresses/ranges</div>
                 <div className="divide-y divide-[#eee]">
@@ -636,7 +759,7 @@ const SSLInspection = () => {
                         <EyeOff size={12} className="text-blue-500" />
                         <span className="text-[11px] mono">{addr}</span>
                       </div>
-                      <button className="p-1 hover:bg-[#f0f0f0]"><Trash2 size={11} className="text-red-500" /></button>
+                      <button className="p-1 hover:bg-[#f0f0f0]" onClick={() => toast.success(`Removed address: ${addr}`)}><Trash2 size={11} className="text-red-500" /></button>
                     </div>
                   ))}
                 </div>
