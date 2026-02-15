@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { useDemoMode } from '@/contexts/DemoModeContext';
-import { Plus, Pencil, Trash2, Shield, User, Key, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Shield, Users, Key, RefreshCw, Search, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -10,7 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -20,7 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import { FortiToggle } from '@/components/ui/forti-toggle';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface SystemUser {
   id: string;
@@ -51,76 +61,54 @@ const roleDescriptions = {
   auditor: 'Access to logs, reports and audit trails only',
 };
 
+const roleColors: Record<string, string> = {
+  admin: 'bg-red-100 text-red-700 border-red-200',
+  operator: 'bg-blue-100 text-blue-700 border-blue-200',
+  viewer: 'bg-green-100 text-green-700 border-green-200',
+  auditor: 'bg-gray-100 text-gray-600 border-gray-200',
+};
+
+const statusColors: Record<string, string> = {
+  active: 'bg-green-100 text-green-700 border-green-200',
+  disabled: 'bg-gray-100 text-gray-500 border-gray-200',
+  locked: 'bg-red-100 text-red-700 border-red-200',
+};
+
 const initialUsers: SystemUser[] = [
   {
-    id: 'user-1',
-    username: 'admin',
-    fullName: 'System Administrator',
-    email: 'admin@aegis-ngfw.local',
-    role: 'admin',
-    status: 'active',
-    lastLogin: new Date(Date.now() - 300000),
-    createdAt: new Date('2024-01-01'),
-    permissions: rolePermissions.admin,
-    mfaEnabled: true,
-    passwordExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    loginAttempts: 0,
+    id: 'user-1', username: 'admin', fullName: 'System Administrator',
+    email: 'admin@aegis-ngfw.local', role: 'admin', status: 'active',
+    lastLogin: new Date(Date.now() - 300000), createdAt: new Date('2024-01-01'),
+    permissions: rolePermissions.admin, mfaEnabled: true,
+    passwordExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), loginAttempts: 0,
   },
   {
-    id: 'user-2',
-    username: 'netops',
-    fullName: 'Network Operations',
-    email: 'netops@company.com',
-    role: 'operator',
-    status: 'active',
-    lastLogin: new Date(Date.now() - 3600000),
-    createdAt: new Date('2024-02-15'),
-    permissions: rolePermissions.operator,
-    mfaEnabled: true,
-    passwordExpiry: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-    loginAttempts: 0,
+    id: 'user-2', username: 'netops', fullName: 'Network Operations',
+    email: 'netops@company.com', role: 'operator', status: 'active',
+    lastLogin: new Date(Date.now() - 3600000), createdAt: new Date('2024-02-15'),
+    permissions: rolePermissions.operator, mfaEnabled: true,
+    passwordExpiry: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), loginAttempts: 0,
   },
   {
-    id: 'user-3',
-    username: 'security_audit',
-    fullName: 'Security Auditor',
-    email: 'audit@company.com',
-    role: 'auditor',
-    status: 'active',
-    lastLogin: new Date(Date.now() - 86400000),
-    createdAt: new Date('2024-03-01'),
-    permissions: rolePermissions.auditor,
-    mfaEnabled: true,
-    passwordExpiry: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
-    loginAttempts: 0,
+    id: 'user-3', username: 'security_audit', fullName: 'Security Auditor',
+    email: 'audit@company.com', role: 'auditor', status: 'active',
+    lastLogin: new Date(Date.now() - 86400000), createdAt: new Date('2024-03-01'),
+    permissions: rolePermissions.auditor, mfaEnabled: true,
+    passwordExpiry: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), loginAttempts: 0,
   },
   {
-    id: 'user-4',
-    username: 'readonly',
-    fullName: 'Read Only User',
-    email: 'viewer@company.com',
-    role: 'viewer',
-    status: 'disabled',
-    lastLogin: null,
-    createdAt: new Date('2024-03-10'),
-    permissions: rolePermissions.viewer,
-    mfaEnabled: false,
-    passwordExpiry: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-    loginAttempts: 0,
+    id: 'user-4', username: 'readonly', fullName: 'Read Only User',
+    email: 'viewer@company.com', role: 'viewer', status: 'disabled',
+    lastLogin: null, createdAt: new Date('2024-03-10'),
+    permissions: rolePermissions.viewer, mfaEnabled: false,
+    passwordExpiry: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), loginAttempts: 0,
   },
   {
-    id: 'user-5',
-    username: 'locked_user',
-    fullName: 'Locked Account',
-    email: 'locked@company.com',
-    role: 'operator',
-    status: 'locked',
-    lastLogin: new Date(Date.now() - 172800000),
-    createdAt: new Date('2024-02-20'),
-    permissions: rolePermissions.operator,
-    mfaEnabled: false,
-    passwordExpiry: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
-    loginAttempts: 5,
+    id: 'user-5', username: 'locked_user', fullName: 'Locked Account',
+    email: 'locked@company.com', role: 'operator', status: 'locked',
+    lastLogin: new Date(Date.now() - 172800000), createdAt: new Date('2024-02-20'),
+    permissions: rolePermissions.operator, mfaEnabled: false,
+    passwordExpiry: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000), loginAttempts: 5,
   },
 ];
 
@@ -128,56 +116,43 @@ const UserManagement = () => {
   const { demoMode } = useDemoMode();
   const [users, setUsers] = useState<SystemUser[]>(demoMode ? initialUsers : []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [filterRole, setFilterRole] = useState<string>('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('users');
   const [newUser, setNewUser] = useState({
-    username: '',
-    fullName: '',
-    email: '',
+    username: '', fullName: '', email: '',
     role: 'viewer' as 'admin' | 'operator' | 'viewer' | 'auditor',
-    password: '',
-    confirmPassword: '',
-    mfaEnabled: false,
+    password: '', confirmPassword: '', mfaEnabled: false,
   });
   const [newPassword, setNewPassword] = useState({ password: '', confirmPassword: '' });
 
   const selectedUser = users.find(u => u.id === selectedId);
 
-  const filteredUsers = filterRole === 'all' 
-    ? users 
-    : users.filter(u => u.role === filterRole);
+  const filteredUsers = users.filter(u =>
+    !searchQuery ||
+    u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const formatTime = (date: Date | null) => {
     if (!date) return 'Never';
     const diff = Date.now() - date.getTime();
     const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
     const hours = Math.floor(mins / 60);
-    const days = Math.floor(hours / 24);
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (mins > 0) return `${mins}m ago`;
-    return 'Just now';
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin': return 'text-red-400 bg-red-500/10 border-red-500/30';
-      case 'operator': return 'text-blue-400 bg-blue-500/10 border-blue-500/30';
-      case 'viewer': return 'text-green-400 bg-green-500/10 border-green-500/30';
-      case 'auditor': return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
-      default: return 'text-muted-foreground bg-muted';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return <CheckCircle2 size={14} className="text-status-healthy" />;
-      case 'disabled': return <XCircle size={14} className="text-muted-foreground" />;
-      case 'locked': return <XCircle size={14} className="text-status-critical" />;
-      default: return null;
-    }
+  const stats = {
+    total: users.length,
+    active: users.filter(u => u.status === 'active').length,
+    disabled: users.filter(u => u.status === 'disabled').length,
+    locked: users.filter(u => u.status === 'locked').length,
   };
 
   const handleAddUser = () => {
@@ -193,22 +168,13 @@ const UserManagement = () => {
       toast.error('Username already exists');
       return;
     }
-    
     const user: SystemUser = {
-      id: `user-${Date.now()}`,
-      username: newUser.username,
-      fullName: newUser.fullName || newUser.username,
-      email: newUser.email,
-      role: newUser.role,
-      status: 'active',
-      lastLogin: null,
-      createdAt: new Date(),
-      permissions: rolePermissions[newUser.role],
-      mfaEnabled: newUser.mfaEnabled,
-      passwordExpiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-      loginAttempts: 0,
+      id: `user-${Date.now()}`, username: newUser.username,
+      fullName: newUser.fullName || newUser.username, email: newUser.email,
+      role: newUser.role, status: 'active', lastLogin: null, createdAt: new Date(),
+      permissions: rolePermissions[newUser.role], mfaEnabled: newUser.mfaEnabled,
+      passwordExpiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), loginAttempts: 0,
     };
-    
     setUsers(prev => [...prev, user]);
     setModalOpen(false);
     setNewUser({ username: '', fullName: '', email: '', role: 'viewer', password: '', confirmPassword: '', mfaEnabled: false });
@@ -217,14 +183,10 @@ const UserManagement = () => {
 
   const handleEditUser = () => {
     if (!selectedUser) return;
-    setUsers(prev => prev.map(u => 
+    setUsers(prev => prev.map(u =>
       u.id === selectedUser.id ? {
-        ...u,
-        fullName: newUser.fullName,
-        email: newUser.email,
-        role: newUser.role,
-        permissions: rolePermissions[newUser.role],
-        mfaEnabled: newUser.mfaEnabled,
+        ...u, fullName: newUser.fullName, email: newUser.email,
+        role: newUser.role, permissions: rolePermissions[newUser.role], mfaEnabled: newUser.mfaEnabled,
       } : u
     ));
     setEditModalOpen(false);
@@ -234,13 +196,10 @@ const UserManagement = () => {
   const handleToggleStatus = (userId: string) => {
     setUsers(prev => prev.map(u => {
       if (u.id === userId) {
-        if (u.username === 'admin') {
-          toast.error('Cannot disable admin account');
-          return u;
-        }
+        if (u.username === 'admin') { toast.error('Cannot disable admin account'); return u; }
         const newStatus = u.status === 'active' ? 'disabled' : 'active';
         toast.success(`User ${u.username} is now ${newStatus}`);
-        return { ...u, status: newStatus, loginAttempts: newStatus === 'active' ? 0 : u.loginAttempts };
+        return { ...u, status: newStatus as any, loginAttempts: newStatus === 'active' ? 0 : u.loginAttempts };
       }
       return u;
     }));
@@ -250,7 +209,7 @@ const UserManagement = () => {
     setUsers(prev => prev.map(u => {
       if (u.id === userId && u.status === 'locked') {
         toast.success(`User ${u.username} has been unlocked`);
-        return { ...u, status: 'active', loginAttempts: 0 };
+        return { ...u, status: 'active' as const, loginAttempts: 0 };
       }
       return u;
     }));
@@ -258,30 +217,19 @@ const UserManagement = () => {
 
   const handleDeleteUser = (userId: string) => {
     const user = users.find(u => u.id === userId);
-    if (user?.username === 'admin') {
-      toast.error('Cannot delete admin account');
-      return;
-    }
+    if (user?.username === 'admin') { toast.error('Cannot delete admin account'); return; }
     setUsers(prev => prev.filter(u => u.id !== userId));
     if (selectedId === userId) setSelectedId(null);
+    setDeleteConfirm(null);
     toast.success('User deleted');
   };
 
   const handleResetPassword = () => {
     if (!selectedUser) return;
-    if (newPassword.password !== newPassword.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    if (newPassword.password.length < 8) {
-      toast.error('Password must be at least 8 characters');
-      return;
-    }
-    setUsers(prev => prev.map(u => 
-      u.id === selectedUser.id ? {
-        ...u,
-        passwordExpiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-      } : u
+    if (newPassword.password !== newPassword.confirmPassword) { toast.error('Passwords do not match'); return; }
+    if (newPassword.password.length < 8) { toast.error('Password must be at least 8 characters'); return; }
+    setUsers(prev => prev.map(u =>
+      u.id === selectedUser.id ? { ...u, passwordExpiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) } : u
     ));
     setPasswordModalOpen(false);
     setNewPassword({ password: '', confirmPassword: '' });
@@ -289,274 +237,228 @@ const UserManagement = () => {
   };
 
   const openEditModal = () => {
-    if (!selectedUser) return;
+    if (!selectedUser) { toast.info('Select a user first'); return; }
     setNewUser({
-      username: selectedUser.username,
-      fullName: selectedUser.fullName,
-      email: selectedUser.email,
-      role: selectedUser.role,
-      password: '',
-      confirmPassword: '',
-      mfaEnabled: selectedUser.mfaEnabled,
+      username: selectedUser.username, fullName: selectedUser.fullName,
+      email: selectedUser.email, role: selectedUser.role,
+      password: '', confirmPassword: '', mfaEnabled: selectedUser.mfaEnabled,
     });
     setEditModalOpen(true);
   };
 
-  const counts = {
-    active: users.filter(u => u.status === 'active').length,
-    disabled: users.filter(u => u.status === 'disabled').length,
-    locked: users.filter(u => u.status === 'locked').length,
-  };
-
   return (
     <Shell>
-      <div className="space-y-5">
+      <div className="space-y-0">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold">User Management</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Manage system users, roles and permissions</p>
+        <div className="section-header-neutral">
+          <div className="flex items-center gap-2">
+            <Users size={14} />
+            <span className="font-semibold">User Management</span>
+            <span className="text-[10px] text-[#888]">Local Users & Access Control</span>
           </div>
-          <Button onClick={() => setModalOpen(true)} size="sm" className="gap-1.5">
-            <Plus size={14} />
-            Add User
-          </Button>
         </div>
 
-        {/* Summary Strip */}
-        <div className="summary-strip">
-          <div className="summary-item">
-            <CheckCircle2 size={16} className="text-status-healthy" />
-            <span className="summary-count text-status-healthy">{counts.active}</span>
-            <span className="summary-label">Active</span>
-          </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="summary-item">
-            <XCircle size={16} className="text-muted-foreground" />
-            <span className="summary-count text-muted-foreground">{counts.disabled}</span>
-            <span className="summary-label">Disabled</span>
-          </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="summary-item">
-            <XCircle size={16} className="text-status-critical" />
-            <span className="summary-count text-status-critical">{counts.locked}</span>
-            <span className="summary-label">Locked</span>
-          </div>
+        {/* Toolbar */}
+        <div className="forti-toolbar">
+          <button className="forti-toolbar-btn primary" onClick={() => setModalOpen(true)}>
+            <Plus size={12} />
+            <span>Create New</span>
+          </button>
+          <button className="forti-toolbar-btn" onClick={openEditModal}>
+            <Edit size={12} />
+            <span>Edit</span>
+          </button>
+          <button
+            className="forti-toolbar-btn"
+            onClick={() => {
+              if (!selectedId) { toast.info('Select a user to delete'); return; }
+              const u = users.find(x => x.id === selectedId);
+              if (u?.username === 'admin') { toast.error('Cannot delete admin account'); return; }
+              setDeleteConfirm(selectedId);
+            }}
+          >
+            <Trash2 size={12} />
+            <span>Delete</span>
+          </button>
+          <div className="forti-toolbar-separator" />
+          <button className="forti-toolbar-btn" onClick={() => toast.success('Data refreshed')}>
+            <RefreshCw size={12} />
+            <span>Refresh</span>
+          </button>
           <div className="flex-1" />
-          <span className="text-sm text-muted-foreground">{users.length} total users</span>
-        </div>
-
-        {/* Filter */}
-        <div className="action-strip">
-          <span className="text-xs text-muted-foreground">Filter by role:</span>
-          <div className="flex items-center gap-1">
-            {['all', 'admin', 'operator', 'viewer', 'auditor'].map((role) => (
-              <button
-                key={role}
-                onClick={() => setFilterRole(role)}
-                className={cn(
-                  "px-3 py-1.5 text-xs rounded-sm transition-all capitalize",
-                  filterRole === role 
-                    ? "bg-primary text-primary-foreground font-medium" 
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                {role === 'all' ? 'All Roles' : role}
-              </button>
-            ))}
+          <div className="forti-search">
+            <Search size={12} className="text-[#999]" />
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <div className="flex-1" />
-          <span className="text-xs text-muted-foreground">{filteredUsers.length} shown</span>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-12 gap-4">
-          {/* User List */}
-          <div className="col-span-5">
-            <div className="section">
-              <div className="section-header">
-                <span>Users</span>
-              </div>
-              <div className="divide-y divide-border/40 max-h-[600px] overflow-y-auto">
-                {filteredUsers.map((user) => (
-                  <div
+        {/* Stats Bar */}
+        <div className="flex items-center gap-0 border-x border-[#ddd]">
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <Users size={14} className="text-blue-600" />
+            <span className="text-lg font-bold text-blue-600">{stats.total}</span>
+            <span className="text-[11px] text-[#666]">Total Users</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-lg font-bold text-green-600">{stats.active}</span>
+            <span className="text-[11px] text-[#666]">Active</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
+            <span className="w-2 h-2 rounded-full bg-gray-400" />
+            <span className="text-lg font-bold text-gray-500">{stats.disabled}</span>
+            <span className="text-[11px] text-[#666]">Disabled</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
+            <Lock size={14} className="text-red-500" />
+            <span className="text-lg font-bold text-red-600">{stats.locked}</span>
+            <span className="text-[11px] text-[#666]">Locked</span>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="bg-[#f0f0f0] border-x border-b border-[#ddd]">
+            <TabsList className="bg-transparent h-auto p-0 rounded-none">
+              <TabsTrigger value="users" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]">
+                User List
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="data-[state=active]:bg-white data-[state=active]:border-b-2 data-[state=active]:border-b-[hsl(142,70%,35%)] rounded-none px-4 py-2 text-[11px]">
+                Role Matrix
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* User List Tab */}
+          <TabsContent value="users" className="mt-0">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th className="w-8"></th>
+                  <th>Username</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>MFA</th>
+                  <th>Last Login</th>
+                  <th>Password Expires</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr><td colSpan={9} className="text-center text-[#999] py-4">No users found</td></tr>
+                ) : filteredUsers.map((user) => (
+                  <tr
                     key={user.id}
                     onClick={() => setSelectedId(user.id)}
-                    className={cn(
-                      "px-4 py-3 cursor-pointer transition-all duration-100",
-                      selectedId === user.id
-                        ? "bg-primary/10 border-l-2 border-l-primary"
-                        : "hover:bg-accent/50"
-                    )}
+                    className={cn("cursor-pointer", selectedId === user.id && "bg-[#fff8e1]")}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          <User size={14} className="text-muted-foreground" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm">{user.username}</div>
-                          <div className="text-xs text-muted-foreground">{user.fullName}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {getStatusIcon(user.status)}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className={cn("tag border", getRoleColor(user.role))}>
+                    <td className="text-center">
+                      <input
+                        type="radio"
+                        name="user-select"
+                        checked={selectedId === user.id}
+                        onChange={() => setSelectedId(user.id)}
+                        className="accent-[hsl(142,70%,35%)]"
+                      />
+                    </td>
+                    <td className="font-medium text-[#333]">{user.username}</td>
+                    <td className="text-[#555]">{user.fullName}</td>
+                    <td className="text-[#666]">{user.email}</td>
+                    <td>
+                      <span className={cn("forti-tag", roleColors[user.role])}>
                         {user.role.toUpperCase()}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        Last login: {formatTime(user.lastLogin)}
+                    </td>
+                    <td>
+                      <span className={cn("forti-tag", statusColors[user.status])}>
+                        {user.status.toUpperCase()}
                       </span>
-                    </div>
-                  </div>
+                    </td>
+                    <td className="text-center">
+                      <span className={cn("text-[11px] font-medium", user.mfaEnabled ? "text-green-600" : "text-[#999]")}>
+                        {user.mfaEnabled ? '✓' : '—'}
+                      </span>
+                    </td>
+                    <td className="text-[#666]">{formatTime(user.lastLogin)}</td>
+                    <td className={cn("text-[11px]", user.passwordExpiry < new Date() ? "text-red-600 font-semibold" : "text-[#666]")}>
+                      {user.passwordExpiry.toLocaleDateString()}
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </div>
-          </div>
+              </tbody>
+            </table>
 
-          {/* User Detail */}
-          <div className="col-span-7">
-            {selectedUser ? (
-              <div className="space-y-4">
-                {/* User Info */}
-                <div className="section">
-                  <div className="section-header">
-                    <div className="flex items-center gap-2">
-                      <Shield size={16} className="text-primary" />
-                      <span>User Details</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {selectedUser.status === 'locked' && (
-                        <button 
-                          onClick={() => handleUnlockUser(selectedUser.id)}
-                          className="btn btn-primary text-xs"
-                        >
-                          Unlock Account
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => handleToggleStatus(selectedUser.id)}
-                        disabled={selectedUser.username === 'admin'}
-                        className={cn(
-                          "btn text-xs",
-                          selectedUser.status === 'active' ? "btn-outline" : "btn-primary"
-                        )}
-                      >
-                        {selectedUser.status === 'active' ? 'Disable' : 'Enable'}
-                      </button>
-                      <button onClick={openEditModal} className="btn btn-ghost text-xs">
-                        <Pencil size={12} className="mr-1" />
-                        Edit
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteUser(selectedUser.id)}
-                        disabled={selectedUser.username === 'admin'}
-                        className="btn btn-ghost text-xs text-destructive"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
+            {/* Selected User Detail Panel */}
+            {selectedUser && (
+              <div className="border-x border-b border-[#ddd] bg-white">
+                <div className="px-3 py-1.5 bg-[#e8e8e8] border-b border-[#ccc] text-[11px] font-semibold text-[#333] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield size={12} />
+                    <span>User Details — {selectedUser.username}</span>
                   </div>
-                  <div className="section-body">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                        <User size={24} className="text-muted-foreground" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">{selectedUser.fullName}</h3>
-                        <div className="text-sm text-muted-foreground">@{selectedUser.username}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={cn("tag border", getRoleColor(selectedUser.role))}>
-                            {selectedUser.role.toUpperCase()}
-                          </span>
-                          <span className={cn(
-                            "tag",
-                            selectedUser.status === 'active' ? 'tag-healthy' :
-                            selectedUser.status === 'locked' ? 'tag-critical' : 'bg-muted text-muted-foreground'
-                          )}>
-                            {selectedUser.status.toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="info-grid grid-cols-2">
-                      <div className="info-item">
-                        <div className="info-label">Email</div>
-                        <div className="info-value">{selectedUser.email}</div>
-                      </div>
-                      <div className="info-item">
-                        <div className="info-label">Created</div>
-                        <div className="info-value">{selectedUser.createdAt.toLocaleDateString()}</div>
-                      </div>
-                      <div className="info-item">
-                        <div className="info-label">Last Login</div>
-                        <div className="info-value">{selectedUser.lastLogin?.toLocaleString() || 'Never'}</div>
-                      </div>
-                      <div className="info-item">
-                        <div className="info-label">Login Attempts</div>
-                        <div className={cn("info-value", selectedUser.loginAttempts >= 3 && "text-status-critical")}>
-                          {selectedUser.loginAttempts} / 5
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Security */}
-                <div className="section">
-                  <div className="section-header">
-                    <div className="flex items-center gap-2">
-                      <Key size={16} className="text-primary" />
-                      <span>Security</span>
-                    </div>
-                    <button 
-                      onClick={() => setPasswordModalOpen(true)}
-                      className="btn btn-ghost text-xs"
+                  <div className="flex items-center gap-1">
+                    {selectedUser.status === 'locked' && (
+                      <button className="forti-toolbar-btn" onClick={() => handleUnlockUser(selectedUser.id)}>
+                        <Unlock size={12} />
+                        <span>Unlock</span>
+                      </button>
+                    )}
+                    <button
+                      className="forti-toolbar-btn"
+                      onClick={() => handleToggleStatus(selectedUser.id)}
+                      disabled={selectedUser.username === 'admin'}
                     >
-                      Reset Password
+                      {selectedUser.status === 'active' ? 'Disable' : 'Enable'}
+                    </button>
+                    <button className="forti-toolbar-btn" onClick={() => { setPasswordModalOpen(true); }}>
+                      <Key size={12} />
+                      <span>Reset Password</span>
                     </button>
                   </div>
-                  <div className="section-body">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-muted/30 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Two-Factor Authentication</span>
-                          <span className={cn(
-                            "tag",
-                            selectedUser.mfaEnabled ? "tag-healthy" : "tag-medium"
-                          )}>
-                            {selectedUser.mfaEnabled ? 'ENABLED' : 'DISABLED'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="p-3 bg-muted/30 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Password Expires</span>
-                          <span className={cn(
-                            "text-sm font-medium",
-                            selectedUser.passwordExpiry < new Date() ? "text-status-critical" : "text-foreground"
-                          )}>
-                            {selectedUser.passwordExpiry.toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-
-                {/* Permissions */}
-                <div className="section">
-                  <div className="section-header">
-                    <span>Permissions</span>
+                <div className="p-3 grid grid-cols-4 gap-x-6 gap-y-2 text-[11px]">
+                  <div>
+                    <span className="text-[#888] block">Full Name</span>
+                    <span className="text-[#333] font-medium">{selectedUser.fullName}</span>
                   </div>
-                  <div className="section-body">
-                    <p className="text-sm text-muted-foreground mb-3">{roleDescriptions[selectedUser.role]}</p>
-                    <div className="flex flex-wrap gap-2">
+                  <div>
+                    <span className="text-[#888] block">Email</span>
+                    <span className="text-[#333] font-medium">{selectedUser.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#888] block">Created</span>
+                    <span className="text-[#333] font-medium">{selectedUser.createdAt.toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#888] block">Login Attempts</span>
+                    <span className={cn("font-medium", selectedUser.loginAttempts >= 3 ? "text-red-600" : "text-[#333]")}>
+                      {selectedUser.loginAttempts} / 5
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#888] block">Two-Factor Auth</span>
+                    <span className={cn("font-medium", selectedUser.mfaEnabled ? "text-green-600" : "text-orange-500")}>
+                      {selectedUser.mfaEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#888] block">Password Expires</span>
+                    <span className={cn("font-medium", selectedUser.passwordExpiry < new Date() ? "text-red-600" : "text-[#333]")}>
+                      {selectedUser.passwordExpiry.toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[#888] block">Permissions</span>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
                       {selectedUser.permissions.map((perm, idx) => (
-                        <span key={idx} className="px-2 py-1 text-xs bg-muted rounded font-mono">
+                        <span key={idx} className="px-1.5 py-0.5 text-[10px] bg-[#f0f0f0] border border-[#ddd] text-[#555] font-mono">
                           {perm}
                         </span>
                       ))}
@@ -564,59 +466,99 @@ const UserManagement = () => {
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="section">
-                <div className="section-body py-16 text-center">
-                  <User size={32} className="mx-auto text-muted-foreground/50 mb-3" />
-                  <div className="text-muted-foreground">Select a user to view details</div>
-                </div>
-              </div>
             )}
-          </div>
-        </div>
+          </TabsContent>
+
+          {/* Role Matrix Tab */}
+          <TabsContent value="roles" className="mt-0">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Full Name</th>
+                  <th className="text-center w-24">Admin</th>
+                  <th className="text-center w-24">Operator</th>
+                  <th className="text-center w-24">Viewer</th>
+                  <th className="text-center w-24">Auditor</th>
+                  <th className="text-center w-16">MFA</th>
+                  <th className="text-center w-20">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td className="font-medium text-[#333]">{user.username}</td>
+                    <td className="text-[#555]">{user.fullName}</td>
+                    {(['admin', 'operator', 'viewer', 'auditor'] as const).map(role => (
+                      <td key={role} className="text-center">
+                        {user.role === role ? (
+                          <span className="text-green-600 font-bold">●</span>
+                        ) : (
+                          <span className="text-gray-300">○</span>
+                        )}
+                      </td>
+                    ))}
+                    <td className="text-center">
+                      <FortiToggle enabled={user.mfaEnabled} size="sm" />
+                    </td>
+                    <td className="text-center">
+                      <span className={cn("forti-tag", statusColors[user.status])}>
+                        {user.status.toUpperCase()}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Role Descriptions */}
+            <div className="border-x border-b border-[#ddd] bg-white p-3">
+              <div className="text-[11px] font-semibold text-[#333] mb-2">Role Descriptions</div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                {Object.entries(roleDescriptions).map(([role, desc]) => (
+                  <div key={role} className="flex items-start gap-2 p-2 bg-[#fafafa] border border-[#eee]">
+                    <span className={cn("forti-tag mt-0.5", roleColors[role])}>{role.toUpperCase()}</span>
+                    <span className="text-[#666]">{desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Add User Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add User</DialogTitle>
+            <DialogTitle className="text-sm">Create New User</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Username</Label>
-              <Input 
-                placeholder="username"
+          <div className="space-y-3 text-[11px]">
+            <div className="space-y-1">
+              <Label className="text-[11px]">Username</Label>
+              <Input className="h-7 text-[11px]" placeholder="username"
                 value={newUser.username}
                 onChange={(e) => setNewUser(prev => ({ ...prev, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input 
-                placeholder="John Doe"
+            <div className="space-y-1">
+              <Label className="text-[11px]">Full Name</Label>
+              <Input className="h-7 text-[11px]" placeholder="John Doe"
                 value={newUser.fullName}
                 onChange={(e) => setNewUser(prev => ({ ...prev, fullName: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input 
-                type="email"
-                placeholder="user@company.com"
+            <div className="space-y-1">
+              <Label className="text-[11px]">Email</Label>
+              <Input className="h-7 text-[11px]" type="email" placeholder="user@company.com"
                 value={newUser.email}
                 onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select 
-                value={newUser.role} 
-                onValueChange={(v: 'admin' | 'operator' | 'viewer' | 'auditor') => setNewUser(prev => ({ ...prev, role: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+            <div className="space-y-1">
+              <Label className="text-[11px]">Role</Label>
+              <Select value={newUser.role} onValueChange={(v: any) => setNewUser(prev => ({ ...prev, role: v }))}>
+                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrator</SelectItem>
                   <SelectItem value="operator">Operator</SelectItem>
@@ -624,34 +566,29 @@ const UserManagement = () => {
                   <SelectItem value="auditor">Auditor</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground">{roleDescriptions[newUser.role]}</p>
+              <p className="text-[10px] text-[#999]">{roleDescriptions[newUser.role]}</p>
             </div>
-            <div className="space-y-2">
-              <Label>Password</Label>
-              <Input 
-                type="password"
+            <div className="space-y-1">
+              <Label className="text-[11px]">Password</Label>
+              <Input className="h-7 text-[11px]" type="password"
                 value={newUser.password}
                 onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Confirm Password</Label>
-              <Input 
-                type="password"
+            <div className="space-y-1">
+              <Label className="text-[11px]">Confirm Password</Label>
+              <Input className="h-7 text-[11px]" type="password"
                 value={newUser.confirmPassword}
                 onChange={(e) => setNewUser(prev => ({ ...prev, confirmPassword: e.target.value }))}
               />
             </div>
-            <div className="flex items-center justify-between">
-              <Label>Require Two-Factor Authentication</Label>
-              <Switch 
-                checked={newUser.mfaEnabled}
-                onCheckedChange={(v) => setNewUser(prev => ({ ...prev, mfaEnabled: v }))}
-              />
+            <div className="flex items-center justify-between py-1">
+              <Label className="text-[11px]">Require Two-Factor Authentication</Label>
+              <FortiToggle enabled={newUser.mfaEnabled} onToggle={() => setNewUser(prev => ({ ...prev, mfaEnabled: !prev.mfaEnabled }))} size="sm" />
             </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddUser}>Create User</Button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#eee]">
+              <button className="forti-toolbar-btn" onClick={() => setModalOpen(false)}>Cancel</button>
+              <button className="forti-toolbar-btn primary" onClick={handleAddUser}>Create User</button>
             </div>
           </div>
         </DialogContent>
@@ -661,38 +598,31 @@ const UserManagement = () => {
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle className="text-sm">Edit User</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Username</Label>
-              <Input value={newUser.username} disabled className="bg-muted" />
+          <div className="space-y-3 text-[11px]">
+            <div className="space-y-1">
+              <Label className="text-[11px]">Username</Label>
+              <Input className="h-7 text-[11px] bg-[#f5f5f5]" value={newUser.username} disabled />
             </div>
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input 
-                value={newUser.fullName}
+            <div className="space-y-1">
+              <Label className="text-[11px]">Full Name</Label>
+              <Input className="h-7 text-[11px]" value={newUser.fullName}
                 onChange={(e) => setNewUser(prev => ({ ...prev, fullName: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input 
-                type="email"
-                value={newUser.email}
+            <div className="space-y-1">
+              <Label className="text-[11px]">Email</Label>
+              <Input className="h-7 text-[11px]" type="email" value={newUser.email}
                 onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select 
-                value={newUser.role} 
-                onValueChange={(v: 'admin' | 'operator' | 'viewer' | 'auditor') => setNewUser(prev => ({ ...prev, role: v }))}
+            <div className="space-y-1">
+              <Label className="text-[11px]">Role</Label>
+              <Select value={newUser.role} onValueChange={(v: any) => setNewUser(prev => ({ ...prev, role: v }))}
                 disabled={selectedUser?.username === 'admin'}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrator</SelectItem>
                   <SelectItem value="operator">Operator</SelectItem>
@@ -701,16 +631,13 @@ const UserManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <Label>Two-Factor Authentication</Label>
-              <Switch 
-                checked={newUser.mfaEnabled}
-                onCheckedChange={(v) => setNewUser(prev => ({ ...prev, mfaEnabled: v }))}
-              />
+            <div className="flex items-center justify-between py-1">
+              <Label className="text-[11px]">Two-Factor Authentication</Label>
+              <FortiToggle enabled={newUser.mfaEnabled} onToggle={() => setNewUser(prev => ({ ...prev, mfaEnabled: !prev.mfaEnabled }))} size="sm" />
             </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setEditModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleEditUser}>Save Changes</Button>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#eee]">
+              <button className="forti-toolbar-btn" onClick={() => setEditModalOpen(false)}>Cancel</button>
+              <button className="forti-toolbar-btn primary" onClick={handleEditUser}>Save Changes</button>
             </div>
           </div>
         </DialogContent>
@@ -720,35 +647,49 @@ const UserManagement = () => {
       <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Reset Password for {selectedUser?.username}</DialogTitle>
+            <DialogTitle className="text-sm">Reset Password — {selectedUser?.username}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>New Password</Label>
-              <Input 
-                type="password"
+          <div className="space-y-3 text-[11px]">
+            <div className="space-y-1">
+              <Label className="text-[11px]">New Password</Label>
+              <Input className="h-7 text-[11px]" type="password"
                 value={newPassword.password}
                 onChange={(e) => setNewPassword(prev => ({ ...prev, password: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Confirm Password</Label>
-              <Input 
-                type="password"
+            <div className="space-y-1">
+              <Label className="text-[11px]">Confirm Password</Label>
+              <Input className="h-7 text-[11px]" type="password"
                 value={newPassword.confirmPassword}
                 onChange={(e) => setNewPassword(prev => ({ ...prev, confirmPassword: e.target.value }))}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Password must be at least 8 characters and include uppercase, lowercase, numbers and special characters.
-            </p>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setPasswordModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleResetPassword}>Reset Password</Button>
+            <p className="text-[10px] text-[#999]">Password must be at least 8 characters with uppercase, lowercase, numbers and special characters.</p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#eee]">
+              <button className="forti-toolbar-btn" onClick={() => setPasswordModalOpen(false)}>Cancel</button>
+              <button className="forti-toolbar-btn primary" onClick={handleResetPassword}>Reset Password</button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm">Confirm Delete</AlertDialogTitle>
+            <AlertDialogDescription className="text-[11px]">
+              Are you sure you want to delete user "{users.find(u => u.id === deleteConfirm)?.username}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-7 text-[11px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="h-7 text-[11px] bg-red-600 hover:bg-red-700" onClick={() => deleteConfirm && handleDeleteUser(deleteConfirm)}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 };
