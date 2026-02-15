@@ -59,6 +59,7 @@ import WildcardFQDN from "./pages/WildcardFQDN";
 
 import Services from "./pages/Services";
 import DNSFilter from "./pages/DNSFilter";
+import UserGroups from "./pages/UserGroups";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -136,7 +137,7 @@ const App = () => (
             
             <Route path="/vpn/openvpn" element={<P><VPN /></P>} />
             <Route path="/vpn/wireguard" element={<P><VPN /></P>} />
-            <Route path="/users/groups" element={<P><UserManagement /></P>} />
+            <Route path="/users/groups" element={<P><UserGroups /></P>} />
             
             <Route path="/monitoring/logs" element={<P><SystemLogs /></P>} />
             <Route path="/monitoring/traffic" element={<P><TrafficAnalysis /></P>} />
