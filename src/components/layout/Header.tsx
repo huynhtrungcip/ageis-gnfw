@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/contexts/DemoModeContext';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Bell, 
   User, 
@@ -110,7 +110,12 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
   const [cliOpen, setCliOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [alerts, setAlerts] = useState(demoMode ? mockAlerts : []);
+  const navigate = useNavigate();
+  const [alerts, setAlerts] = useState(() => {
+    if (!demoMode) return [];
+    const dismissed = JSON.parse(sessionStorage.getItem('aegis_dismissed_alerts') || '[]') as number[];
+    return mockAlerts.filter(a => !dismissed.includes(a.id));
+  });
 
   const { signOut, user } = useAuth();
 
@@ -152,13 +157,28 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
     toast.success('Logged out successfully');
   };
 
-  const handleDismissAlert = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const dismissAlertById = (id: number) => {
+    const dismissed = JSON.parse(sessionStorage.getItem('aegis_dismissed_alerts') || '[]') as number[];
+    if (!dismissed.includes(id)) {
+      sessionStorage.setItem('aegis_dismissed_alerts', JSON.stringify([...dismissed, id]));
+    }
     setAlerts(prev => prev.filter(a => a.id !== id));
   };
 
+  const handleDismissAlert = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dismissAlertById(id);
+  };
+
+  const handleAlertClick = (alert: { id: number; link: string }) => {
+    dismissAlertById(alert.id);
+    navigate(alert.link);
+  };
+
   const handleClearAllAlerts = () => {
+    const allIds = alerts.map(a => a.id);
+    sessionStorage.setItem('aegis_dismissed_alerts', JSON.stringify(allIds));
     setAlerts([]);
   };
 
@@ -341,11 +361,10 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
               ) : (
                 <div className="max-h-64 overflow-y-auto">
                   {alerts.map((alert) => (
-                    <Link 
+                    <div 
                       key={alert.id}
-                      to={alert.link}
-                      onClick={() => setAlerts(prev => prev.filter(a => a.id !== alert.id))}
-                      className="px-3 py-2 hover:bg-[#e8f5e9] border-b border-[#eee] last:border-b-0 flex items-start justify-between cursor-pointer block transition-colors"
+                      onClick={() => handleAlertClick(alert)}
+                      className="px-3 py-2 hover:bg-[#e8f5e9] border-b border-[#eee] last:border-b-0 flex items-start justify-between cursor-pointer transition-colors"
                     >
                       <div className="flex items-start gap-2">
                         <span className={cn(
@@ -365,7 +384,7 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
                       >
                         ×
                       </button>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               )}
