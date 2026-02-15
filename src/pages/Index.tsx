@@ -3,8 +3,7 @@ import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import {
-  Shield, Network, Lock, Bug, RefreshCw,
-  CheckCircle2, ChevronRight, Loader2
+  RefreshCw, CheckCircle2, ChevronRight, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -284,22 +283,17 @@ const Dashboard = () => {
 
         {/* Row 6 - Stats */}
         <div className="grid grid-cols-4 gap-3">
-          {[
-            { label: 'Firewall Rules', value: fwStats.data?.total ?? 0, sub: `${fwStats.data?.active ?? 0} active`, icon: Shield },
-            { label: 'VPN Tunnels', value: connectedVPNs, sub: `of ${vpnTunnels.length}`, icon: Lock },
-            { label: 'Threats (24h)', value: threatEvents.length, sub: `${threatCounts.critical} critical`, icon: Bug },
-            { label: 'Interfaces', value: activePortCount, sub: `of ${ifaces.length} up`, icon: Network },
-          ].map(({ label, value, sub, icon: Icon }) => (
+        {[
+            { label: 'Firewall Rules', value: fwStats.data?.total ?? 0, sub: `${fwStats.data?.active ?? 0} active` },
+            { label: 'VPN Tunnels', value: connectedVPNs, sub: `of ${vpnTunnels.length}` },
+            { label: 'Threats (24h)', value: threatEvents.length, sub: `${threatCounts.critical} critical` },
+            { label: 'Interfaces', value: activePortCount, sub: `of ${ifaces.length} up` },
+          ].map(({ label, value, sub }) => (
             <div key={label} className="widget">
-              <div className="widget-body flex items-center gap-3 py-3">
-                <div className="w-10 h-10 rounded-lg bg-[#4caf50]/10 flex items-center justify-center">
-                  <Icon size={18} className="text-[#4caf50]" />
-                </div>
-                <div>
-                  <div className="text-lg font-bold">{value}</div>
-                  <div className="text-[10px] text-[#666]">{label}</div>
-                  <div className="text-[9px] text-[#999]">{sub}</div>
-                </div>
+              <div className="widget-body py-3 px-4">
+                <div className="text-lg font-bold">{value}</div>
+                <div className="text-[11px] text-[#666]">{label}</div>
+                <div className="text-[9px] text-[#999]">{sub}</div>
               </div>
             </div>
           ))}
