@@ -642,6 +642,8 @@ table inet aegis_filter {
     # Allow ICMP (ping)
     ip protocol icmp accept
     ip6 nexthdr icmpv6 accept
+    # Allow management ports (SSH, HTTP, HTTPS, Web UI, API)
+    tcp dport { 22, 80, 443, 8080, 3000 } accept
 HEADER
 
   echo "$rules" | jq -c '.[] | select(.direction == "in")' | while read -r rule; do
