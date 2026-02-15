@@ -1,6 +1,6 @@
 [Unit]
 Description=Aegis NGFW Agent v3.0 - System Monitor & Firewall Sync
-Documentation=https://github.com/aegis-ngfw
+Documentation=https://github.com/huynhtrungcip/ageis-gnfw
 After=network-online.target docker.service
 Wants=network-online.target
 

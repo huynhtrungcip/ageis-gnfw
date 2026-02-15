@@ -14,8 +14,8 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/aegis-ngfw.git
-cd aegis-ngfw
+git clone https://github.com/huynhtrungcip/ageis-gnfw.git
+cd ageis-gnfw
 
 # Install dependencies
 npm install

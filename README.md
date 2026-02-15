@@ -25,7 +25,7 @@
 **One command to deploy everything** — Docker, database, API, frontend, agent, and automated tests:
 
 ```bash
-git clone https://github.com/your-org/aegis-ngfw.git && cd aegis-ngfw
+git clone https://github.com/huynhtrungcip/ageis-gnfw.git && cd ageis-gnfw
 sudo bash scripts/deploy-oneclick.sh --dev --auto
 ```
 
