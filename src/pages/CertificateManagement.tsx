@@ -177,6 +177,54 @@ const CertificateManagement = () => {
     toast.success('Certificate deleted');
   };
 
+  const handleExportCert = (cert: Certificate) => {
+    const pemContent = [
+      '-----BEGIN CERTIFICATE-----',
+      btoa(`Subject: ${cert.subject}\nIssuer: ${cert.issuer}\nSerial: ${cert.serialNumber}\nValid From: ${cert.validFrom.toISOString()}\nValid To: ${cert.validTo.toISOString()}\nKey: ${cert.keyType} ${cert.keySize}\nStatus: ${cert.status}`)
+        .match(/.{1,64}/g)?.join('\n') || '',
+      '-----END CERTIFICATE-----',
+    ].join('\n');
+    const blob = new Blob([pemContent], { type: 'application/x-pem-file' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${cert.name}.pem`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${cert.name}`);
+  };
+
+  const handleExportAll = () => {
+    const certs = filteredCerts;
+    if (certs.length === 0) {
+      toast.error('No certificates to export');
+      return;
+    }
+    const exportData = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      type: 'certificates',
+      count: certs.length,
+      data: certs.map(c => ({
+        ...c,
+        validFrom: c.validFrom.toISOString(),
+        validTo: c.validTo.toISOString(),
+      })),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `certificates-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${certs.length} certificates`);
+  };
+
   const stats = {
     total: certificates.length,
     valid: certificates.filter(c => c.status === 'valid').length,
@@ -224,7 +272,7 @@ const CertificateManagement = () => {
               </div>
             )}
           </div>
-          <button className="forti-toolbar-btn" onClick={() => toast.success('Certificates exported')}>
+          <button className="forti-toolbar-btn" onClick={handleExportAll}>
             <Download className="w-3 h-3" />
             Export
           </button>
@@ -369,7 +417,7 @@ const CertificateManagement = () => {
                     </td>
                     <td>
                       <div className="flex items-center gap-1">
-                        <button className="p-1 rounded hover:bg-[#e8e8e8] transition-colors" onClick={() => toast.success(`Exporting ${cert.name}...`)}>
+                        <button className="p-1 rounded hover:bg-[#e8e8e8] transition-colors" onClick={() => handleExportCert(cert)}>
                           <Download size={12} className="text-[#666]" />
                         </button>
                         <button
