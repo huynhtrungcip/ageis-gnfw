@@ -4,21 +4,28 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.x     | ✅ Active |
+| 2.x     | ✅ Active |
+| 1.x     | ⚠️ Security fixes only |
 
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability, please report it responsibly:
 
 1. **Do NOT** open a public GitHub issue
-2. Email: **security@aegis-ngfw.local** (replace with your actual security email)
-3. Include:
+2. Use [GitHub Security Advisories](https://github.com/huynhtrungcip/ageis-gnfw/security/advisories/new) to privately report
+3. Or email: **huynhtrungcip@gmail.com**
+4. Include:
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact
    - Suggested fix (if any)
 
 We will acknowledge receipt within **48 hours** and provide a detailed response within **7 days**.
+
+## Repository
+
+- **GitHub**: [https://github.com/huynhtrungcip/ageis-gnfw](https://github.com/huynhtrungcip/ageis-gnfw)
+- **Issues**: [https://github.com/huynhtrungcip/ageis-gnfw/issues](https://github.com/huynhtrungcip/ageis-gnfw/issues)
 
 ## Security Measures
 
