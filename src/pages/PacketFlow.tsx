@@ -108,7 +108,7 @@ const PacketFlow = () => {
         </div>
       )}
       {highlightedStep === step.id && (
-        <div className="absolute left-full ml-2 top-0 w-48 p-2 bg-gray-900 text-white text-[10px] rounded shadow-lg z-10">
+        <div className="absolute left-full ml-2 top-0 w-48 p-2 bg-white text-[#333] text-[10px] rounded border border-[#ccc] shadow-lg z-10">
           {step.description}
         </div>
       )}

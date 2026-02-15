@@ -168,23 +168,23 @@ interface ImportPreview {
 }
 
 const configSections = [
-  { key: 'system', label: 'System Settings', icon: Settings, color: 'text-slate-400' },
-  { key: 'interfaces', label: 'Network Interfaces', icon: Network, color: 'text-blue-400' },
-  { key: 'firewallRules', label: 'Firewall Rules', icon: Shield, color: 'text-red-400' },
-  { key: 'natRules', label: 'NAT Rules', icon: ArrowRightLeft, color: 'text-emerald-400' },
-  { key: 'aliases', label: 'Aliases', icon: Database, color: 'text-amber-400' },
-  { key: 'services', label: 'Services', icon: Server, color: 'text-purple-400' },
-  { key: 'schedules', label: 'Schedules', icon: Clock, color: 'text-cyan-400' },
-  { key: 'ipPools', label: 'IP Pools', icon: HardDrive, color: 'text-orange-400' },
-  { key: 'vpn', label: 'VPN Configuration', icon: Lock, color: 'text-green-400' },
-  { key: 'dns', label: 'DNS Server', icon: Globe, color: 'text-indigo-400' },
-  { key: 'dhcp', label: 'DHCP Server', icon: Wifi, color: 'text-teal-400' },
-  { key: 'users', label: 'User Accounts', icon: Users, color: 'text-pink-400' },
-  { key: 'ldap', label: 'LDAP Servers', icon: Users, color: 'text-violet-400' },
-  { key: 'certificates', label: 'Certificates', icon: Lock, color: 'text-yellow-400' },
-  { key: 'securityProfiles', label: 'Security Profiles', icon: Shield, color: 'text-rose-400' },
-  { key: 'routing', label: 'Routing', icon: ArrowRightLeft, color: 'text-lime-400' },
-  { key: 'logging', label: 'Logging', icon: History, color: 'text-gray-400' },
+  { key: 'system', label: 'System Settings', icon: Settings, color: 'text-slate-600' },
+  { key: 'interfaces', label: 'Network Interfaces', icon: Network, color: 'text-blue-600' },
+  { key: 'firewallRules', label: 'Firewall Rules', icon: Shield, color: 'text-red-600' },
+  { key: 'natRules', label: 'NAT Rules', icon: ArrowRightLeft, color: 'text-green-600' },
+  { key: 'aliases', label: 'Aliases', icon: Database, color: 'text-amber-600' },
+  { key: 'services', label: 'Services', icon: Server, color: 'text-purple-600' },
+  { key: 'schedules', label: 'Schedules', icon: Clock, color: 'text-cyan-600' },
+  { key: 'ipPools', label: 'IP Pools', icon: HardDrive, color: 'text-orange-600' },
+  { key: 'vpn', label: 'VPN Configuration', icon: Lock, color: 'text-green-700' },
+  { key: 'dns', label: 'DNS Server', icon: Globe, color: 'text-indigo-600' },
+  { key: 'dhcp', label: 'DHCP Server', icon: Wifi, color: 'text-teal-600' },
+  { key: 'users', label: 'User Accounts', icon: Users, color: 'text-pink-600' },
+  { key: 'ldap', label: 'LDAP Servers', icon: Users, color: 'text-violet-600' },
+  { key: 'certificates', label: 'Certificates', icon: Lock, color: 'text-yellow-600' },
+  { key: 'securityProfiles', label: 'Security Profiles', icon: Shield, color: 'text-rose-600' },
+  { key: 'routing', label: 'Routing', icon: ArrowRightLeft, color: 'text-lime-600' },
+  { key: 'logging', label: 'Logging', icon: History, color: 'text-gray-600' },
 ];
 
 const fallbackRecentBackups = [
@@ -783,7 +783,7 @@ const SystemBackup = () => {
           <DialogHeader>
             <DialogTitle>Backup Preview (JSON)</DialogTitle>
           </DialogHeader>
-          <pre className="text-[10px] font-mono bg-[#1e1e1e] text-[#d4d4d4] p-4 rounded-lg overflow-auto max-h-[60vh]">
+          <pre className="text-[10px] font-mono bg-[#f5f5f5] text-[#333] p-4 rounded border border-[#ddd] overflow-auto max-h-[60vh]">
             {previewContent}
           </pre>
         </DialogContent>
