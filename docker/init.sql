@@ -632,6 +632,20 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated, anon;
 -- Allow anon to call authenticate
 GRANT EXECUTE ON FUNCTION public.authenticate(TEXT, TEXT) TO anon;
 
+-- ── Agent write permissions (anon role for local agent without JWT) ──
+-- The agent runs on the host and connects via PostgREST as anon role.
+-- These tables need INSERT/UPDATE so the agent can push metrics and config.
+GRANT INSERT, UPDATE ON public.system_metrics TO anon;
+GRANT INSERT, UPDATE ON public.network_interfaces TO anon;
+GRANT INSERT, UPDATE ON public.threat_events TO anon;
+GRANT INSERT, UPDATE ON public.traffic_stats TO anon;
+GRANT INSERT, UPDATE ON public.firmware_info TO anon;
+GRANT INSERT, UPDATE ON public.config_backups TO anon;
+GRANT INSERT, UPDATE ON public.network_devices TO anon;
+GRANT INSERT, UPDATE ON public.packet_captures TO anon;
+GRANT INSERT, UPDATE ON public.dhcp_leases TO anon;
+GRANT INSERT, UPDATE ON public.ai_analysis TO anon;
+
 -- ── Seed default admin user ──
 -- Password: Admin123! (generated via crypt at init time)
 INSERT INTO public.users (id, email, password_hash, full_name) VALUES

@@ -675,7 +675,36 @@ echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/90-aegis.conf
 sysctl -p /etc/sysctl.d/90-aegis.conf 2>/dev/null || true
 
 echo -e "${GREEN}[8/8]${NC} Saving interface assignment to database..."
+
+# Grant agent write permissions on existing database (for upgrades)
+echo -e "  ${CYAN}Ensuring agent has write permissions on database...${NC}"
+if command -v docker &>/dev/null; then
+  docker exec -i aegis-db psql -U "${POSTGRES_USER:-aegis}" -d "${POSTGRES_DB:-aegis_ngfw}" <<'GRANTS' 2>/dev/null || true
+GRANT INSERT, UPDATE ON public.system_metrics TO anon;
+GRANT INSERT, UPDATE ON public.network_interfaces TO anon;
+GRANT INSERT, UPDATE ON public.threat_events TO anon;
+GRANT INSERT, UPDATE ON public.traffic_stats TO anon;
+GRANT INSERT, UPDATE ON public.firmware_info TO anon;
+GRANT INSERT, UPDATE ON public.config_backups TO anon;
+GRANT INSERT, UPDATE ON public.network_devices TO anon;
+GRANT INSERT, UPDATE ON public.packet_captures TO anon;
+GRANT INSERT, UPDATE ON public.dhcp_leases TO anon;
+GRANT INSERT, UPDATE ON public.ai_analysis TO anon;
+GRANTS
+  echo -e "  ${GREEN}✓${NC} Database permissions updated"
+fi
+
 save_interface_assignment
+
+# Auto-start agent service
+echo -e "\n  ${CYAN}Starting Aegis Agent service...${NC}"
+systemctl enable aegis-agent 2>/dev/null || true
+systemctl restart aegis-agent 2>/dev/null || true
+if systemctl is-active --quiet aegis-agent; then
+  echo -e "  ${GREEN}✓${NC} Agent service started and enabled"
+else
+  echo -e "  ${YELLOW}○${NC} Agent service may need manual start: systemctl start aegis-agent"
+fi
 
 # ════════════════════════════════════════════════════════════
 #  SUMMARY

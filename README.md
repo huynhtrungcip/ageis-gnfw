@@ -347,6 +347,16 @@ Lệnh `--update` sẽ tự động:
 
 ## 📋 Changelog / Release Notes
 
+### v2.4.0 — 2025-02-15
+**🐛 Bug Fixes**
+- Fix agent không ghi được dữ liệu vào database — `anon` role thiếu quyền INSERT/UPDATE
+- Agent installer tự động GRANT quyền ghi cho các bảng agent cần (system_metrics, network_interfaces, traffic_stats, v.v.)
+- Fix "Could not update WAN/LAN/DMZ" khi cài đặt agent
+
+**🔧 Improvements**
+- Agent service tự động enable và start sau khi cài đặt (không cần chạy tay `systemctl enable --now aegis-agent`)
+- Dashboard hiển thị dữ liệu hệ thống ngay sau khi cài đặt
+
 ### v2.3.0 — 2025-02-15
 **🐛 Bug Fixes**
 - Fix NIC detection lấy nhầm index number thay vì tên interface (ens33, ens34...)
