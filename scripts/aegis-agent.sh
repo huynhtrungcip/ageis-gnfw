@@ -1,31 +1,45 @@
 #!/bin/bash
 # ============================================================
 # Aegis NGFW Agent - Ubuntu System Monitor & Firewall Sync
-# Version: 2.0.0 — Full Self-Hosted (No Cloud Dependencies)
+# Version: 3.0.0 — Full Self-Hosted (No Cloud Dependencies)
 # ============================================================
 # Runs on the Ubuntu host, collects real system metrics and
 # pushes them to the local PostgREST API. Also pulls firewall,
-# NAT, routing, traffic shaping, interface, DHCP, and DNS
-# configuration from the DB and applies them to the host.
+# NAT, routing, traffic shaping, interface, DHCP, DNS, IDS,
+# antivirus (ClamAV), web filter (Squid), DNS filter, and
+# application control configuration from the DB and applies
+# them to the host.
 #
 # Usage:
-#   ./aegis-agent.sh daemon       # Run as background service
-#   ./aegis-agent.sh sync         # One-time full rule sync
-#   ./aegis-agent.sh metrics      # Collect & push metrics once
-#   ./aegis-agent.sh status       # Show agent status
-#   ./aegis-agent.sh fetch        # Fetch rules and display
-#   ./aegis-agent.sh backup       # Backup current rules
-#   ./aegis-agent.sh apply-fw     # Apply firewall rules only
-#   ./aegis-agent.sh apply-nat    # Apply NAT rules only
-#   ./aegis-agent.sh apply-routes # Apply routes only
-#   ./aegis-agent.sh apply-tc     # Apply traffic shaping only
-#   ./aegis-agent.sh apply-iface  # Apply interface config only
-#   ./aegis-agent.sh apply-dhcp   # Apply DHCP config only
-#   ./aegis-agent.sh apply-dns    # Apply DNS config only
-#   ./aegis-agent.sh test         # Dry-run (generate but don't apply)
+#   ./aegis-agent.sh daemon         # Run as background service
+#   ./aegis-agent.sh sync           # One-time full config sync
+#   ./aegis-agent.sh metrics        # Collect & push metrics once
+#   ./aegis-agent.sh status         # Show agent status
+#   ./aegis-agent.sh fetch          # Fetch rules and display
+#   ./aegis-agent.sh backup         # Backup current rules
+#   ./aegis-agent.sh apply-fw       # Apply firewall rules only
+#   ./aegis-agent.sh apply-nat      # Apply NAT rules only
+#   ./aegis-agent.sh apply-routes   # Apply static + policy routes
+#   ./aegis-agent.sh apply-tc       # Apply traffic shaping only
+#   ./aegis-agent.sh apply-iface    # Apply interface config only
+#   ./aegis-agent.sh apply-dhcp     # Apply DHCP config only
+#   ./aegis-agent.sh apply-dns      # Apply DNS config only
+#   ./aegis-agent.sh apply-ids      # Apply IDS/IPS (Suricata) rules
+#   ./aegis-agent.sh apply-av       # Apply AntiVirus (ClamAV) config
+#   ./aegis-agent.sh apply-webfilter    # Apply Web Filter (Squid)
+#   ./aegis-agent.sh apply-dnsfilter    # Apply DNS Filter blocklist
+#   ./aegis-agent.sh apply-appcontrol   # Apply Application Control
+#   ./aegis-agent.sh capture-start ID   # Start packet capture
+#   ./aegis-agent.sh capture-stop ID    # Stop packet capture
+#   ./aegis-agent.sh discover       # Network topology discovery
+#   ./aegis-agent.sh firmware-info  # Collect firmware info
+#   ./aegis-agent.sh config-backup  # Create config backup
+#   ./aegis-agent.sh config-restore # Restore config backup
+#   ./aegis-agent.sh test           # Dry-run (generate but don't apply)
 #
 # Required: curl jq bc iproute2 nftables|iptables
 # Optional: suricata strongswan wireguard-tools dnsmasq bind9
+#           clamav clamav-daemon squid squidclamav
 # ============================================================
 
 set -euo pipefail

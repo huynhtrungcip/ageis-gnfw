@@ -6,8 +6,18 @@
 # Usage:
 #   sudo bash install-agent.sh
 #   sudo bash install-agent.sh --api-url http://localhost:8080/api
-#   sudo bash install-agent.sh --with-dhcp --with-ids
-#   sudo bash install-agent.sh --auto  (skip interactive wizard)
+#   sudo bash install-agent.sh --with-dhcp --with-ids --with-av
+#   sudo bash install-agent.sh --full      # Install everything
+#   sudo bash install-agent.sh --auto      # Skip interactive wizard
+#
+# Modules:
+#   --with-dhcp       Install dnsmasq (DHCP + DNS)
+#   --with-dns        Install dnsmasq (DNS)
+#   --with-ids        Install Suricata (IDS/IPS)
+#   --with-vpn        Install StrongSwan + WireGuard
+#   --with-av         Install ClamAV (antivirus)
+#   --with-webfilter  Install Squid (web filter/HTTP proxy)
+#   --full            Install all of the above
 # ============================================================
 
 set -euo pipefail
