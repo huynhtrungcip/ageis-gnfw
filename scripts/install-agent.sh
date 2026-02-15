@@ -83,7 +83,8 @@ detect_nics() {
   # Get all physical network interfaces (exclude lo, docker, veth, br-, virbr)
   local all_ifaces=()
   while IFS= read -r line; do
-    local iface_name=$(echo "$line" | awk '{print $1}' | tr -d ':')
+    # ip -o link show format: "2: ens33: <FLAGS>..." — field 2 is the interface name
+    local iface_name=$(echo "$line" | awk '{print $2}' | tr -d ':')
     # Skip virtual interfaces
     case "$iface_name" in
       lo|docker*|veth*|br-*|virbr*|vnet*|tun*|tap*|wg*) continue ;;

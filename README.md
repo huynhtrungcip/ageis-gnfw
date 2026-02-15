@@ -347,6 +347,11 @@ Lệnh `--update` sẽ tự động:
 
 ## 📋 Changelog / Release Notes
 
+### v2.3.0 — 2025-02-15
+**🐛 Bug Fixes**
+- Fix NIC detection lấy nhầm index number thay vì tên interface (ens33, ens34...)
+- Agent installer giờ nhận đúng card mạng và gán zone chính xác
+
 ### v2.2.0 — 2025-02-15
 **🐛 Bug Fixes**
 - Fix lỗi "JWT secret not configured" khi đăng nhập trên self-hosted deployment
