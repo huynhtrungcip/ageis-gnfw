@@ -151,8 +151,17 @@ export function useVirtualIPs() {
   return useDbQuery('virtual-ips', 'virtual_ips', 'name');
 }
 export function useWildcardFQDNs() {
-  return useDbQuery('wildcard-fqdns', 'wildcard_fqdns', 'name');
+  return useDbQuery('wildcard-fqdns', 'wildcard_fqdns', 'name', undefined, mockWildcardFQDNs);
 }
+
+const mockWildcardFQDNs = [
+  { id: 'wf-1', name: 'Microsoft-365', fqdn: '*.microsoft.com', interface: 'wan1', comment: 'Microsoft cloud services', references_count: 3, visibility: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'wf-2', name: 'Google-Services', fqdn: '*.google.com', interface: 'wan1', comment: 'Google cloud and apps', references_count: 5, visibility: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'wf-3', name: 'AWS-Cloud', fqdn: '*.amazonaws.com', interface: 'wan1', comment: 'Amazon Web Services', references_count: 2, visibility: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'wf-4', name: 'Zoom-Meetings', fqdn: '*.zoom.us', interface: 'wan1', comment: 'Zoom video conferencing', references_count: 1, visibility: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'wf-5', name: 'Slack-Comms', fqdn: '*.slack.com', interface: 'wan1', comment: 'Slack messaging platform', references_count: 1, visibility: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'wf-6', name: 'GitHub-Dev', fqdn: '*.github.com', interface: 'wan1', comment: 'GitHub development platform', references_count: 2, visibility: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+];
 export function useCertificates() {
   return useDbQuery('certificates', 'certificates', 'name');
 }
