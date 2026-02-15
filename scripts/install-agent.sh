@@ -20,6 +20,8 @@ INSTALL_DHCP=false
 INSTALL_DNS=false
 INSTALL_IDS=false
 INSTALL_VPN=false
+INSTALL_AV=false
+INSTALL_WEBFILTER=false
 AUTO_MODE=false
 
 # Parse args
@@ -30,7 +32,9 @@ while [[ $# -gt 0 ]]; do
     --with-dns) INSTALL_DNS=true; shift ;;
     --with-ids) INSTALL_IDS=true; shift ;;
     --with-vpn) INSTALL_VPN=true; shift ;;
-    --full) INSTALL_DHCP=true; INSTALL_DNS=true; INSTALL_IDS=true; INSTALL_VPN=true; shift ;;
+    --with-av) INSTALL_AV=true; shift ;;
+    --with-webfilter) INSTALL_WEBFILTER=true; shift ;;
+    --full) INSTALL_DHCP=true; INSTALL_DNS=true; INSTALL_IDS=true; INSTALL_VPN=true; INSTALL_AV=true; INSTALL_WEBFILTER=true; shift ;;
     --auto) AUTO_MODE=true; shift ;;
     *) shift ;;
   esac
@@ -550,6 +554,32 @@ if [[ "$INSTALL_VPN" == "true" ]]; then
   apt-get install -y -qq strongswan wireguard-tools >/dev/null
 fi
 
+if [[ "$INSTALL_AV" == "true" ]]; then
+  echo "  → Installing ClamAV (antivirus engine)..."
+  apt-get install -y -qq clamav clamav-daemon clamav-freshclam >/dev/null
+  # Stop services — agent will manage them
+  systemctl stop clamav-daemon 2>/dev/null || true
+  systemctl stop clamav-freshclam 2>/dev/null || true
+  # Initial virus database update
+  echo "  → Updating ClamAV virus definitions (this may take a minute)..."
+  freshclam --quiet 2>/dev/null || true
+  # Enable services
+  systemctl enable clamav-freshclam 2>/dev/null || true
+  systemctl enable clamav-daemon 2>/dev/null || true
+  systemctl start clamav-freshclam 2>/dev/null || true
+  systemctl start clamav-daemon 2>/dev/null || true
+  echo -e "  ${GREEN}✓${NC} ClamAV installed and virus definitions updated"
+fi
+
+if [[ "$INSTALL_WEBFILTER" == "true" ]]; then
+  echo "  → Installing Squid (web filter / HTTP proxy)..."
+  apt-get install -y -qq squid squidclamav >/dev/null 2>&1 || \
+    apt-get install -y -qq squid >/dev/null
+  systemctl stop squid 2>/dev/null || true
+  systemctl disable squid 2>/dev/null || true
+  echo -e "  ${GREEN}✓${NC} Squid proxy installed (agent will configure)"
+fi
+
 echo -e "${GREEN}[6/8]${NC} Installing agent..."
 mkdir -p "$AEGIS_DIR"/{rules,backups}
 
@@ -663,7 +693,7 @@ echo ""
 
 # Services status
 echo -e "  ${BOLD}Installed services:${NC}"
-for svc in nftables dnsmasq suricata strongswan wireguard-tools; do
+for svc in nftables dnsmasq suricata strongswan wireguard-tools clamav-daemon squid; do
   if dpkg -l "$svc" &>/dev/null 2>&1; then
     echo -e "    ${GREEN}✓${NC} $svc"
   else

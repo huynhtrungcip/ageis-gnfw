@@ -44,8 +44,14 @@ That's it. Open **http://localhost:8080** → Login with `admin@aegis.local` / `
 3. ✅ Builds and launches the full Docker stack
 4. ✅ Waits for PostgreSQL, PostgREST API, and Nginx to be healthy
 5. ✅ Installs the Aegis Agent on the host for real metrics & rule sync
-6. ✅ Runs 22+ automated tests to verify everything works
-7. ✅ Prints access URLs and credentials
+6. ✅ Installs **all security services** automatically:
+   - **ClamAV** — Antivirus engine + auto virus definition updates
+   - **Squid + squidclamav** — HTTP proxy with AV scanning
+   - **Suricata** — IDS/IPS intrusion detection
+   - **StrongSwan + WireGuard** — VPN tunnels
+   - **dnsmasq** — DHCP & DNS services
+7. ✅ Runs 22+ automated tests to verify everything works
+8. ✅ Prints access URLs and credentials
 
 </details>
 
@@ -89,7 +95,8 @@ That's it. Open **http://localhost:8080** → Login with `admin@aegis.local` / `
 │                      ┌──────────────┴────────┐      │
 │                      │ iptables · nftables   │      │
 │                      │ Suricata · strongSwan │      │
-│                      │ WireGuard             │      │
+│                      │ WireGuard · ClamAV    │      │
+│                      │ Squid · dnsmasq       │      │
 │                      └───────────────────────┘      │
 └─────────────────────────────────────────────────────┘
 ```
@@ -105,6 +112,7 @@ That's it. Open **http://localhost:8080** → Login with `admin@aegis.local` / `
 | **Database** | PostgreSQL 16 — hardened configuration |
 | **Web Server** | Nginx 1.27 — reverse proxy, TLS 1.3, HSTS, CSP, rate limiting |
 | **Agent** | Bash daemon — metrics collection, rule sync, threat monitoring |
+| **Security** | ClamAV (antivirus), Squid (web filter), Suricata (IDS/IPS) |
 | **Container** | Docker & Docker Compose |
 
 ---
@@ -198,9 +206,22 @@ sudo systemctl status aegis-agent
 sudo journalctl -u aegis-agent -f
 ```
 
-**Collects:** CPU, RAM, Disk, Load, Network bandwidth, Suricata alerts, VPN status
+**Collects:** CPU, RAM, Disk, Load, Network bandwidth, Suricata alerts, VPN status, ClamAV scan results
 
-**Enforces:** Firewall rules → iptables, NAT rules, Static routes
+**Enforces:** Firewall rules → iptables/nftables, NAT rules, Static routes, AV profiles → ClamAV, Web filter → Squid
+
+### Selective Installation
+
+The `--full` flag installs everything, but you can pick individual modules:
+
+```bash
+sudo bash scripts/install-agent.sh --with-dhcp --with-dns    # DHCP + DNS only
+sudo bash scripts/install-agent.sh --with-ids                 # Suricata IDS only
+sudo bash scripts/install-agent.sh --with-av                  # ClamAV antivirus only
+sudo bash scripts/install-agent.sh --with-webfilter           # Squid web filter only
+sudo bash scripts/install-agent.sh --with-vpn                 # StrongSwan + WireGuard
+sudo bash scripts/install-agent.sh --full                     # Everything (recommended)
+```
 
 ---
 
