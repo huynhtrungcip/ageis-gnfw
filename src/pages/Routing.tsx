@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
@@ -206,25 +207,11 @@ const Routing = () => {
         </div>
 
         {/* Stats Strip */}
-        <div className="flex items-center gap-4 px-4 py-3 bg-white border-b border-[#ddd]">
-          <div className="flex items-center gap-2">
-            <Router className="w-4 h-4 text-blue-500" />
-            <span className="text-lg font-bold">{routes.filter(r => r.type === 'static').length}</span>
-            <span className="text-[11px] text-[#666]">Static Routes</span>
-          </div>
-          <div className="w-px h-6 bg-[#ddd]" />
-          <div className="flex items-center gap-2">
-            <Network className="w-4 h-4 text-green-500" />
-            <span className="text-lg font-bold">{routes.filter(r => r.type === 'connected').length}</span>
-            <span className="text-[11px] text-[#666]">Connected</span>
-          </div>
-          <div className="w-px h-6 bg-[#ddd]" />
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-amber-500" />
-            <span className="text-lg font-bold">{routes.filter(r => r.enabled).length}</span>
-            <span className="text-[11px] text-[#666]">Active</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { icon: Router, value: routes.filter(r => r.type === 'static').length, label: 'Static Routes', color: 'text-blue-500' },
+          { icon: Network, value: routes.filter(r => r.type === 'connected').length, label: 'Connected', color: 'text-green-500' },
+          { icon: Globe, value: routes.filter(r => r.enabled).length, label: 'Active', color: 'text-amber-500' },
+        ]} />
 
         {/* Filter Tabs */}
         <div className="flex items-center bg-[#e8e8e8] border-b border-[#ccc]">

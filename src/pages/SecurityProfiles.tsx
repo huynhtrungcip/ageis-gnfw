@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { useDemoMode } from '@/contexts/DemoModeContext';
@@ -354,27 +355,12 @@ const SecurityProfiles = () => {
         </div>
 
         {/* Stats Bar */}
-        <div className="flex items-center gap-0 border-x border-[#ddd]">
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Bug size={14} className="text-red-600" />
-            <span className="text-lg font-bold text-red-600">{stats.avProfiles}</span>
-            <span className="text-[11px] text-[#666]">AV Profiles</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Globe size={14} className="text-blue-600" />
-            <span className="text-lg font-bold text-blue-600">{stats.webProfiles}</span>
-            <span className="text-[11px] text-[#666]">Web Filter Profiles</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Shield size={14} className="text-purple-600" />
-            <span className="text-lg font-bold text-purple-600">{stats.ipsEnabled}/{stats.ipsTotal}</span>
-            <span className="text-[11px] text-[#666]">IPS Signatures</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <span className="text-lg font-bold text-orange-600">{stats.critical}</span>
-            <span className="text-[11px] text-[#666]">Critical Signatures</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { icon: Bug, value: stats.avProfiles, label: 'AV Profiles', color: 'text-red-600' },
+          { icon: Globe, value: stats.webProfiles, label: 'Web Filter Profiles', color: 'text-blue-600' },
+          { icon: Shield, value: `${stats.ipsEnabled}/${stats.ipsTotal}`, label: 'IPS Signatures', color: 'text-purple-600' },
+          { value: stats.critical, label: 'Critical Signatures', color: 'text-orange-600' },
+        ]} />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

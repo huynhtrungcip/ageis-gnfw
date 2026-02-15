@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import {
@@ -211,28 +212,12 @@ const ConfigBackup = () => {
         <input ref={fileInputRef} type="file" accept=".json,.xml" onChange={handleFileSelect} className="hidden" />
 
         {/* Stats Bar */}
-        <div className="flex items-center gap-0 border-x border-[#ddd]">
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Shield size={14} className="text-blue-600" />
-            <span className="text-lg font-bold text-blue-600">{configSections.reduce((s, c) => s + c.count, 0)}</span>
-            <span className="text-[11px] text-[#666]">Total Objects</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Check size={14} className="text-green-600" />
-            <span className="text-lg font-bold text-green-600">{selectedCount}</span>
-            <span className="text-[11px] text-[#666]">Selected</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            {exportFormat === 'json' ? <FileJson size={14} className="text-amber-600" /> : <FileCode size={14} className="text-purple-600" />}
-            <span className="text-lg font-bold text-[#333]">{exportFormat.toUpperCase()}</span>
-            <span className="text-[11px] text-[#666]">Format</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <Clock size={14} className="text-gray-500" />
-            <span className="text-lg font-bold text-gray-600">{recentBackups.length}</span>
-            <span className="text-[11px] text-[#666]">Recent Backups</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { icon: Shield, value: configSections.reduce((s, c) => s + c.count, 0), label: 'Total Objects', color: 'text-blue-600' },
+          { icon: Check, value: selectedCount, label: 'Selected', color: 'text-green-600' },
+          { icon: exportFormat === 'json' ? FileJson : FileCode, value: exportFormat.toUpperCase(), label: 'Format', color: exportFormat === 'json' ? 'text-amber-600' : 'text-purple-600' },
+          { icon: Clock, value: recentBackups.length, label: 'Recent Backups', color: 'text-gray-600' },
+        ]} />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
@@ -231,27 +232,12 @@ const Schedules = () => {
         </div>
 
         {/* Stats Strip */}
-        <div className="flex items-center gap-0 border-x border-[#ddd]">
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <span className="text-lg font-bold text-[#333]">{stats.total}</span>
-            <span className="text-[11px] text-[#666]">Total</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-            <span className="text-lg font-bold text-green-600">{stats.enabled}</span>
-            <span className="text-[11px] text-[#666]">Enabled</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#ccc]" />
-            <span className="text-lg font-bold text-[#999]">{stats.disabled}</span>
-            <span className="text-[11px] text-[#666]">Disabled</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <Shield size={14} className="text-blue-600" />
-            <span className="text-lg font-bold text-blue-600">{stats.totalRefs}</span>
-            <span className="text-[11px] text-[#666]">References</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { value: stats.total, label: 'Total' },
+          { iconNode: <div className="w-2.5 h-2.5 rounded-full bg-green-500" />, value: stats.enabled, label: 'Enabled', color: 'text-green-600' },
+          { iconNode: <div className="w-2.5 h-2.5 rounded-full bg-[#ccc]" />, value: stats.disabled, label: 'Disabled', color: 'text-[#999]' },
+          { icon: Shield, value: stats.totalRefs, label: 'References', color: 'text-blue-600' },
+        ]} />
 
         {/* Data Table */}
         <table className="data-table">

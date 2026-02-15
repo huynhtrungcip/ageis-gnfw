@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { useDemoMode } from '@/contexts/DemoModeContext';
@@ -299,31 +300,12 @@ const CertificateManagement = () => {
         </div>
 
         {/* Stats Strip */}
-        <div className="flex items-center gap-4 px-4 py-3 bg-white border-b border-[#ddd]">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[hsl(142,70%,35%)]" />
-            <span className="text-lg font-bold">{stats.total}</span>
-            <span className="text-[11px] text-[#666]">Total Certificates</span>
-          </div>
-          <div className="w-px h-6 bg-[#ddd]" />
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
-            <span className="text-lg font-bold text-green-600">{stats.valid}</span>
-            <span className="text-[11px] text-[#666]">Valid</span>
-          </div>
-          <div className="w-px h-6 bg-[#ddd]" />
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-orange-500" />
-            <span className="text-lg font-bold text-orange-600">{stats.expiring}</span>
-            <span className="text-[11px] text-[#666]">Expiring Soon</span>
-          </div>
-          <div className="w-px h-6 bg-[#ddd]" />
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-500" />
-            <span className="text-lg font-bold text-red-600">{stats.expired}</span>
-            <span className="text-[11px] text-[#666]">Expired</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { icon: Shield, value: stats.total, label: 'Total Certificates', color: 'text-[hsl(142,70%,35%)]' },
+          { icon: CheckCircle2, value: stats.valid, label: 'Valid', color: 'text-green-600' },
+          { icon: Clock, value: stats.expiring, label: 'Expiring Soon', color: 'text-orange-600' },
+          { icon: AlertTriangle, value: stats.expired, label: 'Expired', color: 'text-red-600' },
+        ]} />
 
         {/* Tabs */}
         <div className="flex items-center bg-[#e8e8e8] border-b border-[#ccc]">

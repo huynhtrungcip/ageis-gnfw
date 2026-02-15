@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import {
@@ -331,28 +332,12 @@ const AdminProfiles = () => {
         </div>
 
         {/* Stats Bar */}
-        <div className="flex items-center gap-0 border-x border-[#ddd]">
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Users size={14} className="text-blue-600" />
-            <span className="text-lg font-bold text-blue-600">{stats.total}</span>
-            <span className="text-[11px] text-[#666]">Total</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Shield size={14} className="text-red-600" />
-            <span className="text-lg font-bold text-red-600">{stats.superAdmins}</span>
-            <span className="text-[11px] text-[#666]">Super Admins</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Key size={14} className="text-orange-600" />
-            <span className="text-lg font-bold text-orange-600">{stats.admins}</span>
-            <span className="text-[11px] text-[#666]">Admins</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <Clock size={14} className="text-purple-600" />
-            <span className="text-lg font-bold text-purple-600">{stats.recentLogs}</span>
-            <span className="text-[11px] text-[#666]">Events (24h)</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { icon: Users, value: stats.total, label: 'Total', color: 'text-blue-600' },
+          { icon: Shield, value: stats.superAdmins, label: 'Super Admins', color: 'text-red-600' },
+          { icon: Key, value: stats.admins, label: 'Admins', color: 'text-orange-600' },
+          { icon: Clock, value: stats.recentLogs, label: 'Events (24h)', color: 'text-purple-600' },
+        ]} />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

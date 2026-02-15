@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { useDemoMode } from '@/contexts/DemoModeContext';
@@ -200,33 +201,12 @@ const IDSSettings = () => {
         </div>
 
         {/* Stats Strip */}
-        <div className="action-strip">
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <div className="text-lg font-bold">{stats.total}</div>
-              <div className="text-[10px] text-muted-foreground">Total Signatures</div>
-            </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="text-center">
-              <div className="text-lg font-bold text-green-600">{stats.enabled}</div>
-              <div className="text-[10px] text-muted-foreground">Enabled</div>
-            </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="text-center">
-              <div className="text-lg font-bold text-red-600">{stats.critical}</div>
-              <div className="text-[10px] text-muted-foreground">Critical</div>
-            </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="text-center">
-              <div className="text-lg font-bold text-amber-600">{stats.blocked.toLocaleString()}</div>
-              <div className="text-[10px] text-muted-foreground">Blocked</div>
-            </div>
-          </div>
-          <div className="flex-1" />
-          <div className="text-xs text-muted-foreground">
-            Last updated: {new Date().toLocaleDateString()}
-          </div>
-        </div>
+        <StatsBar items={[
+          { value: stats.total, label: 'Total Signatures' },
+          { value: stats.enabled, label: 'Enabled', color: 'text-green-600' },
+          { value: stats.critical, label: 'Critical', color: 'text-red-600' },
+          { value: stats.blocked.toLocaleString(), label: 'Blocked', color: 'text-amber-600' },
+        ]} />
 
         {/* Filter Bar */}
         <div className="flex items-center gap-3">

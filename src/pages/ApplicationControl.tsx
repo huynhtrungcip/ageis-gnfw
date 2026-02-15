@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
@@ -276,31 +277,12 @@ const ApplicationControl = () => {
         </div>
 
         {/* Stats Strip */}
-        <div className="summary-strip">
-          <div className="summary-item">
-            <Globe size={16} className="text-primary" />
-            <span className="summary-count">{stats.total}</span>
-            <span className="summary-label">Total</span>
-          </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="summary-item">
-            <Eye size={16} className="text-green-600" />
-            <span className="summary-count text-green-600">{stats.allowed}</span>
-            <span className="summary-label">Allowed</span>
-          </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="summary-item">
-            <Activity size={16} className="text-blue-600" />
-            <span className="summary-count text-blue-600">{stats.monitored}</span>
-            <span className="summary-label">Monitored</span>
-          </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="summary-item">
-            <Ban size={16} className="text-red-600" />
-            <span className="summary-count text-red-600">{stats.blocked}</span>
-            <span className="summary-label">Blocked</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { icon: Globe, value: stats.total, label: 'Total', color: 'text-primary' },
+          { icon: Eye, value: stats.allowed, label: 'Allowed', color: 'text-green-600' },
+          { icon: Activity, value: stats.monitored, label: 'Monitored', color: 'text-blue-600' },
+          { icon: Ban, value: stats.blocked, label: 'Blocked', color: 'text-red-600' },
+        ]} />
 
         {/* Filters */}
         <div className="flex items-center gap-3 p-2 bg-muted/30 rounded-lg">

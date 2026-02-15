@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { mockInterfaces } from '@/data/mockData';
 import { useDemoMode } from '@/contexts/DemoModeContext';
@@ -334,30 +335,13 @@ const Interfaces = () => {
         </div>
 
         {/* Stats Bar */}
-        <div className="flex items-center gap-0 border-x border-[#ddd]">
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <span className="text-lg font-bold text-[#333]">{stats.total}</span>
-            <span className="text-[11px] text-[#666]">Total</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-            <span className="text-lg font-bold text-green-600">{stats.up}</span>
-            <span className="text-[11px] text-[#666]">Up</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-            <span className="text-lg font-bold text-red-600">{stats.down}</span>
-            <span className="text-[11px] text-[#666]">Down</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <span className="text-lg font-bold text-blue-600">{stats.wan}</span>
-            <span className="text-[11px] text-[#666]">WAN</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <span className="text-lg font-bold text-purple-600">{stats.lan}</span>
-            <span className="text-[11px] text-[#666]">LAN</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { value: stats.total, label: 'Total' },
+          { iconNode: <div className="w-2.5 h-2.5 rounded-full bg-green-500" />, value: stats.up, label: 'Up', color: 'text-green-600' },
+          { iconNode: <div className="w-2.5 h-2.5 rounded-full bg-red-500" />, value: stats.down, label: 'Down', color: 'text-red-600' },
+          { value: stats.wan, label: 'WAN', color: 'text-blue-600' },
+          { value: stats.lan, label: 'LAN', color: 'text-purple-600' },
+        ]} />
 
         {/* Port Visualization */}
         <div className="bg-white border-x border-b border-[#ddd] py-3 flex justify-center">

@@ -524,6 +524,31 @@
     @apply text-[11px] text-[#666];
   }
 
+  /* FortiGate Stats Bar - Polished */
+  .forti-stats-bar {
+    @apply grid auto-cols-fr grid-flow-col border-x border-b border-[#ddd];
+  }
+
+  .forti-stat-item {
+    @apply flex items-center justify-center gap-2.5 py-3 px-3 bg-gradient-to-b from-white to-[#fafafa] border-r border-[#e5e5e5] last:border-r-0 transition-colors;
+  }
+
+  .forti-stat-item:hover {
+    @apply from-[#f8fdf5] to-[#f0f8ed];
+  }
+
+  .forti-stat-icon-wrap {
+    @apply flex items-center justify-center w-8 h-8 rounded-lg bg-[#f0f0f0]/80 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)];
+  }
+
+  .forti-stat-value {
+    @apply text-xl font-bold tracking-tight leading-none;
+  }
+
+  .forti-stat-label {
+    @apply text-[11px] text-[#777] font-medium leading-none;
+  }
+
   /* Status Dots */
   .status-dot-lg {
     @apply w-3 h-3 rounded-full;

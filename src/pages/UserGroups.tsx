@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StatsBar } from '@/components/ui/stats-bar';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
 import { useDemoMode } from '@/contexts/DemoModeContext';
@@ -195,28 +196,12 @@ const UserGroups = () => {
         </div>
 
         {/* Stats Bar */}
-        <div className="flex items-center gap-0 border-x border-[#ddd]">
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Users size={14} className="text-blue-600" />
-            <span className="text-lg font-bold text-blue-600">{stats.total}</span>
-            <span className="text-[11px] text-[#666]">Total Groups</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <Shield size={14} className="text-blue-500" />
-            <span className="text-lg font-bold text-blue-500">{stats.firewall}</span>
-            <span className="text-[11px] text-[#666]">Firewall</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white border-r border-[#ddd]">
-            <span className="w-2 h-2 rounded-full bg-purple-500" />
-            <span className="text-lg font-bold text-purple-600">{stats.fsso}</span>
-            <span className="text-[11px] text-[#666]">FSSO</span>
-          </div>
-          <div className="flex-1 flex items-center justify-center gap-2 py-2 bg-white">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-lg font-bold text-green-600">{stats.local}</span>
-            <span className="text-[11px] text-[#666]">Local</span>
-          </div>
-        </div>
+        <StatsBar items={[
+          { icon: Users, value: stats.total, label: 'Total Groups', color: 'text-blue-600' },
+          { icon: Shield, value: stats.firewall, label: 'Firewall', color: 'text-blue-500' },
+          { iconNode: <span className="w-2 h-2 rounded-full bg-purple-500" />, value: stats.fsso, label: 'FSSO', color: 'text-purple-600' },
+          { iconNode: <span className="w-2 h-2 rounded-full bg-green-500" />, value: stats.local, label: 'Local', color: 'text-green-600' },
+        ]} />
 
         {/* Table */}
         <table className="data-table">
