@@ -63,10 +63,10 @@ const Reports = () => {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'security': return 'text-red-400 bg-red-500/10';
-      case 'traffic': return 'text-blue-400 bg-blue-500/10';
-      case 'system': return 'text-emerald-400 bg-emerald-500/10';
-      case 'compliance': return 'text-purple-400 bg-purple-500/10';
+      case 'security': return 'text-red-700 bg-red-100';
+      case 'traffic': return 'text-blue-700 bg-blue-100';
+      case 'system': return 'text-green-700 bg-green-100';
+      case 'compliance': return 'text-purple-700 bg-purple-100';
       default: return 'text-muted-foreground bg-muted';
     }
   };
@@ -111,10 +111,10 @@ const Reports = () => {
         {/* Quick Stats */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: 'Total Reports', value: reports.length, icon: BarChart3, color: 'text-blue-400' },
-            { label: 'Ready', value: reports.filter(r => r.status === 'ready').length, icon: FileText, color: 'text-emerald-400' },
-            { label: 'Generating', value: reports.filter(r => r.status === 'generating').length, icon: Clock, color: 'text-amber-400' },
-            { label: 'Scheduled', value: reports.filter(r => r.status === 'scheduled').length, icon: Calendar, color: 'text-purple-400' },
+            { label: 'Total Reports', value: reports.length, icon: BarChart3, color: 'text-blue-600' },
+            { label: 'Ready', value: reports.filter(r => r.status === 'ready').length, icon: FileText, color: 'text-green-600' },
+            { label: 'Generating', value: reports.filter(r => r.status === 'generating').length, icon: Clock, color: 'text-amber-600' },
+            { label: 'Scheduled', value: reports.filter(r => r.status === 'scheduled').length, icon: Calendar, color: 'text-purple-600' },
           ].map((stat, idx) => (
             <div key={idx} className="section p-4">
               <div className="flex items-center gap-3">
@@ -168,8 +168,8 @@ const Reports = () => {
                 </div>
                 <span className={cn(
                   "px-2 py-0.5 text-[10px] font-medium rounded capitalize",
-                  report.status === 'ready' ? "text-emerald-400 bg-emerald-500/10" :
-                  report.status === 'generating' ? "text-amber-400 bg-amber-500/10" :
+                  report.status === 'ready' ? "text-green-700 bg-green-100" :
+                  report.status === 'generating' ? "text-amber-700 bg-amber-100" :
                   "text-muted-foreground bg-muted"
                 )}>
                   {report.status}

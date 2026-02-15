@@ -208,17 +208,17 @@ const IDSSettings = () => {
             </div>
             <div className="h-8 w-px bg-border" />
             <div className="text-center">
-              <div className="text-lg font-bold text-emerald-400">{stats.enabled}</div>
+              <div className="text-lg font-bold text-green-600">{stats.enabled}</div>
               <div className="text-[10px] text-muted-foreground">Enabled</div>
             </div>
             <div className="h-8 w-px bg-border" />
             <div className="text-center">
-              <div className="text-lg font-bold text-red-400">{stats.critical}</div>
+              <div className="text-lg font-bold text-red-600">{stats.critical}</div>
               <div className="text-[10px] text-muted-foreground">Critical</div>
             </div>
             <div className="h-8 w-px bg-border" />
             <div className="text-center">
-              <div className="text-lg font-bold text-amber-400">{stats.blocked.toLocaleString()}</div>
+              <div className="text-lg font-bold text-amber-600">{stats.blocked.toLocaleString()}</div>
               <div className="text-[10px] text-muted-foreground">Blocked</div>
             </div>
           </div>
