@@ -10,7 +10,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/huynhtrungcip/ageis-gnfw"><img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo" /></a>
   <a href="#-quick-start"><img src="https://img.shields.io/badge/deploy-one--click-brightgreen?style=for-the-badge" alt="One-Click Deploy" /></a>
+  <a href="https://github.com/huynhtrungcip/ageis-gnfw/stargazers"><img src="https://img.shields.io/github/stars/huynhtrungcip/ageis-gnfw?style=flat-square" alt="Stars" /></a>
+  <a href="https://github.com/huynhtrungcip/ageis-gnfw/issues"><img src="https://img.shields.io/github/issues/huynhtrungcip/ageis-gnfw?style=flat-square" alt="Issues" /></a>
   <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License" />
   <img src="https://img.shields.io/badge/platform-Ubuntu%2024.04%20LTS-E95420?style=flat-square&logo=ubuntu&logoColor=white" alt="Ubuntu" />
   <img src="https://img.shields.io/badge/docker-compose-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
