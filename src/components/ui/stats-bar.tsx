@@ -20,10 +20,6 @@ export const StatsBar = ({ items, className }: StatsBarProps) => {
     <div className={cn("forti-stats-bar", className)}>
       {items.map((item, index) => (
         <div key={index} className="forti-stat-item">
-          <div className="forti-stat-icon-wrap">
-            {item.icon && <item.icon size={16} className={cn(item.color || "text-primary")} />}
-            {item.iconNode}
-          </div>
           <span className={cn("forti-stat-value", item.color || "text-foreground")}>
             {item.value}
           </span>
