@@ -34,7 +34,7 @@ export function useLatestMetrics() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: shouldMock || !!user,
     refetchInterval: 30000,
   });
 }
@@ -60,7 +60,7 @@ export function useTrafficHistory(hours = 24) {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!user,
+    enabled: shouldMock || !!user,
     refetchInterval: 30000,
   });
 }
@@ -88,7 +88,7 @@ export function useInterfaces() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!user,
+    enabled: shouldMock || !!user,
     refetchInterval: 30000,
   });
 }
@@ -114,7 +114,7 @@ export function useVPN() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!user,
+    enabled: shouldMock || !!user,
     refetchInterval: 30000,
   });
 }
@@ -142,7 +142,7 @@ export function useRecentThreats() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!user,
+    enabled: shouldMock || !!user,
     refetchInterval: 30000,
   });
 }
@@ -170,7 +170,7 @@ export function useLatestAIAnalysis() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: shouldMock || !!user,
     refetchInterval: 60000,
   });
 }
@@ -193,6 +193,6 @@ export function useFirewallStats() {
       const rules = data ?? [];
       return { total: rules.length, active: rules.filter((r: any) => r.enabled).length };
     },
-    enabled: !!user,
+    enabled: shouldMock || !!user,
   });
 }
