@@ -329,7 +329,29 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and contribution gu
 
 ---
 
+## 👨‍💻 Authors & Credits
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/huynhtrungcip">
+        <img src="https://github.com/huynhtrungcip.png" width="100px;" alt="Huỳnh Chí Trung" /><br />
+        <sub><b>Huỳnh Chí Trung</b></sub>
+      </a><br />
+      <sub>💻 Creator & Lead Developer</sub><br />
+      <a href="https://github.com/huynhtrungcip">GitHub</a> · <a href="mailto:huynhtrungcip@gmail.com">Email</a>
+    </td>
+  </tr>
+</table>
+
+> **Aegis NGFW** được phát triển và duy trì bởi [Huỳnh Chí Trung](https://github.com/huynhtrungcip).  
+> Mọi đóng góp đều được chào đón — xem [CONTRIBUTING.md](CONTRIBUTING.md) để bắt đầu.
+
+---
+
 ## 📄 License
+
+Copyright © 2025 **Huỳnh Chí Trung** (huynhtrungcip)
 
 This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
@@ -337,5 +359,6 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
 
 <p align="center">
   <strong>Aegis NGFW</strong> — Enterprise-grade firewall management, fully self-hosted.<br/>
-  No cloud. No subscriptions. Your network, your rules.
+  No cloud. No subscriptions. Your network, your rules.<br/><br/>
+  Made with ❤️ by <a href="https://github.com/huynhtrungcip">Huỳnh Chí Trung</a>
 </p>
