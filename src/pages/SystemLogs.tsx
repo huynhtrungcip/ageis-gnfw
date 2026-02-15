@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 import { 
   Search, 
@@ -169,6 +170,36 @@ const SystemLogs = () => {
     });
   };
 
+  const handleExportLogs = () => {
+    const escapeCSV = (value: string) => {
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+    const csv = ['Timestamp,Severity,Facility,Interface,Source,Message']
+      .concat(filteredLogs.map(log =>
+        [
+          log.timestamp.toISOString(),
+          log.severity,
+          escapeCSV(log.facility),
+          escapeCSV(log.interface),
+          escapeCSV(log.source),
+          escapeCSV(log.message),
+        ].join(',')
+      )).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `system-logs-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filteredLogs.length} log entries to CSV`);
+  };
+
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'emergency':
@@ -218,7 +249,7 @@ const SystemLogs = () => {
               <RefreshCw size={14} />
               Refresh
             </button>
-            <button className="btn btn-outline flex items-center gap-2">
+            <button className="btn btn-outline flex items-center gap-2" onClick={handleExportLogs}>
               <Download size={14} />
               Export
             </button>
