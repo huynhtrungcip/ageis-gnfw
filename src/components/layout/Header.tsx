@@ -344,6 +344,7 @@ export function Header({ sidebarCollapsed = false }: HeaderProps) {
                     <Link 
                       key={alert.id}
                       to={alert.link}
+                      onClick={() => setAlerts(prev => prev.filter(a => a.id !== alert.id))}
                       className="px-3 py-2 hover:bg-[#e8f5e9] border-b border-[#eee] last:border-b-0 flex items-start justify-between cursor-pointer block transition-colors"
                     >
                       <div className="flex items-start gap-2">
