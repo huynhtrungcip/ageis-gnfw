@@ -133,11 +133,27 @@ export function useStaticRoutes() {
   return useDbQuery('static-routes', 'static_routes');
 }
 export function usePolicyRoutes() {
-  return useDbQuery('policy-routes', 'policy_routes', 'seq');
+  return useDbQuery('policy-routes', 'policy_routes', 'seq', undefined, mockPolicyRoutes);
 }
+
+const mockPolicyRoutes = [
+  { id: 'pr-1', seq: 1, incoming: 'internal', source: '10.0.1.0/24', destination: '0.0.0.0/0', protocol: 'any', gateway: '203.0.113.1', out_interface: 'wan1', status: 'enabled', comment: 'Sales VLAN via WAN1', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'pr-2', seq: 2, incoming: 'internal', source: '10.0.2.0/24', destination: '0.0.0.0/0', protocol: 'any', gateway: '203.0.114.1', out_interface: 'wan2', status: 'enabled', comment: 'Engineering VLAN via WAN2', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'pr-3', seq: 3, incoming: 'dmz', source: '172.16.0.0/24', destination: '10.0.0.0/8', protocol: 'TCP', gateway: '192.168.1.1', out_interface: 'internal', status: 'enabled', comment: 'DMZ to internal access', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'pr-4', seq: 4, incoming: 'internal', source: '10.0.3.0/24', destination: '0.0.0.0/0', protocol: 'any', gateway: '203.0.113.1', out_interface: 'wan1', status: 'disabled', comment: 'Guest VLAN (disabled)', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+];
 export function useAliases() {
-  return useDbQuery('aliases', 'aliases', 'name');
+  return useDbQuery('aliases', 'aliases', 'name', undefined, mockAliases);
 }
+
+const mockAliases = [
+  { id: 'a-1', name: 'INTERNAL_SERVERS', type: 'host', values: ['10.0.1.10', '10.0.1.11', '10.0.1.12'], description: 'Internal server farm', usage_count: 5, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a-2', name: 'TRUSTED_NETWORKS', type: 'network', values: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'], description: 'RFC1918 private ranges', usage_count: 12, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a-3', name: 'WEB_PORTS', type: 'port', values: ['80', '443', '8080', '8443'], description: 'Common web service ports', usage_count: 8, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a-4', name: 'DNS_SERVERS', type: 'host', values: ['8.8.8.8', '8.8.4.4', '1.1.1.1'], description: 'Public DNS resolvers', usage_count: 3, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a-5', name: 'MANAGEMENT_NET', type: 'network', values: ['10.0.99.0/24'], description: 'Management VLAN', usage_count: 2, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'a-6', name: 'MAIL_PORTS', type: 'port', values: ['25', '587', '993', '995'], description: 'Email service ports', usage_count: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+];
 export function useServices() {
   return useDbQuery('services', 'services', 'name');
 }

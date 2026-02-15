@@ -68,7 +68,12 @@ const NATConfig = () => {
           <button 
             className="forti-toolbar-btn" 
             disabled={selectedIds.length !== 1}
-            onClick={() => toast.info('Edit functionality - select a rule first')}
+            onClick={() => {
+              const rule = rules.find(r => r.id === selectedIds[0]);
+              if (rule) {
+                toast.success(`Editing rule: ${rule.description || rule.id}`);
+              }
+            }}
           >
             <Edit2 className="w-3 h-3" />
             Edit
@@ -142,9 +147,9 @@ const NATConfig = () => {
               </thead>
               <tbody>
                 {filteredRules.map((rule) => (
-                  <tr key={rule.id} className={cn(!rule.enabled && "opacity-60")}>
+                  <tr key={rule.id} className={cn(!rule.enabled && "opacity-60", selectedIds.includes(rule.id) && "selected")}>
                     <td>
-                      <input type="checkbox" className="forti-checkbox" />
+                      <input type="checkbox" className="forti-checkbox" checked={selectedIds.includes(rule.id)} onChange={() => setSelectedIds(prev => prev.includes(rule.id) ? prev.filter(i => i !== rule.id) : [...prev, rule.id])} />
                     </td>
                     <td>
                       <FortiToggle 
