@@ -633,10 +633,10 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.authenticate(TEXT, TEXT) TO anon;
 
 -- ── Seed default admin user ──
--- Password: Admin123! (bcrypt hash)
+-- Password: Admin123! (generated via crypt at init time)
 INSERT INTO public.users (id, email, password_hash, full_name) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'admin@aegis.local', '$2a$10$PwGnMmH1aQBQwAJPqjrFe.xMSMPG/0QVUKxC6O5Jx6XwVy5KjWjW2', 'Super Admin')
-ON CONFLICT (email) DO NOTHING;
+  ('00000000-0000-0000-0000-000000000001', 'admin@aegis.local', crypt('Admin123!', gen_salt('bf')), 'Super Admin')
+ON CONFLICT (email) DO UPDATE SET password_hash = crypt('Admin123!', gen_salt('bf'));
 
 INSERT INTO public.user_roles (user_id, role) VALUES
   ('00000000-0000-0000-0000-000000000001', 'super_admin')
