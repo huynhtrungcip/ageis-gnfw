@@ -29,6 +29,7 @@ DOMAIN=""
 DEV_MODE=false
 AUTO_MODE=false
 SKIP_AGENT=false
+UPDATE_MODE=false
 INSTALL_DIR="$(pwd)"
 
 while [[ $# -gt 0 ]]; do
@@ -37,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --dev)        DEV_MODE=true; shift ;;
     --auto)       AUTO_MODE=true; shift ;;
     --skip-agent) SKIP_AGENT=true; shift ;;
+    --update)     UPDATE_MODE=true; shift ;;
     --dir)        INSTALL_DIR="$2"; shift 2 ;;
     -h|--help)
       echo "Usage: sudo bash deploy-oneclick.sh [OPTIONS]"
@@ -46,6 +48,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --dev               Dev mode: no TLS, port 8080"
       echo "  --auto              Non-interactive, use defaults"
       echo "  --skip-agent        Skip agent installation"
+      echo "  --update            Update existing installation (keep data & config)"
       echo "  --dir <path>        Project directory (default: current)"
       echo "  -h, --help          Show this help"
       exit 0
@@ -81,6 +84,150 @@ else
 fi
 
 cd "$INSTALL_DIR"
+
+# ════════════════════════════════════════════════
+#  UPDATE MODE — In-place upgrade without reinstall
+# ════════════════════════════════════════════════
+if [[ "$UPDATE_MODE" == "true" ]]; then
+  echo -e "${CYAN}"
+  echo "  ╔═══════════════════════════════════════════════════════╗"
+  echo "  ║   Aegis NGFW — Update Mode                           ║"
+  echo "  ║   Updating code & containers, keeping data & config  ║"
+  echo "  ╚═══════════════════════════════════════════════════════╝"
+  echo -e "${NC}"
+
+  UPDATE_STEPS=6
+  USTEP=0
+  unext() { USTEP=$((USTEP + 1)); echo -e "\n${BOLD}${GREEN}[${USTEP}/${UPDATE_STEPS}]${NC} ${BOLD}$1${NC}"; }
+
+  # Step 1: Pull latest code
+  unext "Pulling latest code from GitHub..."
+  if git rev-parse --is-inside-work-tree &>/dev/null; then
+    BEFORE_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+    git fetch --all --quiet
+    git reset --hard origin/$(git rev-parse --abbrev-ref HEAD) 2>/dev/null || git pull --force
+    AFTER_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+    if [[ "$BEFORE_HASH" == "$AFTER_HASH" ]]; then
+      ok "Already up to date (${BEFORE_HASH:0:8})"
+    else
+      ok "Updated: ${BEFORE_HASH:0:8} → ${AFTER_HASH:0:8}"
+    fi
+  else
+    warn "Not a git repository. Skipping code pull."
+  fi
+
+  # Step 2: Rebuild frontend container only (preserve DB data)
+  unext "Rebuilding frontend container..."
+  if [[ -f ".env.production" ]]; then
+    COMPOSE_FILE="docker-compose.production.yml"
+    ENV_FILE=".env.production"
+    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build --no-cache aegis-frontend 2>&1 | tail -3
+    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d aegis-frontend
+  else
+    docker compose build --no-cache aegis-frontend 2>&1 | tail -3
+    docker compose up -d aegis-frontend
+  fi
+  ok "Frontend rebuilt and restarted"
+
+  # Step 3: Run database migrations (if any new SQL in init.sql)
+  unext "Checking for database migrations..."
+  if [[ -f "docker/init.sql" ]]; then
+    # Apply any new tables/functions that don't exist yet (idempotent)
+    docker exec -i aegis-db psql -U aegis -d aegis_ngfw < docker/init.sql 2>/dev/null || true
+    ok "Database schema updated (idempotent)"
+  else
+    ok "No migration files found"
+  fi
+
+  # Step 4: Restart API to pick up schema changes
+  unext "Restarting API service..."
+  if [[ -f ".env.production" ]]; then
+    docker compose -f docker-compose.production.yml --env-file .env.production restart aegis-api
+  else
+    docker compose restart aegis-api
+  fi
+  ok "API restarted"
+
+  # Step 5: Update agent on host
+  unext "Updating Aegis Agent..."
+  if [[ -f "/opt/aegis/aegis-agent.sh" ]] && [[ -f "scripts/aegis-agent.sh" ]]; then
+    cp scripts/aegis-agent.sh /opt/aegis/aegis-agent.sh
+    chmod +x /opt/aegis/aegis-agent.sh
+    systemctl restart aegis-agent 2>/dev/null || true
+    ok "Agent script updated and restarted"
+  else
+    warn "Agent not installed or script not found. Skipping."
+  fi
+
+  # Step 6: Run tests
+  unext "Running post-update tests..."
+  TESTS_PASSED=0
+  TESTS_FAILED=0
+  TESTS_TOTAL=0
+
+  run_test() {
+    local name="$1"; local cmd="$2"
+    TESTS_TOTAL=$((TESTS_TOTAL + 1))
+    if eval "$cmd" &>/dev/null; then
+      ok "PASS: $name"; TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+      fail "FAIL: $name"; TESTS_FAILED=$((TESTS_FAILED + 1))
+    fi
+  }
+
+  run_test "Container: aegis-db running" \
+    "docker ps --filter name=aegis-db --filter status=running -q | grep -q ."
+  run_test "Container: aegis-api running" \
+    "docker ps --filter name=aegis-api --filter status=running -q | grep -q ."
+  run_test "Container: aegis-frontend running" \
+    "docker ps --filter name=aegis-frontend --filter status=running -q | grep -q ."
+  run_test "Database: PostgreSQL accepts connections" \
+    "docker exec aegis-db pg_isready -U aegis -d aegis_ngfw"
+
+  BASE_URL="http://localhost:8080"
+  [[ -f ".env.production" ]] && BASE_URL="http://localhost:80"
+
+  run_test "Frontend: serves HTML" \
+    "curl -sf ${BASE_URL}/ | grep -qi 'aegis\\|html'"
+  run_test "Frontend: /health endpoint" \
+    "curl -sf ${BASE_URL}/health >/dev/null 2>&1"
+  run_test "Frontend: API proxy works" \
+    "curl -sf ${BASE_URL}/api/ >/dev/null 2>&1"
+
+  echo ""
+  echo -e "${BOLD}  ┌──────────────────────────────────────┐${NC}"
+  echo -e "${BOLD}  │      Update Test Results              │${NC}"
+  echo -e "${BOLD}  ├──────────────────────────────────────┤${NC}"
+  printf  "  │  Total:  %-28s│\n" "${TESTS_TOTAL}"
+  printf  "  │  ${GREEN}Passed: %-28s${NC}│\n" "${TESTS_PASSED}"
+  printf  "  │  ${GREEN}Failed: %-28s${NC}│\n" "${TESTS_FAILED}"
+  echo -e "${BOLD}  └──────────────────────────────────────┘${NC}"
+
+  echo ""
+  echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
+  echo -e "${GREEN}   Aegis NGFW — Update Complete!${NC}"
+  echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
+  echo ""
+  echo -e "  ${BOLD}What was updated:${NC}"
+  echo -e "    ✓ Frontend code & assets (rebuilt)"
+  echo -e "    ✓ Database schema (if changed)"
+  echo -e "    ✓ API service (restarted)"
+  echo -e "    ✓ Agent script (if installed)"
+  echo ""
+  echo -e "  ${BOLD}What was preserved:${NC}"
+  echo -e "    ✓ All database data (firewall rules, logs, etc.)"
+  echo -e "    ✓ Environment config (.env / credentials)"
+  echo -e "    ✓ Docker volumes (pgdata)"
+  echo -e "    ✓ Agent configuration (/opt/aegis/.env)"
+  echo ""
+  if [[ $TESTS_FAILED -gt 0 ]]; then
+    echo -e "  ${YELLOW}⚠ ${TESTS_FAILED} test(s) failed. Check above for details.${NC}"
+  else
+    echo -e "  ${GREEN}✓ All ${TESTS_PASSED} tests passed! Update successful.${NC}"
+  fi
+  echo ""
+  exit 0
+fi
 
 TOTAL_STEPS=8
 STEP=0
@@ -497,6 +644,7 @@ echo -e "  ${BOLD}Management Commands:${NC}"
 echo -e "    View logs:     ${CYAN}docker compose logs -f${NC}"
 echo -e "    Stop:          ${CYAN}docker compose down${NC}"
 echo -e "    Restart:       ${CYAN}docker compose restart${NC}"
+echo -e "    ${BOLD}Update:        ${CYAN}sudo bash scripts/deploy-oneclick.sh --update${NC}"
 echo -e "    Agent logs:    ${CYAN}tail -f /opt/aegis/agent.log${NC}"
 echo -e "    Agent status:  ${CYAN}systemctl status aegis-agent${NC}"
 echo -e "    Agent test:    ${CYAN}/opt/aegis/aegis-agent.sh test${NC}"

@@ -323,6 +323,59 @@ docker compose up -d
 
 ---
 
+## 🔄 Update & Upgrade
+
+Khi có phiên bản mới, bạn **không cần xóa và cài lại** toàn bộ hệ thống. Chỉ cần chạy lệnh update:
+
+```bash
+# Cập nhật từ GitHub và rebuild (giữ nguyên dữ liệu, cấu hình, credentials)
+cd /path/to/ageis-gnfw
+sudo bash scripts/deploy-oneclick.sh --update
+```
+
+Lệnh `--update` sẽ tự động:
+- ✅ Pull code mới nhất từ GitHub
+- ✅ Rebuild frontend container (áp dụng bug fix & tính năng mới)
+- ✅ Chạy database migration nếu có thay đổi schema
+- ✅ Cập nhật agent trên host
+- ✅ **Giữ nguyên** dữ liệu PostgreSQL, file `.env`, credentials
+- ✅ Chạy lại test suite để đảm bảo hệ thống hoạt động
+
+> **⚠️ Lưu ý:** Lệnh update **không** reset mật khẩu, không xóa database, không thay đổi cấu hình `.env`.
+
+---
+
+## 📋 Changelog / Release Notes
+
+### v2.1.0 — 2025-02-15
+**🐛 Bug Fixes**
+- Fix màn hình trắng khi deploy self-hosted (PostgREST URL construction)
+- Loại bỏ dependency Supabase client khỏi app code — dùng PostgREST client thuần
+
+**🔧 Improvements**
+- Thêm lệnh `--update` cho deploy script (cập nhật không cần cài lại)
+- Hỗ trợ relative URL (`/api`) cho `VITE_API_URL` trong Docker
+
+### v2.0.0 — 2025-02-01
+**🚀 Major Release**
+- Kiến trúc self-hosted hoàn toàn (100% no cloud)
+- Docker Compose stack: PostgreSQL + PostgREST + Nginx
+- One-click deploy script cho Ubuntu 24.04 LTS
+- Aegis Agent v3.0: tích hợp nftables, Suricata, ClamAV, Squid, WireGuard
+- Hệ thống xác thực JWT qua PostgREST RPC
+- Dashboard giám sát realtime: CPU, RAM, Disk, Traffic
+- Quản lý Firewall Rules, NAT, VPN, DHCP, DNS
+- AI Security Analysis & Threat Detection
+- Demo mode với mock data
+
+### v1.0.0 — 2025-01-01
+**🎉 Initial Release**
+- Giao diện quản trị NGFW kiểu FortiGate
+- Quản lý firewall rules, interfaces, routing
+- Monitoring & logging cơ bản
+
+---
+
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and contribution guidelines.
