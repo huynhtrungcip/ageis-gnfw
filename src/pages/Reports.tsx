@@ -4,7 +4,7 @@ import { useDemoMode } from '@/contexts/DemoModeContext';
 import { cn } from '@/lib/utils';
 import { 
   BarChart3, Download, Calendar, FileText, Clock,
-  TrendingUp, Shield, Network, Activity
+  TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,7 +30,7 @@ const mockReports: Report[] = [
 
 const Reports = () => {
   const { demoMode } = useDemoMode();
-  const [reports] = useState<Report[]>(demoMode ? mockReports : []);
+  const [reports, setReports] = useState<Report[]>(demoMode ? mockReports : []);
   const [filter, setFilter] = useState<'all' | 'security' | 'traffic' | 'system' | 'compliance'>('all');
   const [timeRange, setTimeRange] = useState('7d');
 
@@ -60,11 +60,44 @@ const Reports = () => {
       toast.error('Report not ready for download');
       return;
     }
-    toast.success(`Downloading ${report.name}...`);
+    // Generate a realistic report file
+    const content = {
+      reportName: report.name,
+      type: report.type,
+      generatedAt: report.lastGenerated?.toISOString(),
+      period: timeRange,
+      summary: `${report.name} — auto-generated report`,
+      data: Array.from({ length: 20 }, (_, i) => ({
+        timestamp: new Date(Date.now() - i * 3600000).toISOString(),
+        metric: Math.round(Math.random() * 1000),
+        status: ['ok', 'warning', 'critical'][Math.floor(Math.random() * 3)],
+      })),
+    };
+    const blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${report.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${report.name}`);
   };
 
   const handleGenerate = (report: Report) => {
-    toast.success(`Generating ${report.name}...`);
+    setReports(prev => prev.map(r =>
+      r.id === report.id ? { ...r, status: 'generating' as const } : r
+    ));
+    toast.info(`Generating ${report.name}...`);
+    setTimeout(() => {
+      setReports(prev => prev.map(r =>
+        r.id === report.id
+          ? { ...r, status: 'ready' as const, lastGenerated: new Date(), size: `${(Math.random() * 10 + 1).toFixed(1)} MB` }
+          : r
+      ));
+      toast.success(`${report.name} is ready`);
+    }, 2500);
   };
 
   const stats = [

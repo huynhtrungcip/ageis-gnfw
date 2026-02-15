@@ -190,8 +190,17 @@ export function useTrafficShapers() {
   return useDbQuery('traffic-shapers', 'traffic_shapers', 'name');
 }
 export function useTrafficShapingPolicies() {
-  return useDbQuery('traffic-shaping-policies', 'traffic_shaping_policies', 'name');
+  return useDbQuery('traffic-shaping-policies', 'traffic_shaping_policies', 'name', undefined, mockTrafficShapingPolicies);
 }
+
+const mockTrafficShapingPolicies = [
+  { id: 'tsp-1', name: 'Limit-YouTube', src_interface: 'LAN (port1)', dst_interface: 'WAN1 (wan1)', source: 'all', destination: 'all', service: 'ALL', application: 'YouTube', traffic_shaper: 'high-priority', reverse_shaper: '', per_ip_shaper: 'per-ip-1mbps', enabled: true, matches: 245890, bytes: 52428800000 },
+  { id: 'tsp-2', name: 'VoIP-Priority', src_interface: 'LAN (port1)', dst_interface: 'WAN1 (wan1)', source: '10.0.1.0/24', destination: 'all', service: 'SIP', application: 'VoIP', traffic_shaper: 'voip-shaper', reverse_shaper: 'voip-shaper', per_ip_shaper: '', enabled: true, matches: 89234, bytes: 1073741824 },
+  { id: 'tsp-3', name: 'Guest-Throttle', src_interface: 'Guest (port3)', dst_interface: 'WAN1 (wan1)', source: '10.0.3.0/24', destination: 'all', service: 'ALL', application: 'ALL', traffic_shaper: 'guest-limit', reverse_shaper: 'guest-limit', per_ip_shaper: 'per-ip-512kbps', enabled: true, matches: 567123, bytes: 10737418240 },
+  { id: 'tsp-4', name: 'Block-Torrents', src_interface: 'LAN (port1)', dst_interface: 'WAN1 (wan1)', source: 'all', destination: 'all', service: 'ALL', application: 'BitTorrent', traffic_shaper: 'block-shaper', reverse_shaper: '', per_ip_shaper: '', enabled: true, matches: 12045, bytes: 536870912 },
+  { id: 'tsp-5', name: 'Office365-QoS', src_interface: 'LAN (port1)', dst_interface: 'WAN1 (wan1)', source: 'all', destination: 'all', service: 'HTTPS', application: 'Office365', traffic_shaper: 'high-priority', reverse_shaper: 'high-priority', per_ip_shaper: '', enabled: true, matches: 432100, bytes: 21474836480 },
+  { id: 'tsp-6', name: 'Social-Media-Limit', src_interface: 'LAN (port1)', dst_interface: 'WAN1 (wan1)', source: 'all', destination: 'all', service: 'HTTPS', application: 'Facebook', traffic_shaper: 'low-priority', reverse_shaper: '', per_ip_shaper: 'per-ip-256kbps', enabled: false, matches: 78900, bytes: 3221225472 },
+];
 
 // ── Metrics ─────────────────────────────────────
 export function useSystemMetrics(count = 1) {
