@@ -1,41 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Shell } from '@/components/layout/Shell';
 import { useDemoMode } from '@/contexts/DemoModeContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Activity, 
-  ArrowDown, 
-  ArrowUp, 
-  Globe, 
-  Monitor, 
-  RefreshCw,
-  Pause,
-  Play,
-  Download
+  Activity, ArrowDown, ArrowUp, Globe, Monitor,
+  Pause, Play, Download
 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
+import { toast } from 'sonner';
 
-// Generate real-time bandwidth data
 const generateBandwidthData = () => {
   const now = new Date();
   return Array.from({ length: 30 }, (_, i) => {
@@ -48,7 +23,6 @@ const generateBandwidthData = () => {
   });
 };
 
-// Top talkers data
 const generateTopTalkers = () => [
   { ip: '192.168.1.105', hostname: 'workstation-01', inbound: 2458, outbound: 1823, connections: 145, country: 'US' },
   { ip: '192.168.1.42', hostname: 'server-db-01', inbound: 1956, outbound: 3421, connections: 89, country: 'US' },
@@ -60,7 +34,6 @@ const generateTopTalkers = () => [
   { ip: '192.168.1.67', hostname: 'guest-laptop', inbound: 723, outbound: 234, connections: 45, country: 'FR' },
 ];
 
-// Protocol distribution data
 const protocolData = [
   { name: 'HTTPS', value: 45, color: '#2e9e5e' },
   { name: 'HTTP', value: 15, color: '#3b82f6' },
@@ -70,7 +43,6 @@ const protocolData = [
   { name: 'Other', value: 10, color: '#94a3b8' },
 ];
 
-// Port distribution data
 const portData = [
   { port: '443', protocol: 'HTTPS', traffic: 4521, percentage: 45 },
   { port: '80', protocol: 'HTTP', traffic: 1502, percentage: 15 },
@@ -82,7 +54,6 @@ const portData = [
   { port: 'Other', protocol: 'Various', traffic: 201, percentage: 2 },
 ];
 
-// Geographic distribution
 const geoData = [
   { country: 'United States', code: 'US', traffic: 4521, percentage: 42 },
   { country: 'Germany', code: 'DE', traffic: 1823, percentage: 17 },
@@ -94,6 +65,8 @@ const geoData = [
   { country: 'Other', code: 'XX', traffic: 534, percentage: 5 },
 ];
 
+const CHART_COLORS = ['#2e9e5e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#94a3b8'];
+
 const TrafficAnalysis = () => {
   const { demoMode } = useDemoMode();
   const [bandwidthData, setBandwidthData] = useState(demoMode ? generateBandwidthData() : []);
@@ -101,11 +74,10 @@ const TrafficAnalysis = () => {
   const [isLive, setIsLive] = useState(true);
   const [timeRange, setTimeRange] = useState('1h');
   const [selectedInterface, setSelectedInterface] = useState('all');
+  const [activeTab, setActiveTab] = useState<'talkers' | 'protocols' | 'ports' | 'geo'>('talkers');
 
-  // Real-time update effect
   useEffect(() => {
     if (!isLive || !demoMode) return;
-
     const interval = setInterval(() => {
       setBandwidthData(prev => {
         const now = new Date();
@@ -116,10 +88,8 @@ const TrafficAnalysis = () => {
         };
         return [...prev.slice(1), newPoint];
       });
-
-      // Occasionally update top talkers
       if (Math.random() > 0.7) {
-        setTopTalkers(prev => 
+        setTopTalkers(prev =>
           prev.map(t => ({
             ...t,
             inbound: t.inbound + Math.floor(Math.random() * 100 - 50),
@@ -129,451 +99,352 @@ const TrafficAnalysis = () => {
         );
       }
     }, 2000);
-
     return () => clearInterval(interval);
-  }, [isLive]);
+  }, [isLive, demoMode]);
 
   const totalInbound = bandwidthData.reduce((sum, d) => sum + d.inbound, 0);
   const totalOutbound = bandwidthData.reduce((sum, d) => sum + d.outbound, 0);
-  const avgInbound = Math.round(totalInbound / bandwidthData.length);
-  const avgOutbound = Math.round(totalOutbound / bandwidthData.length);
+  const avgInbound = bandwidthData.length ? Math.round(totalInbound / bandwidthData.length) : 0;
+  const avgOutbound = bandwidthData.length ? Math.round(totalOutbound / bandwidthData.length) : 0;
+
+  const handleExport = () => {
+    const csvRows = ['Time,Inbound (Mbps),Outbound (Mbps)'];
+    bandwidthData.forEach(d => csvRows.push(`${d.time},${d.inbound},${d.outbound}`));
+    csvRows.push('', 'Protocol,Traffic %');
+    protocolData.forEach(p => csvRows.push(`${p.name},${p.value}`));
+    csvRows.push('', 'Country,Code,Traffic (MB),Percentage');
+    geoData.forEach(g => csvRows.push(`${g.country},${g.code},${g.traffic},${g.percentage}%`));
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `traffic-analysis-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Traffic data exported');
+  };
+
+  const tabs = [
+    { key: 'talkers' as const, label: 'Top Talkers' },
+    { key: 'protocols' as const, label: 'Protocols' },
+    { key: 'ports' as const, label: 'Ports' },
+    { key: 'geo' as const, label: 'Geographic' },
+  ];
 
   return (
     <Shell>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Traffic Analysis</h1>
-            <p className="text-sm text-muted-foreground">Real-time network traffic monitoring and analysis</p>
-          </div>
+      <div className="space-y-3">
+        {/* Page Header */}
+        <div className="section-header-neutral">
           <div className="flex items-center gap-2">
-            <Select value={selectedInterface} onValueChange={setSelectedInterface}>
-              <SelectTrigger className="w-32 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Interfaces</SelectItem>
-                <SelectItem value="wan">WAN</SelectItem>
-                <SelectItem value="lan">LAN</SelectItem>
-                <SelectItem value="dmz">DMZ</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-24 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5m">5 min</SelectItem>
-                <SelectItem value="15m">15 min</SelectItem>
-                <SelectItem value="1h">1 hour</SelectItem>
-                <SelectItem value="24h">24 hours</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant={isLive ? "default" : "outline"}
-              size="sm"
-              onClick={() => setIsLive(!isLive)}
-              className="h-8"
-            >
-              {isLive ? <Pause size={14} className="mr-1" /> : <Play size={14} className="mr-1" />}
-              {isLive ? 'Pause' : 'Resume'}
-            </Button>
-            <Button variant="outline" size="sm" className="h-8" onClick={() => {
-              const csvRows = ['Time,Inbound (Mbps),Outbound (Mbps)'];
-              bandwidthData.forEach(d => csvRows.push(`${d.time},${d.inbound},${d.outbound}`));
-              csvRows.push('', 'Protocol,Traffic %');
-              protocolData.forEach(p => csvRows.push(`${p.name},${p.value}`));
-              csvRows.push('', 'Country,Code,Traffic (MB),Percentage');
-              geoData.forEach(g => csvRows.push(`${g.country},${g.code},${g.traffic},${g.percentage}%`));
-              const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `traffic-analysis-${new Date().toISOString().split('T')[0]}.csv`;
-              a.click();
-              URL.revokeObjectURL(url);
-              import('sonner').then(m => m.toast.success('Traffic data exported'));
-            }}>
-              <Download size={14} className="mr-1" />
-              Export
-            </Button>
+            <Activity size={14} />
+            <span>Traffic Analysis</span>
           </div>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-4 gap-3">
-          <Card className="bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Current Inbound</p>
-                  <p className="text-2xl font-bold text-foreground">{bandwidthData[bandwidthData.length - 1]?.inbound || 0}</p>
-                  <p className="text-xs text-muted-foreground">Mbps</p>
-                </div>
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <ArrowDown className="text-green-500" size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Current Outbound</p>
-                  <p className="text-2xl font-bold text-foreground">{bandwidthData[bandwidthData.length - 1]?.outbound || 0}</p>
-                  <p className="text-xs text-muted-foreground">Mbps</p>
-                </div>
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <ArrowUp className="text-blue-500" size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Avg Inbound</p>
-                  <p className="text-2xl font-bold text-foreground">{avgInbound}</p>
-                  <p className="text-xs text-muted-foreground">Mbps</p>
-                </div>
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Activity className="text-primary" size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Active Connections</p>
-                  <p className="text-2xl font-bold text-foreground">{topTalkers.reduce((sum, t) => sum + t.connections, 0)}</p>
-                  <p className="text-xs text-muted-foreground">sessions</p>
-                </div>
-                <div className="p-2 bg-orange-500/10 rounded-lg">
-                  <Monitor className="text-orange-500" size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Toolbar */}
+        <div className="forti-toolbar">
+          <span className="forti-label-inline mr-1">Interface:</span>
+          <select
+            className="forti-select w-28"
+            value={selectedInterface}
+            onChange={e => setSelectedInterface(e.target.value)}
+          >
+            <option value="all">All Interfaces</option>
+            <option value="wan">WAN</option>
+            <option value="lan">LAN</option>
+            <option value="dmz">DMZ</option>
+          </select>
+          <div className="forti-toolbar-separator" />
+          <span className="forti-label-inline mr-1">Period:</span>
+          <select
+            className="forti-select w-20"
+            value={timeRange}
+            onChange={e => setTimeRange(e.target.value)}
+          >
+            <option value="5m">5 min</option>
+            <option value="15m">15 min</option>
+            <option value="1h">1 hour</option>
+            <option value="24h">24 hours</option>
+          </select>
+          <div className="forti-toolbar-separator" />
+          <button
+            className={`forti-toolbar-btn ${isLive ? 'primary' : ''}`}
+            onClick={() => setIsLive(!isLive)}
+          >
+            {isLive ? <Pause size={12} /> : <Play size={12} />}
+            {isLive ? 'Pause' : 'Resume'}
+          </button>
+          <button className="forti-toolbar-btn" onClick={handleExport}>
+            <Download size={12} />
+            Export
+          </button>
+        </div>
+
+        {/* Summary Strip */}
+        <div className="summary-strip">
+          <div className="summary-item">
+            <ArrowDown size={16} className="text-green-600" />
+            <div>
+              <div className="summary-count text-green-700">{bandwidthData[bandwidthData.length - 1]?.inbound || 0}</div>
+              <div className="summary-label">Inbound (Mbps)</div>
+            </div>
+          </div>
+          <div className="forti-toolbar-separator h-8" />
+          <div className="summary-item">
+            <ArrowUp size={16} className="text-blue-600" />
+            <div>
+              <div className="summary-count text-blue-700">{bandwidthData[bandwidthData.length - 1]?.outbound || 0}</div>
+              <div className="summary-label">Outbound (Mbps)</div>
+            </div>
+          </div>
+          <div className="forti-toolbar-separator h-8" />
+          <div className="summary-item">
+            <Activity size={16} className="text-[hsl(var(--forti-green))]" />
+            <div>
+              <div className="summary-count">{avgInbound} / {avgOutbound}</div>
+              <div className="summary-label">Avg In / Out</div>
+            </div>
+          </div>
+          <div className="forti-toolbar-separator h-8" />
+          <div className="summary-item">
+            <Monitor size={16} className="text-orange-600" />
+            <div>
+              <div className="summary-count text-orange-700">{topTalkers.reduce((sum, t) => sum + t.connections, 0)}</div>
+              <div className="summary-label">Active Sessions</div>
+            </div>
+          </div>
         </div>
 
         {/* Bandwidth Chart */}
-        <Card>
-          <CardHeader className="py-3 px-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Activity size={16} className="text-primary" />
-                Real-time Bandwidth
-                {isLive && (
-                  <Badge variant="outline" className="text-green-500 border-green-500/30 text-xs">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse" />
-                    LIVE
-                  </Badge>
-                )}
-              </CardTitle>
+        <div className="section">
+          <div className="section-header">
+            <div className="flex items-center gap-2">
+              <Activity size={12} />
+              <span>Real-time Bandwidth</span>
+              {isLive && (
+                <span className="inline-flex items-center gap-1 text-[10px] bg-white/20 px-1.5 py-0.5 rounded">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                  LIVE
+                </span>
+              )}
             </div>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <ResponsiveContainer width="100%" height={250}>
+          </div>
+          <div className="section-body">
+            <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={bandwidthData}>
                 <defs>
-                  <linearGradient id="inboundGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                  <linearGradient id="inboundGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2e9e5e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#2e9e5e" stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="outboundGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                  <linearGradient id="outboundGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="time" 
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <YAxis 
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                  tickFormatter={(value) => `${value}`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                  }}
-                  labelStyle={{ color: 'hsl(var(--foreground))' }}
-                />
-                <Legend />
-                <Area
-                  type="monotone"
-                  dataKey="inbound"
-                  name="Inbound (Mbps)"
-                  stroke="hsl(var(--chart-1))"
-                  fill="url(#inboundGradient)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="outbound"
-                  name="Outbound (Mbps)"
-                  stroke="hsl(var(--chart-2))"
-                  fill="url(#outboundGradient)"
-                  strokeWidth={2}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
+                <XAxis dataKey="time" tick={{ fill: '#666', fontSize: 10 }} axisLine={{ stroke: '#ccc' }} />
+                <YAxis tick={{ fill: '#666', fontSize: 10 }} axisLine={{ stroke: '#ccc' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', fontSize: '11px' }} />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
+                <Area type="monotone" dataKey="inbound" name="Inbound (Mbps)" stroke="#2e9e5e" fill="url(#inboundGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="outbound" name="Outbound (Mbps)" stroke="#3b82f6" fill="url(#outboundGrad)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Tabs for different views */}
-        <Tabs defaultValue="talkers" className="w-full">
-          <TabsList className="bg-muted/50">
-            <TabsTrigger value="talkers" className="text-xs">Top Talkers</TabsTrigger>
-            <TabsTrigger value="protocols" className="text-xs">Protocols</TabsTrigger>
-            <TabsTrigger value="ports" className="text-xs">Ports</TabsTrigger>
-            <TabsTrigger value="geo" className="text-xs">Geographic</TabsTrigger>
-          </TabsList>
+        {/* Tab Navigation */}
+        <div className="forti-view-toggle">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              className={`forti-view-btn ${activeTab === tab.key ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-          {/* Top Talkers */}
-          <TabsContent value="talkers" className="mt-3">
-            <Card>
-              <CardHeader className="py-3 px-4">
-                <CardTitle className="text-sm font-medium">Top Network Talkers</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="space-y-2">
-                  {topTalkers.map((talker, index) => (
-                    <div
-                      key={talker.ip}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary text-xs font-bold rounded">
-                          {index + 1}
-                        </span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm text-foreground">{talker.hostname}</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">{talker.country}</Badge>
-                          </div>
-                          <span className="text-xs text-muted-foreground font-mono">{talker.ip}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6 text-xs">
-                        <div className="text-right">
-                          <div className="flex items-center gap-1 text-green-500">
-                            <ArrowDown size={12} />
-                            <span>{talker.inbound} MB</span>
-                          </div>
-                          <span className="text-muted-foreground">Inbound</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="flex items-center gap-1 text-blue-500">
-                            <ArrowUp size={12} />
-                            <span>{talker.outbound} MB</span>
-                          </div>
-                          <span className="text-muted-foreground">Outbound</span>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-foreground font-medium">{talker.connections}</div>
-                          <span className="text-muted-foreground">Connections</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Protocol Distribution */}
-          <TabsContent value="protocols" className="mt-3">
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-sm font-medium">Protocol Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={protocolData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {protocolData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--popover))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                        }}
-                        formatter={(value: number) => [`${value}%`, 'Traffic']}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-sm font-medium">Protocol Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="space-y-3">
-                    {protocolData.map((protocol) => (
-                      <div key={protocol.name} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-foreground">{protocol.name}</span>
-                          <span className="text-muted-foreground">{protocol.value}%</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${protocol.value}%`,
-                              backgroundColor: protocol.color,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+        {/* Top Talkers */}
+        {activeTab === 'talkers' && (
+          <div className="section">
+            <div className="section-header">
+              <span>Top Network Talkers</span>
             </div>
-          </TabsContent>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Host</th>
+                  <th>IP Address</th>
+                  <th>Country</th>
+                  <th>Inbound (MB)</th>
+                  <th>Outbound (MB)</th>
+                  <th>Connections</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topTalkers.map((t, i) => (
+                  <tr key={t.ip}>
+                    <td className="text-center font-semibold">{i + 1}</td>
+                    <td className="font-medium">{t.hostname}</td>
+                    <td className="mono">{t.ip}</td>
+                    <td>
+                      <span className="forti-tag enabled">{t.country}</span>
+                    </td>
+                    <td className="text-green-700 font-medium">{t.inbound.toLocaleString()}</td>
+                    <td className="text-blue-700 font-medium">{t.outbound.toLocaleString()}</td>
+                    <td>{t.connections}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-          {/* Port Distribution */}
-          <TabsContent value="ports" className="mt-3">
-            <Card>
-              <CardHeader className="py-3 px-4">
-                <CardTitle className="text-sm font-medium">Traffic by Port</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={portData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      type="number"
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
-                    />
-                    <YAxis 
-                      dataKey="port"
-                      type="category"
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                      axisLine={{ stroke: 'hsl(var(--border))' }}
-                      width={60}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'hsl(var(--popover))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                      }}
-                      formatter={(value: number, name: string) => [
-                        `${value} MB`,
-                        name === 'traffic' ? 'Traffic' : name
-                      ]}
-                    />
-                    <Bar 
-                      dataKey="traffic" 
-                      fill="hsl(var(--primary))" 
-                      radius={[0, 4, 4, 0]}
-                    />
-                  </BarChart>
+        {/* Protocols */}
+        {activeTab === 'protocols' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="section">
+              <div className="section-header">
+                <span>Protocol Distribution</span>
+              </div>
+              <div className="section-body">
+                <ResponsiveContainer width="100%" height={240}>
+                  <PieChart>
+                    <Pie
+                      data={protocolData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={90}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {protocolData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', fontSize: '11px' }} formatter={(v: number) => [`${v}%`, 'Traffic']} />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  </PieChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Geographic Distribution */}
-          <TabsContent value="geo" className="mt-3">
-            <Card>
-              <CardHeader className="py-3 px-4">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Globe size={16} className="text-primary" />
-                  Traffic by Country
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    {geoData.map((geo, index) => (
-                      <div
-                        key={geo.code}
-                        className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary text-xs font-bold rounded">
-                            {index + 1}
-                          </span>
-                          <div>
-                            <span className="font-medium text-sm text-foreground">{geo.country}</span>
-                            <Badge variant="outline" className="ml-2 text-[10px] px-1.5 py-0">{geo.code}</Badge>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-foreground">{geo.traffic} MB</div>
-                          <div className="text-xs text-muted-foreground">{geo.percentage}%</div>
-                        </div>
-                      </div>
-                    ))}
+              </div>
+            </div>
+            <div className="section">
+              <div className="section-header">
+                <span>Protocol Breakdown</span>
+              </div>
+              <div className="section-body space-y-2">
+                {protocolData.map((p) => (
+                  <div key={p.name}>
+                    <div className="flex items-center justify-between text-[11px] mb-0.5">
+                      <span className="text-[hsl(var(--forti-text))]">{p.name}</span>
+                      <span className="text-[hsl(var(--forti-text-secondary))]">{p.value}%</span>
+                    </div>
+                    <div className="forti-progress">
+                      <div className="forti-progress-bar" style={{ width: `${p.value}%`, backgroundColor: p.color }} />
+                    </div>
                   </div>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={geoData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        dataKey="percentage"
-                        label={({ code, percentage }) => `${code}: ${percentage}%`}
-                        labelLine={false}
-                      >
-                        {geoData.map((_, index) => {
-                          const geoColors = ['#2e9e5e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#94a3b8'];
-                          return (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={geoColors[index % geoColors.length]} 
-                            />
-                          );
-                        })}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'hsl(var(--popover))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                        }}
-                        formatter={(value: number) => [`${value}%`, 'Traffic']}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Ports */}
+        {activeTab === 'ports' && (
+          <div className="section">
+            <div className="section-header">
+              <span>Traffic by Port</span>
+            </div>
+            <div className="section-body">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={portData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
+                  <XAxis type="number" tick={{ fill: '#666', fontSize: 10 }} axisLine={{ stroke: '#ccc' }} />
+                  <YAxis dataKey="port" type="category" tick={{ fill: '#666', fontSize: 10 }} axisLine={{ stroke: '#ccc' }} width={60} />
+                  <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', fontSize: '11px' }} formatter={(v: number) => [`${v} MB`, 'Traffic']} />
+                  <Bar dataKey="traffic" fill="hsl(var(--forti-green))" radius={[0, 2, 2, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Geographic */}
+        {activeTab === 'geo' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="section">
+              <div className="section-header">
+                <div className="flex items-center gap-2">
+                  <Globe size={12} />
+                  <span>Traffic by Country</span>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Country</th>
+                    <th>Code</th>
+                    <th>Traffic (MB)</th>
+                    <th>Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {geoData.map((g, i) => (
+                    <tr key={g.code}>
+                      <td className="text-center font-semibold">{i + 1}</td>
+                      <td className="font-medium">{g.country}</td>
+                      <td><span className="forti-tag enabled">{g.code}</span></td>
+                      <td>{g.traffic.toLocaleString()}</td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="forti-progress flex-1">
+                            <div className="forti-progress-bar" style={{ width: `${g.percentage}%`, backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                          </div>
+                          <span className="text-[11px] w-8 text-right">{g.percentage}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="section">
+              <div className="section-header">
+                <span>Distribution Chart</span>
+              </div>
+              <div className="section-body">
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={geoData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={95}
+                      paddingAngle={2}
+                      dataKey="percentage"
+                      label={({ code, percentage }) => `${code}: ${percentage}%`}
+                      labelLine={false}
+                    >
+                      {geoData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', fontSize: '11px' }} formatter={(v: number) => [`${v}%`, 'Traffic']} />
+                    <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Shell>
   );
