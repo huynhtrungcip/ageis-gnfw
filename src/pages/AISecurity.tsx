@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 
 // Generate anomaly trend data
-const anomalyTrendData = Array.from({ length: 24 }, (_, i) => ({
+const generateAnomalyTrend = () => Array.from({ length: 24 }, (_, i) => ({
   time: `${String(i).padStart(2, '0')}:00`,
   anomalies: Math.floor(Math.random() * 8 + 2),
   blocked: Math.floor(Math.random() * 25 + 10),
@@ -21,7 +21,7 @@ const anomalyTrendData = Array.from({ length: 24 }, (_, i) => ({
 }));
 
 // Threat category distribution
-const categoryData = [
+const mockCategoryData = [
   { name: 'Intrusion', value: 35, color: '#ef4444' },
   { name: 'Malware', value: 25, color: '#f59e0b' },
   { name: 'Policy Violation', value: 20, color: '#3b82f6' },
@@ -30,17 +30,25 @@ const categoryData = [
 ];
 
 // AI model performance
-const modelPerformanceData = [
+const mockModelPerformance = [
   { metric: 'Accuracy', value: 97.3 },
   { metric: 'Precision', value: 95.8 },
   { metric: 'Recall', value: 94.2 },
   { metric: 'F1 Score', value: 95.0 },
 ];
 
+const emptyTrend = Array.from({ length: 24 }, (_, i) => ({
+  time: `${String(i).padStart(2, '0')}:00`,
+  anomalies: 0, blocked: 0, allowed: 0,
+}));
+
 const AISecurity = () => {
   const { demoMode } = useDemoMode();
   const analysis = demoMode ? mockAIAnalysis : null;
   const threats = demoMode ? mockThreats : [];
+  const anomalyTrendData = demoMode ? generateAnomalyTrend() : emptyTrend;
+  const categoryData = demoMode ? mockCategoryData : [];
+  const modelPerformanceData = demoMode ? mockModelPerformance : [];
   const anomaliesDetected = analysis?.anomaliesDetected ?? 0;
   const threatsBlocked = analysis?.threatsBlocked ?? 0;
   const riskScore = analysis?.riskScore ?? 0;
