@@ -347,6 +347,17 @@ Lệnh `--update` sẽ tự động:
 
 ## 📋 Changelog / Release Notes
 
+### v2.2.0 — 2025-02-15
+**🐛 Bug Fixes**
+- Fix lỗi "JWT secret not configured" khi đăng nhập trên self-hosted deployment
+- Truyền `app.jwt_secret` vào PostgreSQL qua docker-compose command args
+- Fix bcrypt hash mặc định không khớp — dùng `crypt()` runtime thay vì hardcode hash
+- Fix cả dev và production Docker Compose
+
+**🔧 Improvements**
+- Password admin được tạo động bằng `crypt()` + `gen_salt('bf')` trong init.sql
+- `ON CONFLICT DO UPDATE` để tự reset password khi re-init database
+
 ### v2.1.0 — 2025-02-15
 **🐛 Bug Fixes**
 - Fix màn hình trắng khi deploy self-hosted (PostgREST URL construction)
