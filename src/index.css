@@ -524,29 +524,33 @@
     @apply text-[11px] text-[#666];
   }
 
-  /* FortiGate Stats Bar - Polished */
+  /* FortiGate Stats Bar - Authentic FortiGate Style */
   .forti-stats-bar {
-    @apply grid auto-cols-fr grid-flow-col border-x border-b border-[#ddd];
+    @apply grid auto-cols-fr grid-flow-col border border-border rounded-sm overflow-hidden;
+    background: hsl(var(--card));
   }
 
   .forti-stat-item {
-    @apply flex items-center justify-center gap-2.5 py-3 px-3 bg-gradient-to-b from-white to-[#fafafa] border-r border-[#e5e5e5] last:border-r-0 transition-colors;
+    @apply flex items-center gap-3 py-2.5 px-4 border-r border-border last:border-r-0 transition-all duration-150 cursor-default;
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.3) 100%);
   }
 
   .forti-stat-item:hover {
-    @apply from-[#f8fdf5] to-[#f0f8ed];
+    background: linear-gradient(180deg, hsl(var(--muted) / 0.2) 0%, hsl(var(--muted) / 0.5) 100%);
   }
 
   .forti-stat-icon-wrap {
-    @apply flex items-center justify-center w-8 h-8 rounded-lg bg-[#f0f0f0]/80 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)];
+    @apply flex items-center justify-center w-9 h-9 rounded;
+    background: hsl(var(--muted) / 0.6);
+    border: 1px solid hsl(var(--border));
   }
 
   .forti-stat-value {
-    @apply text-xl font-bold tracking-tight leading-none;
+    @apply text-lg font-bold tracking-tight leading-none text-foreground;
   }
 
   .forti-stat-label {
-    @apply text-[11px] text-[#777] font-medium leading-none;
+    @apply text-xs font-medium leading-none text-muted-foreground;
   }
 
   /* Status Dots */
