@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/contexts/DemoModeContext';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/postgrest';
 import { mockSystemStatus, mockInterfaces, mockVPNTunnels, mockThreats, mockTrafficStats, mockAIAnalysis, mockFirewallRules } from '@/data/mockData';
 
 function useShouldMock(): boolean {
@@ -28,7 +28,7 @@ export function useLatestMetrics() {
           recorded_at: new Date().toISOString(),
         };
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('system_metrics')
         .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
@@ -54,7 +54,7 @@ export function useTrafficHistory(hours = 24) {
         }));
       }
       const since = new Date(Date.now() - hours * 3600000).toISOString();
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('traffic_stats')
         .select('*').gte('recorded_at', since).order('recorded_at');
       if (error) throw error;
@@ -82,7 +82,7 @@ export function useInterfaces() {
           created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }));
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('network_interfaces')
         .select('*').order('name');
       if (error) throw error;
@@ -108,7 +108,7 @@ export function useVPN() {
           uptime: v.uptime, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }));
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('vpn_tunnels')
         .select('*').order('name');
       if (error) throw error;
@@ -136,7 +136,7 @@ export function useRecentThreats() {
         }));
       }
       const since = new Date(Date.now() - 24 * 3600000).toISOString();
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('threat_events')
         .select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(50);
       if (error) throw error;
@@ -164,7 +164,7 @@ export function useLatestAIAnalysis() {
           recorded_at: new Date().toISOString(),
         };
       }
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('ai_analysis')
         .select('*').order('recorded_at', { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
@@ -188,10 +188,10 @@ export function useFirewallStats() {
           active: mockFirewallRules.filter(r => r.enabled).length,
         };
       }
-      const { data, error } = await supabase.from('firewall_rules').select('enabled');
+      const { data, error } = await db.from('firewall_rules').select('enabled');
       if (error) throw error;
       const rules = data ?? [];
-      return { total: rules.length, active: rules.filter(r => r.enabled).length };
+      return { total: rules.length, active: rules.filter((r: any) => r.enabled).length };
     },
     enabled: !!user,
   });

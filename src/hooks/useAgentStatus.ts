@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/postgrest';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemoMode } from '@/contexts/DemoModeContext';
 
@@ -36,13 +36,13 @@ export function useAgentStatus() {
         };
       }
 
-      // Real mode — gather from multiple Supabase tables
+      // Real mode — gather from multiple tables via PostgREST
       const [metricsRes, rulesRes, ifacesRes, vpnRes, threatsRes] = await Promise.all([
-        supabase.from('system_metrics').select('recorded_at,hostname').order('recorded_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('firewall_rules').select('id').eq('enabled', true),
-        supabase.from('network_interfaces').select('id').eq('status', 'up'),
-        supabase.from('vpn_tunnels').select('id').eq('status', 'connected'),
-        supabase.from('threat_events').select('id').gte('created_at', new Date(Date.now() - 86400000).toISOString()),
+        db.from('system_metrics').select('recorded_at,hostname').order('recorded_at', { ascending: false }).limit(1).maybeSingle(),
+        db.from('firewall_rules').select('id').eq('enabled', true),
+        db.from('network_interfaces').select('id').eq('status', 'up'),
+        db.from('vpn_tunnels').select('id').eq('status', 'connected'),
+        db.from('threat_events').select('id').gte('created_at', new Date(Date.now() - 86400000).toISOString()),
       ]);
 
       const lastMetric = metricsRes.data;
