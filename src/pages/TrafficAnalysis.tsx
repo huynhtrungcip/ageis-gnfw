@@ -62,12 +62,12 @@ const generateTopTalkers = () => [
 
 // Protocol distribution data
 const protocolData = [
-  { name: 'HTTPS', value: 45, color: 'hsl(var(--chart-1))' },
-  { name: 'HTTP', value: 15, color: 'hsl(var(--chart-2))' },
-  { name: 'SSH', value: 12, color: 'hsl(var(--chart-3))' },
-  { name: 'DNS', value: 10, color: 'hsl(var(--chart-4))' },
-  { name: 'SMTP', value: 8, color: 'hsl(var(--chart-5))' },
-  { name: 'Other', value: 10, color: 'hsl(var(--muted-foreground))' },
+  { name: 'HTTPS', value: 45, color: '#2e9e5e' },
+  { name: 'HTTP', value: 15, color: '#3b82f6' },
+  { name: 'SSH', value: 12, color: '#f59e0b' },
+  { name: 'DNS', value: 10, color: '#8b5cf6' },
+  { name: 'SMTP', value: 8, color: '#ef4444' },
+  { name: 'Other', value: 10, color: '#94a3b8' },
 ];
 
 // Port distribution data
@@ -179,7 +179,22 @@ const TrafficAnalysis = () => {
               {isLive ? <Pause size={14} className="mr-1" /> : <Play size={14} className="mr-1" />}
               {isLive ? 'Pause' : 'Resume'}
             </Button>
-            <Button variant="outline" size="sm" className="h-8">
+            <Button variant="outline" size="sm" className="h-8" onClick={() => {
+              const csvRows = ['Time,Inbound (Mbps),Outbound (Mbps)'];
+              bandwidthData.forEach(d => csvRows.push(`${d.time},${d.inbound},${d.outbound}`));
+              csvRows.push('', 'Protocol,Traffic %');
+              protocolData.forEach(p => csvRows.push(`${p.name},${p.value}`));
+              csvRows.push('', 'Country,Code,Traffic (MB),Percentage');
+              geoData.forEach(g => csvRows.push(`${g.country},${g.code},${g.traffic},${g.percentage}%`));
+              const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `traffic-analysis-${new Date().toISOString().split('T')[0]}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              import('sonner').then(m => m.toast.success('Traffic data exported'));
+            }}>
               <Download size={14} className="mr-1" />
               Export
             </Button>
@@ -533,12 +548,15 @@ const TrafficAnalysis = () => {
                         label={({ code, percentage }) => `${code}: ${percentage}%`}
                         labelLine={false}
                       >
-                        {geoData.map((_, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={`hsl(var(--chart-${(index % 5) + 1}))`} 
-                          />
-                        ))}
+                        {geoData.map((_, index) => {
+                          const geoColors = ['#2e9e5e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#94a3b8'];
+                          return (
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={geoColors[index % geoColors.length]} 
+                            />
+                          );
+                        })}
                       </Pie>
                       <Tooltip
                         contentStyle={{
